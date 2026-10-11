@@ -4,13 +4,13 @@
 
 ## ページ
 - `shared.html`：夫婦共有版（Googleログイン＋Firestoreリアルタイム同期）
-- `setup.html`：夫婦2人限定のFirestoreルールを作る補助ページ（UIDはブラウザ内だけで扱う）
+- `setup.html`：管理者1人がログインするだけで、家族限定のFirestoreルールを作る補助ページ（UIDはブラウザ内だけで扱う）
 - `index.html`：端末内保存のお試し版
 
 ## 開発状況
 - Googleログイン：夫婦2人とも成功
-- Firestoreルール：`setup.html` でコンソールに設定待ち（手順は `FAMILY_RULES_SETUP.md`）
+- Firestoreルール：`setup.html` でコンソールに設定待ち。配偶者は共有版の「家族の名簿」に管理者が追加（手順は `FAMILY_RULES_SETUP.md`）
 - 夫婦2台でのリアルタイム共有：本番環境では未確認
 
 ## 安全上の注意
-Firebase の実際の許可ユーザー UID や秘密情報をこの公開リポジトリに登録しないでください。`firebase-config.js` は公開用のWebアプリ設定で、秘密鍵ではありません。データの保護は Firestore セキュリティルール（夫婦2人のUIDのみ許可）で行います。無料の Spark プランのまま運用します。
+Firebase の実際の許可ユーザー UID や秘密情報をこの公開リポジトリに登録しないでください。`firebase-config.js` は公開用のWebアプリ設定で、秘密鍵ではありません。データの保護は Firestore セキュリティルール（管理者のUID＋管理者だけが編集できる家族の名簿）で行います。無料の Spark プランのまま運用します。

@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="robots" content="noindex"><meta name="theme-color" content="#23634b"><title>夫婦限定ルールの作成</title>
+<meta name="robots" content="noindex"><meta name="theme-color" content="#23634b"><title>家族限定ルールの作成</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f3f7f3;color:#244638;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;line-height:1.6}
 .wrap{max-width:640px;margin:auto;padding:22px 16px 70px}h1{font-size:23px;margin:4px 0 6px}h2{font-size:18px;margin:0 0 6px}
@@ -17,21 +17,17 @@ details{margin-top:10px}summary{cursor:pointer;color:#23634b}a{color:#23634b;fon
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
 </style></head>
 <body><main class="wrap">
-<h1>🔐 夫婦限定ルールの作成</h1>
-<p class="note">この画面で2人が順番にGoogleログインすると、「夫婦2人だけが使える」Firestoreルールを自動で作ります。<br>
-UID（アカウントの番号）はこのブラウザの中だけで扱い、どこにも送信・保存しません（タブを閉じると消えます）。<b>パソコンでの操作がおすすめです。</b></p>
+<h1>🔐 家族限定ルールの作成</h1>
+<p class="note">この画面で<b>管理者（あなた）1人だけ</b>がGoogleログインすると、「管理者と、名簿に載せた家族だけが使える」Firestoreルールを自動で作ります。<br>
+配偶者はこの画面を使いません。設定後、<b>共有版の「家族の名簿」に配偶者のGmailアドレスを追加</b>するだけです。<br>
+UID（アカウントの番号）はこのブラウザの中だけで扱い、どこにも送信・保存しません。<b>パソコンでの操作がおすすめです。</b></p>
 
-<section class="panel" id="p1"><div class="head"><span class="step">1</span><h2>1人目がログイン</h2></div>
-<p class="note">ボタンを押して、1人目のGoogleアカウントを選んでください。</p>
-<div class="row"><button id="login1" class="green">1人目でGoogleログイン</button></div>
+<section class="panel" id="p1"><div class="head"><span class="step">1</span><h2>管理者がログイン</h2></div>
+<p class="note">ボタンを押して、管理者（あなた）のGoogleアカウントを選んでください。</p>
+<div class="row"><button id="login1" class="green">管理者でGoogleログイン</button></div>
 <p id="s1" class="note"></p></section>
 
-<section class="panel" id="p2"><div class="head"><span class="step">2</span><h2>2人目がログイン</h2></div>
-<p class="note">続けて、2人目のGoogleアカウントを選んでください（アカウント選択画面で「別のアカウントを使用」）。</p>
-<div class="row"><button id="login2" class="green" disabled>2人目でGoogleログイン</button></div>
-<p id="s2" class="note"></p></section>
-
-<section class="panel" id="p3"><div class="head"><span class="step">3</span><h2>ルールをコピーして貼り付け</h2></div>
+<section class="panel" id="p3"><div class="head"><span class="step">2</span><h2>ルールをコピーして貼り付け</h2></div>
 <ol class="note" style="padding-left:20px;margin:6px 0">
 <li>「ルールをコピー」を押す</li>
 <li>「Firebaseのルール画面を開く」を押す</li>
@@ -44,13 +40,12 @@ UID（アカウントの番号）はこのブラウザの中だけで扱い、�
 <details><summary>作成されたルールを見る</summary><textarea id="rules" readonly></textarea></details>
 </section>
 
-<section class="panel"><div class="head"><span class="step">4</span><h2>共有版で確認</h2></div>
-<p class="note">「公開」から1分ほど待って、<a href="./shared.html">夫婦共有版</a>を開き、もう一度Googleログインしてください。リストが表示されれば完了です。</p></section>
+<section class="panel"><div class="head"><span class="step">3</span><h2>共有版で配偶者を名簿に追加</h2></div>
+<p class="note">「公開」から1分ほど待って、<a href="./shared.html">夫婦共有版</a>を開き、管理者でGoogleログインします。リストが表示されたら、いちばん下の<b>「家族の名簿」</b>に配偶者のGmailアドレスを入れて「＋名簿に追加」。<br>そのあと配偶者のスマホで共有版を開き、Googleログイン（済みなら再読み込み）すれば完了です。</p></section>
 
 <section class="panel"><h2>ログインできない場合（手入力）</h2>
-<p class="note">Firebaseコンソールの <a href="https://console.firebase.google.com/project/family-shopping-app-841c5/authentication/users" target="_blank" rel="noopener">Authentication → ユーザー ↗</a> に表示される「ユーザー UID」を貼り付けても作れます。</p>
-<label class="note" for="m1">1人目のUID</label><input id="m1" type="text" autocomplete="off" spellcheck="false">
-<label class="note" for="m2">2人目のUID</label><input id="m2" type="text" autocomplete="off" spellcheck="false">
+<p class="note">Firebaseコンソールの <a href="https://console.firebase.google.com/project/family-shopping-app-841c5/authentication/users" target="_blank" rel="noopener">Authentication → ユーザー ↗</a> に表示される、管理者の「ユーザー UID」を貼り付けても作れます。</p>
+<label class="note" for="m1">管理者のUID</label><input id="m1" type="text" autocomplete="off" spellcheck="false">
 <div class="row"><button id="reset" class="secondary">最初からやり直す</button></div></section>
 </main>
 <script type="module">
@@ -69,13 +64,23 @@ const UID_RE = /^[A-Za-z0-9_-]{10,128}$/;
 const uids = ["", ""];
 const mask = (u) => (UID_RE.test(u) ? u.slice(0, 4) + "…" + u.slice(-3) : "形式エラー");
 
-function buildRules(a, b) {
+function buildRules(owner) {
   return `rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 夫婦2人だけを許可（このルールはFirebaseコンソールにのみ保存し、GitHubには載せない）
+    // 管理者1人のUID＋「家族の名簿」に載ったGoogleアカウントだけを許可
+    // （このルールはFirebaseコンソールにのみ保存し、GitHubには載せない）
+    function owner() {
+      return request.auth != null && request.auth.uid == '${owner}';
+    }
+    function member() {
+      return request.auth != null
+        && request.auth.token.email is string
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/familyMembers/$(request.auth.token.email.lower()));
+    }
     function family() {
-      return request.auth != null && request.auth.uid in ['${a}', '${b}'];
+      return owner() || member();
     }
     function validName(n) {
       return n is string && n.size() > 0 && n.size() <= 60;
@@ -99,6 +104,15 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['name'])
         && validName(request.resource.data.name);
     }
+    // 家族の名簿：見るのは家族、変更できるのは管理者だけ
+    match /familyMembers/{memberEmail} {
+      allow read: if family();
+      allow create, update: if owner()
+        && memberEmail == memberEmail.lower()
+        && memberEmail.matches('^[^@/]+@[^@/]+$')
+        && request.resource.data.keys().hasOnly(['addedAt']);
+      allow delete: if owner();
+    }
     match /{document=**} {
       allow read, write: if false;
     }
@@ -108,17 +122,13 @@ service cloud.firestore {
 }
 
 function render() {
-  const [a, b] = uids;
-  $("s1").innerHTML = a ? `<span class="ok">✓ 1人目を確認しました</span>（<span class="uid">${mask(a)}</span>）` : "";
-  $("s2").innerHTML = b ? `<span class="ok">✓ 2人目を確認しました</span>（<span class="uid">${mask(b)}</span>）` : "";
-  $("login2").disabled = !a;
+  const a = uids[0];
+  $("s1").innerHTML = a ? `<span class="ok">✓ 管理者を確認しました</span>（<span class="uid">${mask(a)}</span>）` : "";
   $("p1").classList.toggle("done", !!a);
-  $("p2").classList.toggle("done", !!b);
-  const valid = UID_RE.test(a) && UID_RE.test(b) && a !== b;
+  const valid = UID_RE.test(a);
   $("copy").disabled = !valid;
-  $("rules").value = valid ? buildRules(a, b) : "";
-  if (a && b && a === b) $("s3").innerHTML = '<span class="err">1人目と2人目が同じアカウントです。2人目は別のアカウントを選んでください。</span>';
-  else if ((a && !UID_RE.test(a)) || (b && !UID_RE.test(b))) $("s3").innerHTML = '<span class="err">UIDの形式が正しくありません。</span>';
+  $("rules").value = valid ? buildRules(a) : "";
+  if (a && !valid) $("s3").innerHTML = '<span class="err">UIDの形式が正しくありません。</span>';
   else $("s3").textContent = valid ? "準備ができました。「ルールをコピー」を押してください。" : "";
 }
 
@@ -140,8 +150,7 @@ async function capture(slot) {
 }
 
 $("login1").addEventListener("click", () => capture(0));
-$("login2").addEventListener("click", () => capture(1));
-for (const [i, id] of [[0, "m1"], [1, "m2"]]) {
+for (const [i, id] of [[0, "m1"]]) {
   $(id).addEventListener("input", (e) => { uids[i] = e.target.value.trim(); render(); });
 }
 $("copy").addEventListener("click", async () => {
@@ -153,6 +162,6 @@ $("copy").addEventListener("click", async () => {
   }
   $("s3").innerHTML = '<span class="ok">✓ コピーしました。</span>次に「Firebaseのルール画面を開く」を押して貼り付け、「公開」を押してください。';
 });
-$("reset").addEventListener("click", () => { uids[0] = uids[1] = ""; $("m1").value = $("m2").value = ""; render(); $("s1").textContent = $("s2").textContent = ""; });
+$("reset").addEventListener("click", () => { uids[0] = ""; $("m1").value = ""; render(); $("s1").textContent = ""; });
 render();
 </script></body></html>

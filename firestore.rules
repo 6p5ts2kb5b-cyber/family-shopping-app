@@ -3,9 +3,19 @@ rules_version = '2';
 // プレースホルダのままでは誰にも一致しないため、このファイル自体は全アクセス拒否と同じ。
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 夫婦2人だけを許可（このルールはFirebaseコンソールにのみ保存し、GitHubには載せない）
+    // 管理者1人のUID＋「家族の名簿」に載ったGoogleアカウントだけを許可
+    // （このルールはFirebaseコンソールにのみ保存し、GitHubには載せない）
+    function owner() {
+      return request.auth != null && request.auth.uid == 'REPLACE_WITH_OWNER_UID';
+    }
+    function member() {
+      return request.auth != null
+        && request.auth.token.email is string
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/familyMembers/$(request.auth.token.email.lower()));
+    }
     function family() {
-      return request.auth != null && request.auth.uid in ['REPLACE_WITH_FIRST_PERSON_UID', 'REPLACE_WITH_SECOND_PERSON_UID'];
+      return owner() || member();
     }
     function validName(n) {
       return n is string && n.size() > 0 && n.size() <= 60;
@@ -28,6 +38,15 @@ service cloud.firestore {
       allow create, update: if family()
         && request.resource.data.keys().hasOnly(['name'])
         && validName(request.resource.data.name);
+    }
+    // 家族の名簿：見るのは家族、変更できるのは管理者だけ
+    match /familyMembers/{memberEmail} {
+      allow read: if family();
+      allow create, update: if owner()
+        && memberEmail == memberEmail.lower()
+        && memberEmail.matches('^[^@/]+@[^@/]+$')
+        && request.resource.data.keys().hasOnly(['addedAt']);
+      allow delete: if owner();
     }
     match /{document=**} {
       allow read, write: if false;
