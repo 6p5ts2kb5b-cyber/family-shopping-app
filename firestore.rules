@@ -1,8 +1,34 @@
 rules_version = '2';
+// テンプレート：本物のUIDはここに書かず、setup.html で作成してFirebaseコンソールに貼り付ける。
+// プレースホルダのままでは誰にも一致しないため、このファイル自体は全アクセス拒否と同じ。
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Deny all access until two Firebase Authentication UIDs are configured.
-    // Do not place real UIDs in this public repository.
+    // 夫婦2人だけを許可（このルールはFirebaseコンソールにのみ保存し、GitHubには載せない）
+    function family() {
+      return request.auth != null && request.auth.uid in ['REPLACE_WITH_FIRST_PERSON_UID', 'REPLACE_WITH_SECOND_PERSON_UID'];
+    }
+    function validName(n) {
+      return n is string && n.size() > 0 && n.size() <= 60;
+    }
+    function validItem(d) {
+      return d.keys().hasAll(['name', 'quantity', 'done', 'createdAt', 'doneAt'])
+        && d.keys().hasOnly(['name', 'quantity', 'done', 'createdAt', 'doneAt'])
+        && validName(d.name)
+        && d.quantity is int && d.quantity >= 1 && d.quantity <= 999
+        && d.done is bool
+        && (d.createdAt is int || d.createdAt is timestamp)
+        && (d.doneAt == null || d.doneAt is int || d.doneAt is timestamp);
+    }
+    match /shoppingItems/{itemId} {
+      allow read, delete: if family();
+      allow create, update: if family() && validItem(request.resource.data);
+    }
+    match /shoppingFavorites/{favId} {
+      allow read, delete: if family();
+      allow create, update: if family()
+        && request.resource.data.keys().hasOnly(['name'])
+        && validName(request.resource.data.name);
+    }
     match /{document=**} {
       allow read, write: if false;
     }
