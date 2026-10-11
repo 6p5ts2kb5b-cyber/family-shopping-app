@@ -1,7 +1,7 @@
 // Firebase Web SDK public app configuration (NOT a service-account secret).
 // This file contains no personal UID or private credentials.
 export const firebaseConfig = {
-  apiKey: "AIzaSyAyHcTb73gTM_xEy6f4-uyX4MbkuLJE0TI",
+  apiKey: "AIzaSyAyHCTb73gTM_xEy6f4-uyX4MbkuLJE0TI",
   authDomain: "family-shopping-app-841c5.firebaseapp.com",
   projectId: "family-shopping-app-841c5",
   storageBucket: "family-shopping-app-841c5.firebasestorage.app",
