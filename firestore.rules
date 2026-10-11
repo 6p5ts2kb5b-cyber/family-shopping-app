@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Deny all access until two Firebase Authentication UIDs are configured.
+    // Do not place real UIDs in this public repository.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
