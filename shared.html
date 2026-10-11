@@ -1,0 +1,43 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#23634b"><title>わが家の買い物メモ・夫婦共有版</title><style>
+*{box-sizing:border-box}body{margin:0;background:#f3f7f3;color:#244638;font-family:system-ui,-apple-system,sans-serif}.wrap{max-width:620px;margin:auto;padding:22px 15px 70px}h1{font-size:25px}h2{font-size:19px}.panel{background:white;padding:18px;border-radius:17px;margin:15px 0;box-shadow:0 3px 12px #132e2110}button,input{font:inherit}button{border:0;border-radius:10px;min-height:43px;padding:9px 12px;cursor:pointer}.green{background:#23634b;color:white}.secondary{background:#eaf3ec;color:#23634b}.danger{color:#9a3535;background:transparent}.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}input[type=text],input[type=number]{min-height:43px;border:1px solid #c6d2c9;border-radius:10px;padding:8px;font-size:16px}input[type=text]{flex:1;min-width:150px}input[type=number]{width:70px}.note{color:#5d756a;font-size:13px;line-height:1.6}.warning{background:#ffefd6;padding:12px;border-radius:12px;color:#784e1d}.error{color:#9b3333}.item{display:flex;align-items:center;gap:7px;border-top:1px solid #e8eee9;padding:8px 0;min-height:56px}.item label{display:flex;gap:10px;align-items:center;flex:1;min-width:0;overflow-wrap:anywhere}.item input[type=checkbox]{width:21px;height:21px;accent-color:#23634b}.item button{padding:4px 10px}.amount{font-weight:bold;min-width:27px;text-align:center}.chips{display:flex;flex-wrap:wrap;gap:8px}.chips button{background:#e9f4ed;color:#23634b}button:disabled{opacity:.45}#status{font-size:14px}.hidden{display:none}a{color:#23634b}
+</style></head><body><main class="wrap"><h1>🛒 わが家の買い物メモ</h1><p class="note">夫婦共有版（初期設定中）</p>
+<section class="panel"><div class="row"><button id="login" class="green">Googleでログイン</button><button id="logout" class="secondary hidden">ログアウト</button></div><p id="account" class="note">ログインしてください。</p><p id="status" class="warning">データへのアクセスは、夫婦2人限定ルールが設定されるまで拒否されます。</p><p class="note">以前のお試し版の買い物リストは、そのまま端末内に残ります。自動移行・自動削除はしません。</p></section>
+<div id="content" class="hidden"><section class="panel"><form id="add" class="row"><input id="product" type="text" required maxlength="60" placeholder="何を買う？"><input id="qty" type="number" min="1" max="999" value="1" aria-label="個数" required><button class="green">＋追加</button></form></section>
+<section class="panel"><h2>買うもの <span id="todoCount">0</span></h2><div id="todo"></div></section>
+<section class="panel"><h2>よく買うもの</h2><div id="favorites" class="chips"></div><form id="favForm" class="row" style="margin-top:12px"><input id="favName" type="text" maxlength="60" placeholder="よく買うものを登録" required><button class="secondary">＋登録</button></form></section>
+<section class="panel"><h2>購入済み <span id="doneCount">0</span></h2><div id="done"></div></section>
+</div><p class="note"><a href="./">端末内保存のお試し版に戻る</a></p></main>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import {getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import {getFirestore,collection,doc,onSnapshot,runTransaction,deleteDoc,setDoc} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import {firebaseConfig} from "./firebase-config.js";
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),provider=new GoogleAuthProvider();
+const $=id=>document.getElementById(id),clean=s=>String(s).normalize('NFKC').trim().replace(/\s+/g,' '),key=s=>clean(s).toLocaleLowerCase('ja-JP');
+const encode=s=>Array.from(new TextEncoder().encode(key(s)),x=>x.toString(16).padStart(2,'0')).join('');
+let user=null,canWrite=false,items=[],favs=[],unsubs=[],readyItems=false,readyFavs=false;
+function message(s,err=false){$('status').textContent=s;$('status').className=err?'error':'note'}
+function safeError(e){if(e?.code==='already-listed')return 'すでに買うものに登録されています。';if(e?.code==='permission-denied')return 'アクセスが拒否されました。夫婦2人限定のFirestoreルールが未設定、またはこのアカウントが未許可です。';if(e?.code==='auth/popup-blocked')return 'ログイン画面がブロックされました。ポップアップを許可してください。';if(e?.code==='auth/unauthorized-domain')return 'このサイトのドメインがFirebaseで承認されていません。';if(e?.code==='unavailable')return '通信できません。接続を確認してください。';return 'エラーが発生しました：'+(e?.code||'通信または設定を確認してください')}
+function stop(){unsubs.forEach(f=>f());unsubs=[];readyItems=readyFavs=canWrite=false;items=[];favs=[];$('content').classList.add('hidden')}
+async function login(){try{await signInWithPopup(auth,provider)}catch(e){message(safeError(e),true)}}
+$('login').addEventListener('click',login);$('logout').addEventListener('click',()=>signOut(auth).catch(e=>message(safeError(e),true)));
+onAuthStateChanged(auth,u=>{stop();user=u;$('login').classList.toggle('hidden',!!u);$('logout').classList.toggle('hidden',!u);$('account').textContent=u?'Googleログイン済み：'+(u.email||'アカウント'):'ログインしてください。';if(!u){message('Googleでログインすると、許可された家族の買い物リストを読み込みます。');return}message('アクセス権限を確認中…');
+const err=e=>{stop();message(safeError(e),true)};
+unsubs.push(onSnapshot(collection(db,'shoppingItems'),snap=>{items=snap.docs.map(d=>({id:d.id,...d.data()}));readyItems=true;renderReady()},err));
+unsubs.push(onSnapshot(collection(db,'shoppingFavorites'),snap=>{favs=snap.docs.map(d=>({id:d.id,...d.data()}));readyFavs=true;renderReady()},err));
+});
+function renderReady(){if(!readyItems||!readyFavs)return;canWrite=true;$('content').classList.remove('hidden');message('共有データに接続しました。購入チェックや個数変更は夫婦で同期されます。');draw()}
+function button(text,cb,cls='secondary'){let b=document.createElement('button');b.type='button';b.className=cls;b.textContent=text;b.addEventListener('click',cb);return b}
+async function write(fn){if(!user||!canWrite){message('共有データへのアクセス権限を確認してください。',true);return}try{await fn()}catch(e){message(safeError(e),true)}}
+function itemRow(item){const wrap=document.createElement('div');wrap.className='item';const label=document.createElement('label'),cb=document.createElement('input');cb.type='checkbox';cb.checked=!!item.done;cb.addEventListener('change',()=>write(()=>setDoc(doc(db,'shoppingItems',item.id),{done:cb.checked,doneAt:cb.checked?Date.now():null},{merge:true})));let span=document.createElement('span');span.textContent=item.name;label.append(cb,span);wrap.append(label);
+const amount=document.createElement('span');amount.className='amount';amount.textContent=String(item.quantity||1);
+wrap.append(button('−',()=>adjust(item,-1)),amount,button('＋',()=>adjust(item,1)),button('×',()=>write(()=>deleteDoc(doc(db,'shoppingItems',item.id))),'danger'));return wrap}
+function adjust(item,diff){const q=(item.quantity||1)+diff;if(q<1||q>999)return;write(()=>setDoc(doc(db,'shoppingItems',item.id),{quantity:q},{merge:true}))}
+function draw(){const todo=items.filter(x=>!x.done).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)),done=items.filter(x=>x.done).sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));$('todoCount').textContent=todo.length;$('doneCount').textContent=done.length;$('todo').replaceChildren(...todo.map(itemRow));$('done').replaceChildren(...done.map(itemRow));$('favorites').replaceChildren(...favs.sort((a,b)=>a.name.localeCompare(b.name,'ja')).map(f=>{let box=document.createElement('span');box.className='row';box.append(button('＋ '+f.name,()=>addProduct(f.name,1)),button('×',()=>write(()=>deleteDoc(doc(db,'shoppingFavorites',f.id))),'danger'));return box}))}
+async function addProduct(raw,q){let name=clean(raw),quantity=Number(q);if(!name||name.length>60||!Number.isInteger(quantity)||quantity<1||quantity>999){message('商品名と個数を確認してください。',true);return}
+const id=encode(name),ref=doc(db,'shoppingItems',id);
+await write(()=>runTransaction(db,async tx=>{let existing=await tx.get(ref);if(existing.exists()&&!existing.data().done)throw {code:'already-listed'};tx.set(ref,{name,quantity,done:false,createdAt:Date.now(),doneAt:null})}));}
+$('add').addEventListener('submit',e=>{e.preventDefault();addProduct($('product').value,$('qty').value);$('product').value='';$('qty').value='1'});
+$('favForm').addEventListener('submit',e=>{e.preventDefault();let name=clean($('favName').value);if(!name||name.length>60)return;const id=encode(name);write(()=>setDoc(doc(db,'shoppingFavorites',id),{name}));$('favName').value=''});
+
+</script></body></html>
