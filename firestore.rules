@@ -33,6 +33,23 @@ service cloud.firestore {
       allow read, delete: if family();
       allow create, update: if family() && validItem(request.resource.data);
     }
+    // 家族の予定（who: 家族全員 / 妻 / 夫。'me' は旧データ・現行画面との互換用）
+    match /familySchedules/{scheduleId} {
+      allow read, delete: if family();
+      allow create, update: if family()
+        && request.resource.data.keys().hasAll(['date', 'name', 'who', 'departure', 'returnTime'])
+        && request.resource.data.keys().hasOnly(['date', 'name', 'who', 'departure', 'returnTime'])
+        && request.resource.data.date is string
+        && request.resource.data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.who in ['family', 'wife', 'husband', 'me']
+        && request.resource.data.departure is string
+        && request.resource.data.returnTime is string
+        && (request.resource.data.departure == '' || request.resource.data.departure.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$'))
+        && (request.resource.data.returnTime == '' || request.resource.data.returnTime.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$'));
+    }
     match /shoppingFavorites/{favId} {
       allow read, delete: if family();
       allow create, update: if family()
