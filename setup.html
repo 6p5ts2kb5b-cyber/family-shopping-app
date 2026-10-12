@@ -98,6 +98,222 @@ service cloud.firestore {
       allow read, delete: if family();
       allow create, update: if family() && validItem(request.resource.data);
     }
+    match /familySchedules/{scheduleId} {
+      allow read, delete: if family();
+      allow create, update: if family()
+        && request.resource.data.keys().hasAll(['date','name','who','departure','returnTime'])
+        && request.resource.data.keys().hasOnly(['date','name','who','departure','returnTime'])
+        && request.resource.data.date is string
+        && request.resource.data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}
+      allow read, delete: if family();
+      allow create, update: if family()
+        && request.resource.data.keys().hasOnly(['name'])
+        && validName(request.resource.data.name);
+    }
+    // 家族の名簿：見るのは家族、変更できるのは管理者だけ
+    match /familyMembers/{memberEmail} {
+      allow read: if family();
+      allow create, update: if owner()
+        && memberEmail == memberEmail.lower()
+        && memberEmail.matches('^[^@/]+@[^@/]+$')
+        && request.resource.data.keys().hasOnly(['addedAt']);
+      allow delete: if owner();
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+`;
+}
+
+function render() {
+  const a = uids[0];
+  $("s1").innerHTML = a ? `<span class="ok">✓ 管理者を確認しました</span>（<span class="uid">${mask(a)}</span>）` : "";
+  $("p1").classList.toggle("done", !!a);
+  const valid = UID_RE.test(a);
+  $("copy").disabled = !valid;
+  $("rules").value = valid ? buildRules(a) : "";
+  if (a && !valid) $("s3").innerHTML = '<span class="err">UIDの形式が正しくありません。</span>';
+  else $("s3").textContent = valid ? "準備ができました。「ルールをコピー」を押してください。" : "";
+}
+
+async function capture(slot) {
+  $("s" + (slot + 1)).textContent = "ログイン画面を開いています…";
+  try {
+    await ready;
+    const cred = await signInWithPopup(auth, provider);
+    uids[slot] = cred.user.uid;
+    $("m" + (slot + 1)).value = cred.user.uid;
+    await signOut(auth);
+    render();
+  } catch (e) {
+    const msg = e?.code === "auth/popup-closed-by-user" || e?.code === "auth/cancelled-popup-request" ? "ログインが中断されました。もう一度押してください。"
+      : e?.code === "auth/popup-blocked" ? "ポップアップがブロックされました。ブラウザで許可してから、もう一度押してください。"
+      : "ログインできませんでした（" + (e?.code || "不明なエラー") + "）";
+    $("s" + (slot + 1)).innerHTML = `<span class="err">${msg}</span>`;
+  }
+}
+
+$("login1").addEventListener("click", () => capture(0));
+for (const [i, id] of [[0, "m1"]]) {
+  $(id).addEventListener("input", (e) => { uids[i] = e.target.value.trim(); render(); });
+}
+$("copy").addEventListener("click", async () => {
+  const text = $("rules").value;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const t = $("rules"); t.closest("details").open = true; t.select(); document.execCommand("copy");
+  }
+  $("s3").innerHTML = '<span class="ok">✓ コピーしました。</span>次に「Firebaseのルール画面を開く」を押して貼り付け、「公開」を押してください。';
+});
+$("reset").addEventListener("click", () => { uids[0] = ""; $("m1").value = ""; render(); $("s1").textContent = ""; });
+render();
+</script></body></html>
+)
+        && validName(request.resource.data.name)
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.who in ['family','wife','me']
+        && request.resource.data.departure is string
+        && request.resource.data.returnTime is string
+        && (request.resource.data.departure == '' || request.resource.data.departure.matches('^([01][0-9]|2[0-3]):[0-5][0-9]
+      allow read, delete: if family();
+      allow create, update: if family()
+        && request.resource.data.keys().hasOnly(['name'])
+        && validName(request.resource.data.name);
+    }
+    // 家族の名簿：見るのは家族、変更できるのは管理者だけ
+    match /familyMembers/{memberEmail} {
+      allow read: if family();
+      allow create, update: if owner()
+        && memberEmail == memberEmail.lower()
+        && memberEmail.matches('^[^@/]+@[^@/]+$')
+        && request.resource.data.keys().hasOnly(['addedAt']);
+      allow delete: if owner();
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+`;
+}
+
+function render() {
+  const a = uids[0];
+  $("s1").innerHTML = a ? `<span class="ok">✓ 管理者を確認しました</span>（<span class="uid">${mask(a)}</span>）` : "";
+  $("p1").classList.toggle("done", !!a);
+  const valid = UID_RE.test(a);
+  $("copy").disabled = !valid;
+  $("rules").value = valid ? buildRules(a) : "";
+  if (a && !valid) $("s3").innerHTML = '<span class="err">UIDの形式が正しくありません。</span>';
+  else $("s3").textContent = valid ? "準備ができました。「ルールをコピー」を押してください。" : "";
+}
+
+async function capture(slot) {
+  $("s" + (slot + 1)).textContent = "ログイン画面を開いています…";
+  try {
+    await ready;
+    const cred = await signInWithPopup(auth, provider);
+    uids[slot] = cred.user.uid;
+    $("m" + (slot + 1)).value = cred.user.uid;
+    await signOut(auth);
+    render();
+  } catch (e) {
+    const msg = e?.code === "auth/popup-closed-by-user" || e?.code === "auth/cancelled-popup-request" ? "ログインが中断されました。もう一度押してください。"
+      : e?.code === "auth/popup-blocked" ? "ポップアップがブロックされました。ブラウザで許可してから、もう一度押してください。"
+      : "ログインできませんでした（" + (e?.code || "不明なエラー") + "）";
+    $("s" + (slot + 1)).innerHTML = `<span class="err">${msg}</span>`;
+  }
+}
+
+$("login1").addEventListener("click", () => capture(0));
+for (const [i, id] of [[0, "m1"]]) {
+  $(id).addEventListener("input", (e) => { uids[i] = e.target.value.trim(); render(); });
+}
+$("copy").addEventListener("click", async () => {
+  const text = $("rules").value;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const t = $("rules"); t.closest("details").open = true; t.select(); document.execCommand("copy");
+  }
+  $("s3").innerHTML = '<span class="ok">✓ コピーしました。</span>次に「Firebaseのルール画面を開く」を押して貼り付け、「公開」を押してください。';
+});
+$("reset").addEventListener("click", () => { uids[0] = ""; $("m1").value = ""; render(); $("s1").textContent = ""; });
+render();
+</script></body></html>
+))
+        && (request.resource.data.returnTime == '' || request.resource.data.returnTime.matches('^([01][0-9]|2[0-3]):[0-5][0-9]
+      allow read, delete: if family();
+      allow create, update: if family()
+        && request.resource.data.keys().hasOnly(['name'])
+        && validName(request.resource.data.name);
+    }
+    // 家族の名簿：見るのは家族、変更できるのは管理者だけ
+    match /familyMembers/{memberEmail} {
+      allow read: if family();
+      allow create, update: if owner()
+        && memberEmail == memberEmail.lower()
+        && memberEmail.matches('^[^@/]+@[^@/]+$')
+        && request.resource.data.keys().hasOnly(['addedAt']);
+      allow delete: if owner();
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+`;
+}
+
+function render() {
+  const a = uids[0];
+  $("s1").innerHTML = a ? `<span class="ok">✓ 管理者を確認しました</span>（<span class="uid">${mask(a)}</span>）` : "";
+  $("p1").classList.toggle("done", !!a);
+  const valid = UID_RE.test(a);
+  $("copy").disabled = !valid;
+  $("rules").value = valid ? buildRules(a) : "";
+  if (a && !valid) $("s3").innerHTML = '<span class="err">UIDの形式が正しくありません。</span>';
+  else $("s3").textContent = valid ? "準備ができました。「ルールをコピー」を押してください。" : "";
+}
+
+async function capture(slot) {
+  $("s" + (slot + 1)).textContent = "ログイン画面を開いています…";
+  try {
+    await ready;
+    const cred = await signInWithPopup(auth, provider);
+    uids[slot] = cred.user.uid;
+    $("m" + (slot + 1)).value = cred.user.uid;
+    await signOut(auth);
+    render();
+  } catch (e) {
+    const msg = e?.code === "auth/popup-closed-by-user" || e?.code === "auth/cancelled-popup-request" ? "ログインが中断されました。もう一度押してください。"
+      : e?.code === "auth/popup-blocked" ? "ポップアップがブロックされました。ブラウザで許可してから、もう一度押してください。"
+      : "ログインできませんでした（" + (e?.code || "不明なエラー") + "）";
+    $("s" + (slot + 1)).innerHTML = `<span class="err">${msg}</span>`;
+  }
+}
+
+$("login1").addEventListener("click", () => capture(0));
+for (const [i, id] of [[0, "m1"]]) {
+  $(id).addEventListener("input", (e) => { uids[i] = e.target.value.trim(); render(); });
+}
+$("copy").addEventListener("click", async () => {
+  const text = $("rules").value;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const t = $("rules"); t.closest("details").open = true; t.select(); document.execCommand("copy");
+  }
+  $("s3").innerHTML = '<span class="ok">✓ コピーしました。</span>次に「Firebaseのルール画面を開く」を押して貼り付け、「公開」を押してください。';
+});
+$("reset").addEventListener("click", () => { uids[0] = ""; $("m1").value = ""; render(); $("s1").textContent = ""; });
+render();
+</script></body></html>
+));
+    }
     match /shoppingFavorites/{favId} {
       allow read, delete: if family();
       allow create, update: if family()
