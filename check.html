@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex"><meta name="theme-color" content="#23634b"><title>接続チェック</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f7f3;color:#244638;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif;line-height:1.6}
+.wrap{max-width:600px;margin:auto;padding:22px 16px 60px}h1{font-size:23px;margin:4px 0}
+.panel{background:#fff;padding:18px;border-radius:17px;margin:14px 0;box-shadow:0 3px 12px #132e2110}
+button{font:inherit;border:0;border-radius:11px;min-height:46px;padding:10px 16px;cursor:pointer;font-weight:700}
+.green{background:#23634b;color:#fff}.secondary{background:#eaf3ec;color:#23634b}
+.note{color:#5d756a;font-size:14px}.row{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #e8eee9}
+.ok{color:#1d6b40;font-weight:700}.ng{color:#a33;font-weight:700}.big{font-size:18px;font-weight:700}a{color:#23634b;font-weight:700}
+</style></head>
+<body><main class="wrap">
+<h1>✅ 接続チェック</h1>
+<p class="note">Firestoreルールを公開したあと、夫婦それぞれのスマホで1回ずつ確認します。<b>データの読み取りだけ</b>を行い、追加・変更・削除はしません。</p>
+<section class="panel">
+<button id="run" class="green">Googleでログインしてチェック</button>
+<p id="who" class="note"></p>
+<div id="result"></div>
+<p id="summary" class="big"></p>
+</section>
+<p class="note"><a href="./shared.html">買い物リストへ</a>　<a href="./schedule.html">予定へ</a></p>
+</main>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { firebaseConfig } from "./firebase-config.js?v=20261011-fix2";
+
+const $ = (id) => document.getElementById(id);
+const app = initializeApp(firebaseConfig), auth = getAuth(app), db = getFirestore(app);
+const CHECKS = [["shoppingItems", "買い物リスト"], ["shoppingFavorites", "よく買うもの"], ["familySchedules", "家族の予定"], ["familyMembers", "家族の名簿"]];
+
+function row(label, ok, detail) {
+  const d = document.createElement("div"); d.className = "row";
+  const a = document.createElement("span"); a.textContent = label;
+  const b = document.createElement("span"); b.className = ok ? "ok" : "ng"; b.textContent = detail;
+  d.append(a, b); return d;
+}
+
+async function check(user) {
+  $("who").textContent = "ログイン中：" + (user.email || "不明");
+  $("result").replaceChildren(); $("summary").textContent = "確認中…";
+  let allOk = true, members = null;
+  for (const [col, label] of CHECKS) {
+    try {
+      const snap = await getDocs(collection(db, col));
+      if (col === "familyMembers") members = snap.docs.map((d) => d.id);
+      $("result").append(row(label, true, "✓ 読める（" + snap.size + "件）"));
+    } catch (e) {
+      allOk = false;
+      $("result").append(row(label, false, e?.code === "permission-denied" ? "✗ 権限なし" : "✗ " + (e?.code || "エラー")));
+    }
+  }
+  const mine = (user.email || "").toLowerCase();
+  const role = members?.includes(mine) ? "名簿の家族" : "管理者";
+  $("summary").innerHTML = allOk
+    ? `<span class="ok">OK：ルールは正しく動いています（${role}としてアクセス）</span>`
+    : `<span class="ng">NG：上の ✗ の項目が読めません。ルールが未公開か、このアカウントが名簿に入っていません。</span>`;
+}
+
+$("run").addEventListener("click", async () => {
+  try {
+    if (auth.currentUser) await check(auth.currentUser);
+    else await signInWithPopup(auth, new GoogleAuthProvider());
+  } catch (e) { $("summary").innerHTML = '<span class="ng">ログインできませんでした（' + (e?.code || "エラー") + "）</span>"; }
+});
+onAuthStateChanged(auth, (u) => { if (u) { $("run").textContent = "もう一度チェック"; check(u); } });
+</script></body></html>

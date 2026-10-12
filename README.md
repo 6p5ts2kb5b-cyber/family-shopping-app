@@ -5,6 +5,8 @@
 ## ページ
 - `shared.html`：夫婦共有版（Googleログイン＋Firestoreリアルタイム同期）
 - `setup.html`：管理者1人がログインするだけで、家族限定のFirestoreルールを作る補助ページ（UIDはブラウザ内だけで扱う）
+- `schedule.html`：家族の予定（家族全員・妻・夫、出発・帰宅時刻）
+- `check.html`：ルール公開後の接続チェック（読み取りのみ）
 - `index.html`：端末内保存のお試し版
 
 ## 開発状況
