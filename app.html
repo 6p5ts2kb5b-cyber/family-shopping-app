@@ -148,7 +148,7 @@ button.ev:first-child{border-top:0}
 .wrow .lines .none{color:#7A867E}
 .wrow .lines .tm{color:var(--muted)}
 .opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
-.opts button{min-height:44px;border-radius:12px;border:1px solid var(--line2);background:var(--card);font-weight:700;font-size:14px;color:#3F4D45}
+.opts button{min-height:44px;min-width:0;border-radius:12px;border:1px solid var(--line2);background:var(--card);font-weight:700;font-size:14px;color:#3F4D45;padding:4px 2px;line-height:1.3;white-space:normal}
 .opts button[aria-pressed=true]{border:2px solid var(--green);color:var(--green)}
 .wkprev .ev{padding:8px 0}
 
@@ -189,7 +189,7 @@ details.fold>summary::-webkit-details-marker{display:none}
 .ask .row button{flex:1;min-height:44px;border-radius:12px;border:1px solid #E2C27A;background:#fff;color:#5C3D00;font-weight:700}
 
 /* 家族タブ */
-.fam{padding:16px;display:grid;gap:10px}
+.fam{padding:16px;display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
 .fam h2{margin:0;font-size:18px}
 .member{display:flex;align-items:center;gap:8px;min-height:48px;border-top:1px solid var(--line)}
 .member span{flex:1;min-width:0;overflow-wrap:anywhere}
@@ -211,6 +211,45 @@ details.fold>summary::-webkit-details-marker{display:none}
 .trial{background:var(--warn-soft);color:#5C3D00;border-radius:16px;padding:12px 14px;margin:0 0 14px;font-size:14px;line-height:1.6}
 .trial b{color:#4A3000}
 .trial a{color:#1F5C45;font-weight:700;white-space:nowrap}
+.donecard{overflow:hidden}
+.donehead{width:100%;min-height:56px;border:0;background:none;display:flex;align-items:center;gap:10px;padding:0 16px;font:inherit;color:var(--ink);text-align:left}
+.donehead .dt{flex:1;font-size:17px;font-weight:700;display:flex;align-items:center;gap:10px}
+.donehead .ic{width:26px;height:26px;border-radius:50%;background:var(--green-soft);color:var(--green);display:flex;align-items:center;justify-content:center;flex:none}
+.badge.soft{background:#E6E9E7;color:#3F4D45}
+.chev{transition:transform .2s;color:var(--muted);flex:none}
+.donehead[aria-expanded=true] .chev{transform:rotate(180deg)}
+#doneBody{border-top:1px solid var(--line)}
+#doneBody .hint{padding:8px 16px 12px}
+.backbtn{flex:none;min-height:40px;min-width:52px;border:1px solid var(--line2);border-radius:999px;background:var(--card);color:var(--green);font-weight:700;font-size:14px;padding:0 12px;margin-left:4px}
+.chipwrap{position:relative}
+.chipwrap::before,.chipwrap::after{content:"";position:absolute;top:0;bottom:6px;width:44px;pointer-events:none;opacity:0;transition:opacity .15s;z-index:1}
+.chipwrap::before{left:0;background:linear-gradient(90deg,var(--bg),rgba(246,244,239,0))}
+.chipwrap::after{right:0;background:linear-gradient(270deg,var(--bg) 30%,rgba(246,244,239,0))}
+.chipwrap.can-left::before,.chipwrap.can-right::after{opacity:1}
+.chipwrap .more-hint{position:absolute;right:6px;top:50%;transform:translateY(-62%);z-index:2;color:var(--green);pointer-events:none;opacity:0;transition:opacity .15s}
+.chipwrap.can-right .more-hint{opacity:1}
+.chiparrow{display:none;position:absolute;top:50%;transform:translateY(-58%);z-index:3;width:40px;height:40px;border-radius:50%;border:1px solid var(--line2);background:var(--card);color:var(--green);font-size:22px;font-weight:700;box-shadow:0 2px 6px rgba(31,42,36,.12);padding:0;line-height:1}
+.chiparrow.left{left:-4px}.chiparrow.right{right:-4px}
+@media (hover:hover) and (pointer:fine){
+  .chipwrap.can-left .chiparrow.left,.chipwrap.can-right .chiparrow.right{display:flex;align-items:center;justify-content:center}
+  .chipwrap .more-hint{display:none}
+}
+/* パソコン・タブレット横（幅960px以上）：2列 */
+@media (min-width:960px){
+  .top,main,.signin,.dock>*{max-width:1120px}
+  .signin{max-width:560px}
+  #homeScreen:not([hidden]){display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:24px;align-items:start}
+  #homeScreen .col-plan{position:sticky;top:16px}
+  #homeScreen .col-shop>.section:first-child{margin-top:0}
+  #scheduleScreen:not([hidden]){display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:24px;align-items:start}
+  #scheduleScreen .col-form{position:sticky;top:16px}
+  #scheduleScreen .col-form>.section{margin-top:0}
+  #familyScreen:not([hidden]){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
+  #familyScreen>.section{margin-top:0}
+  .addbar{justify-content:flex-end}
+  .addbar input{flex:0 1 560px}
+  main{padding-bottom:200px}
+}
 .toast{position:fixed;left:16px;right:16px;bottom:calc(150px + env(safe-area-inset-bottom));z-index:20;max-width:608px;margin:auto;background:#24302A;color:#fff;border-radius:16px;padding:6px 6px 6px 16px;display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.2);font-size:15px}
 .toast span{flex:1;padding:8px 0}
 .toast button{min-height:44px;border:0;border-radius:12px;background:#3B4A42;color:#BFE3CF;font-weight:700;padding:0 14px}
@@ -239,6 +278,7 @@ details.fold>summary::-webkit-details-marker{display:none}
   <p class="trial" id="trialNote" role="note"><b>試用版</b>：今の買い物リスト・予定と<b>同じデータ</b>です。ここでの追加・変更・削除は従来版にも反映されます。試しに入れるものは「<b>テスト</b>」で始まる名前に（例：テスト牛乳）。<a href="./shared.html">従来版に戻る ›</a></p>
   <!-- 今日 -->
   <div id="homeScreen" class="screen">
+   <div class="col col-plan">
     <section aria-labelledby="hToday" class="card sched">
       <div class="head" style="padding:0">
         <h2 id="hToday" style="font-size:16px">今日の予定</h2>
@@ -252,14 +292,21 @@ details.fold>summary::-webkit-details-marker{display:none}
       <div id="homeWeekendList"></div>
     </section>
 
+   </div>
+   <div class="col col-shop">
     <section class="section" aria-labelledby="hTodo">
       <div class="head"><h2 id="hTodo">買うもの <span class="badge num" id="todoCount">0</span></h2></div>
       <ul class="card list" id="todo"></ul>
     </section>
 
     <section class="section" aria-labelledby="hFav">
-      <div class="head"><h2 id="hFav" style="font-size:15px;color:var(--muted)">よく買うもの　タップで追加</h2></div>
-      <div class="chips" id="favorites"></div>
+      <div class="head"><h2 id="hFav" style="font-size:15px;color:var(--muted)">よく買うもの <span class="badge soft num" id="favCount">0</span><span style="font-weight:500">タップで追加</span></h2></div>
+      <div class="chipwrap" id="favWrap">
+        <button type="button" class="chiparrow left" id="favLeft" aria-label="よく買うものを左へ">‹</button>
+        <div class="chips" id="favorites"></div>
+        <svg class="more-hint" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+        <button type="button" class="chiparrow right" id="favRight" aria-label="よく買うものを右へ">›</button>
+      </div>
       <details class="fold" id="favFold">
         <summary>よく買うものを編集</summary>
         <div class="card favedit">
@@ -269,16 +316,25 @@ details.fold>summary::-webkit-details-marker{display:none}
       </details>
     </section>
 
-    <section class="section">
-      <details class="fold" id="doneFold">
-        <summary>購入済み <span class="num" id="doneCount" style="margin-left:6px">0</span></summary>
-        <ul class="card list" id="done"></ul>
-      </details>
+    <section class="section" aria-label="購入済み">
+      <div class="card donecard">
+        <button type="button" class="donehead" id="doneToggle" aria-expanded="false" aria-controls="doneBody">
+          <span class="dt"><span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span>購入済み <span class="badge soft num" id="doneCount">0</span></span>
+          <span class="hint" id="doneHint">タップで表示</span>
+          <svg class="chev" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div id="doneBody" hidden>
+          <ul class="list" id="done"></ul>
+          <p class="hint">「戻す」で買うものに戻ります。</p>
+        </div>
+      </div>
     </section>
+   </div>
   </div>
 
   <!-- 予定 -->
   <div id="scheduleScreen" class="screen" hidden>
+   <div class="col col-view">
     <div class="seg seg4" role="tablist" aria-label="表示する期間">
       <button type="button" role="tab" data-view="today" aria-selected="true">今日</button>
       <button type="button" role="tab" data-view="tomorrow" aria-selected="false">明日</button>
@@ -287,7 +343,8 @@ details.fold>summary::-webkit-details-marker{display:none}
     </div>
     <div id="periodNav" class="pnav"></div>
     <div id="scheduleBody" aria-live="polite"></div>
-
+   </div>
+   <div class="col col-form">
     <section class="card quick section" aria-labelledby="hQuick">
       <h2 id="hQuick">文章で予定を追加</h2>
       <p class="hint" id="editingNote" hidden>予定を編集中です。文章欄は使わず、下の欄を直してください。</p>
@@ -313,6 +370,7 @@ details.fold>summary::-webkit-details-marker{display:none}
       <button type="button" id="quickSave" class="btn primary" disabled>予定を保存</button>
       <div class="row" id="editActions" hidden><button type="button" class="btn sub" id="quickCancel" style="flex:1">やめる</button><button type="button" class="dangerbtn" id="quickDelete" style="flex:1">この予定を削除</button></div>
     </section>
+   </div>
   </div>
 
   <!-- 家族 -->
@@ -447,6 +505,7 @@ function switchTab(t){
   $('screenTitle').textContent=TITLES[t];
   if(t==='schedule')drawScheduleList();
   scrollTo({top:0});
+  if(t==='home')requestAnimationFrame(updateChipHints);
 }
 for(const b of document.querySelectorAll('.tabs button'))b.addEventListener('click',()=>switchTab(b.dataset.tab));
 $('goAddSchedule').addEventListener('click',()=>{switchTab('schedule');setTimeout(()=>$('quickText').focus(),50)});
@@ -732,7 +791,7 @@ function itemRow(item){
       el('output',{className:'num',textContent:String(q)}),
       el('button',{type:'button',textContent:'＋',ariaLabel:item.name+'を1つ増やす',disabled:q>=999,onclick:()=>adjust(item,1)}));
     row.append(st);
-  }else if(q>1)row.append(el('span',{className:'qty num',textContent:'×'+q}));
+  }else{if(q>1)row.append(el('span',{className:'qty num',textContent:'×'+q}));row.append(el('button',{type:'button',className:'backbtn',textContent:'戻す',ariaLabel:item.name+'を買うものに戻す',onclick:()=>write(()=>setDoc(doc(db,'shoppingItems',item.id),{done:false,doneAt:null},{merge:true}))}))}
   const li=el('li',{className:'swipe'},el('div',{className:'bg',ariaHidden:'true',textContent:'削除'}),row);
   enableSwipe(row,()=>removeItem(item));
   return li;
@@ -811,16 +870,32 @@ $('editSave').addEventListener('click',async()=>{
   }
   if(ok){closeEdit();toast('保存しました')}
 });
+// 購入済み：折りたたみカード（最初は閉じた状態）
+$('doneToggle').addEventListener('click',()=>{
+  const open=$('doneToggle').getAttribute('aria-expanded')!=='true';
+  $('doneToggle').setAttribute('aria-expanded',String(open));$('doneBody').hidden=!open;$('doneHint').textContent=open?'タップで閉じる':'タップで表示';
+});
+// よく買うもの：横に続きがあるときは端をぼかして「›」の目印。PCでは矢印ボタンで移動
+function updateChipHints(){
+  const c=$('favorites'),w=$('favWrap');
+  w.classList.toggle('can-left',c.scrollLeft>4);
+  w.classList.toggle('can-right',c.scrollLeft+c.clientWidth<c.scrollWidth-4);
+}
+$('favorites').addEventListener('scroll',updateChipHints,{passive:true});
+addEventListener('resize',updateChipHints);
+$('favLeft').addEventListener('click',()=>$('favorites').scrollBy({left:-Math.max(160,$('favorites').clientWidth*0.7),behavior:'smooth'}));
+$('favRight').addEventListener('click',()=>$('favorites').scrollBy({left:Math.max(160,$('favorites').clientWidth*0.7),behavior:'smooth'}));
 const pendingNames=()=>new Set(items.filter(x=>!x.done).map(x=>key(x.name)));
 function draw(){
   const todo=items.filter(x=>!x.done).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   const done=items.filter(x=>x.done).sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));
-  $('todoCount').textContent=todo.length;$('doneCount').textContent=done.length;
+  $('todoCount').textContent=todo.length;$('doneCount').textContent=done.length;$('favCount').textContent=favs.length;
   $('todo').replaceChildren(...(todo.length?todo.map(itemRow):[el('li',{className:'empty',textContent:'買うものはありません'})]));
   $('done').replaceChildren(...(done.length?done.map(itemRow):[el('li',{className:'empty',textContent:'まだありません'})]));
   const pend=pendingNames();
   const sortedFavs=favs.slice().sort((a,b)=>a.name.localeCompare(b.name,'ja'));
   $('favorites').replaceChildren(...(sortedFavs.length?sortedFavs.map(f=>{const inList=pend.has(key(f.name));return el('button',{type:'button',className:'chip'+(inList?' in':''),textContent:(inList?'✓ ':'＋ ')+f.name,ariaLabel:inList?f.name+'（リストにあります）':f.name+'を追加',onclick:()=>inList?toast('「'+f.name+'」はリストにあります'):addProduct(f.name,1)})}):[el('span',{className:'hint',textContent:'「よく買うものを編集」から登録できます'})]));
+  requestAnimationFrame(updateChipHints);
   $('favList').replaceChildren(...sortedFavs.map(f=>el('li',{className:'item'},el('span',{className:'name',textContent:f.name,style:'padding-left:8px'}),el('button',{type:'button',className:'del',textContent:'×',ariaLabel:f.name+'をよく買うものから外す',onclick:()=>{if(confirm('「'+f.name+'」をよく買うものから外しますか？'))write(()=>deleteDoc(doc(db,'shoppingFavorites',f.id)))}}))));
   $('roster').replaceChildren(...(members.length?members.slice().sort().map(m=>el('div',{className:'member'},el('span',{textContent:m}),el('button',{type:'button',className:'del',textContent:'×',ariaLabel:m+'を名簿から外す',onclick:()=>{if(confirm(m+' を名簿から外しますか？外すとこの人はリストを使えなくなります。'))write(()=>deleteDoc(doc(db,'familyMembers',m)))}}))):[el('p',{className:'hint',textContent:'まだ誰も追加されていません（管理者は名簿なしで使えます）。'})]));
 }
