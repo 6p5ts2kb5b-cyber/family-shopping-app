@@ -15,4 +15,15 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 21 }
       - run: npm install --no-audit --no-fund
-      - run: npm run test:rules
+      - name: Run rules tests
+        run: |
+          set +e
+          npm run test:rules > out.txt 2>&1
+          code=$?
+          cat out.txt
+          # 結果を注釈（annotation）としても出す（ログを開けない環境から確認するため）
+          summary=$(grep -E '^# (tests|pass|fail)' out.txt | tr '\n' ' ')
+          echo "::notice title=rules test summary::exit=$code $summary"
+          grep -E '^not ok' out.txt | head -10 | while read -r line; do echo "::error title=failed test::$line"; done
+          tail -40 out.txt | sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g' | sed 's/^/::notice title=output tail::/'
+          exit $code
