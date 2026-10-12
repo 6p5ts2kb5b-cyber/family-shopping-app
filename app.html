@@ -105,6 +105,48 @@ main{padding-bottom:190px}
 .dangerbtn{min-height:48px;border:0;background:none;color:#B3261E;font-weight:700;font-size:16px}
 button.ev{width:100%;border:0;background:none;text-align:left;padding:10px 0;font:inherit;color:inherit;border-top:1px solid var(--line)}
 button.ev:first-child{border-top:0}
+.ev .name{display:block}
+.ov{display:block;font-size:12px;font-weight:700;color:var(--warn);margin-top:2px}
+.seg.seg4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.pnav{display:flex;align-items:center;gap:8px;margin:10px 0 0}
+.pnav .arrow{flex:none;width:44px;height:48px;border:0;border-radius:12px;background:none;color:var(--green);font-size:24px;font-weight:700}
+.pnav .wk{flex:1;min-width:0;min-height:48px;border-radius:14px;border:1px solid var(--line2);background:transparent;font-weight:700;font-size:15px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.25;color:#3F4D45}
+.pnav .wk small{font-size:12px;font-weight:500;color:var(--muted)}
+.pnav .wk[aria-pressed=true]{border:2px solid var(--green);background:var(--card);color:var(--green)}
+.pnav .label{flex:1;text-align:center;font-weight:700;font-size:16px}
+.pnav .back{border:0;background:none;color:var(--green);font-weight:700;font-size:15px;min-height:44px;padding:0 4px}
+.daycard{margin-top:12px;padding:4px 16px 6px}
+.dayhead{display:flex;justify-content:space-between;align-items:center;min-height:48px}
+.dayhead h3{margin:0;font-size:18px}
+.dayhead h3 small{font-size:15px;color:var(--muted);font-weight:500;margin-left:6px}
+.daycard.past{opacity:.65}
+.more{width:100%;min-height:44px;border:0;border-top:1px solid var(--line);background:none;color:var(--green);font-weight:700;font-size:15px}
+.tl{padding:4px 0 10px;border-bottom:1px solid var(--line);margin-bottom:2px}
+.lane{display:grid;grid-template-columns:34px 1fr;align-items:center;gap:6px;margin:6px 0}
+.lane b{font-size:12px}
+.lane b.husband{color:var(--h)}.lane b.wife{color:var(--w)}.lane b.family{color:var(--f)}
+.track{position:relative;height:12px;background:var(--track);border-radius:6px}
+.bar{position:absolute;top:0;bottom:0;border-radius:6px;min-width:6px;opacity:.78}
+.tl+button.ev{border-top:0}
+.bar.husband,.dot.husband{background:#2F5E9E}.bar.wife,.dot.wife{background:#D0692F}.bar.family,.dot.family{background:#2E7D5B}
+.dot{position:absolute;top:1px;width:10px;height:10px;border-radius:50%;margin-left:-5px}
+.ticks{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-left:40px}
+.weekcard{margin-top:12px;overflow:hidden}
+.wrow{display:flex;gap:12px;width:100%;border:0;border-top:1px solid var(--line);background:none;text-align:left;padding:10px 14px;font:inherit;color:inherit;min-height:56px;align-items:center}
+.wrow:first-child{border-top:0}
+.wrow.today{background:#F1F7F3}
+.wrow .d{flex:none;width:40px;display:flex;flex-direction:column;align-items:center;line-height:1.2}
+.wrow .d small{font-size:12px;color:var(--muted);font-weight:700}
+.wrow .d b{font-size:20px}
+.wrow.today .d small,.wrow.today .d b{color:var(--green)}
+.wrow .lines{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;font-size:14px}
+.wrow .lines b.husband{color:var(--h)}.wrow .lines b.wife{color:var(--w)}.wrow .lines b.family{color:var(--f)}
+.wrow .lines .none{color:#7A867E}
+.wrow .lines .tm{color:var(--muted)}
+.opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.opts button{min-height:44px;border-radius:12px;border:1px solid var(--line2);background:var(--card);font-weight:700;font-size:14px;color:#3F4D45}
+.opts button[aria-pressed=true]{border:2px solid var(--green);color:var(--green)}
+.wkprev .ev{padding:8px 0}
 
 /* よく買うもの */
 .chips{display:flex;gap:8px;overflow-x:auto;padding:2px 4px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
@@ -193,6 +235,11 @@ details.fold>summary::-webkit-details-marker{display:none}
       <div id="todaySchedule" aria-live="polite"></div>
     </section>
 
+    <section class="card sched section wkprev" id="homeWeekend" hidden aria-labelledby="hWk">
+      <div class="head" style="padding:0"><h2 id="hWk" style="font-size:16px"></h2><button type="button" class="link" id="goWeekend">週末を見る ›</button></div>
+      <div id="homeWeekendList"></div>
+    </section>
+
     <section class="section" aria-labelledby="hTodo">
       <div class="head"><h2 id="hTodo">買うもの <span class="badge num" id="todoCount">0</span></h2></div>
       <ul class="card list" id="todo"></ul>
@@ -220,13 +267,14 @@ details.fold>summary::-webkit-details-marker{display:none}
 
   <!-- 予定 -->
   <div id="scheduleScreen" class="screen" hidden>
-    <div class="seg" role="tablist" aria-label="表示する日">
-      <button type="button" role="tab" id="viewToday" aria-selected="true">今日</button>
-      <button type="button" role="tab" id="viewTomorrow" aria-selected="false">明日</button>
+    <div class="seg seg4" role="tablist" aria-label="表示する期間">
+      <button type="button" role="tab" data-view="today" aria-selected="true">今日</button>
+      <button type="button" role="tab" data-view="tomorrow" aria-selected="false">明日</button>
+      <button type="button" role="tab" data-view="weekend" aria-selected="false">週末</button>
+      <button type="button" role="tab" data-view="week" aria-selected="false">週間</button>
     </div>
-    <p class="hint" style="margin:6px 4px 0">週末・週間の表示は次の段階で追加します。</p>
-    <h2 class="dayTitle" id="dayTitle"></h2>
-    <section class="card sched" id="scheduleList" aria-live="polite"></section>
+    <div id="periodNav" class="pnav"></div>
+    <div id="scheduleBody" aria-live="polite"></div>
 
     <section class="card quick section" aria-labelledby="hQuick">
       <h2 id="hQuick">文章で予定を追加</h2>
@@ -269,6 +317,13 @@ details.fold>summary::-webkit-details-marker{display:none}
       <form id="rosterForm" class="row"><label class="sr" for="memberEmail">配偶者のGmailアドレス</label><input class="field" id="memberEmail" type="email" inputmode="email" autocomplete="off" maxlength="120" placeholder="配偶者のGmailアドレス" required><button class="btn sub" style="min-height:48px">追加</button></form>
     </section>
     <section class="card fam section">
+      <h2>ホームの週末の予定</h2>
+      <div class="opts" id="wkMode" role="group" aria-label="ホームに週末の予定を表示">
+        <button type="button" data-v="auto">おまかせ</button><button type="button" data-v="always">常に表示</button><button type="button" data-v="off">表示しない</button>
+      </div>
+      <p class="hint">おまかせ：木・金は今週末、土曜は明日の予定を表示。この端末だけの設定です。</p>
+    </section>
+    <section class="card fam section">
       <a class="plain" href="./check.html">接続チェック ›</a>
       <a class="plain" href="./shared.html">従来版の買い物アプリ ›</a>
       <a class="plain" href="./schedule.html">従来版の予定 ›</a>
@@ -304,10 +359,10 @@ details.fold>summary::-webkit-details-marker{display:none}
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import {getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import {getFirestore,collection,doc,onSnapshot,runTransaction,deleteDoc,setDoc} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import {getFirestore,collection,doc,onSnapshot,runTransaction,deleteDoc,setDoc,query,where} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import {firebaseConfig} from "./firebase-config.js?v=20261011-fix2";
 import {parseQuickSchedule} from "./lib/quick-schedule.js";
-import {normWho,sortDay,toYmd,addDays} from "./lib/schedule-views.js";
+import {normWho,sortDay,toYmd,addDays,weekendOf,weekOf,findOverlaps,clampDay,homeWeekendPreview,initialView,rangeFor} from "./lib/schedule-views.js";
 
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),provider=new GoogleAuthProvider();
 const $=id=>document.getElementById(id);
@@ -322,7 +377,12 @@ const fmtTime=t=>t?t.replace(/^0(\d)/,'$1'):'';
 const today=()=>toYmd(new Date());
 
 let user=null,canWrite=false,items=[],favs=[],members=[],schedules=[],unsubs=[],readyItems=false,readyFavs=false;
-let tab='home',scheduleView='today';
+// 端末だけの小さな設定（使えない環境でも動くように try で囲む）
+const store={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v){try{localStorage.setItem(k,v)}catch{}}};
+let tab='home',scheduleView=initialView(store.get('wm.view'));
+let weekendOffset=0,weekOffset=0,dayFocus=null,prefillDate='';
+const expanded=new Set();
+let wkMode=['auto','always','off'].includes(store.get('wm.weekendMode'))?store.get('wm.weekendMode'):'auto';
 
 // ---------- LINE内ブラウザ ----------
 const ua=navigator.userAgent||'';
@@ -347,7 +407,7 @@ function updateSync(){
   setSync(canWrite?'ok':'wait',canWrite?'同期済み':'接続中…');
 }
 addEventListener('online',updateSync);addEventListener('offline',updateSync);
-function safeError(e){if(e?.code==='already-listed')return 'すでに買うものに入っています。';if(e?.code==='permission-denied')return 'この操作の権限がありません。（名簿の変更は管理者だけです）';if(e?.code==='auth/popup-blocked')return 'ログイン画面がブロックされました。ポップアップを許可してください。';if(e?.code==='auth/unauthorized-domain')return 'このサイトのドメインがFirebaseで承認されていません。';if(e?.code==='not-found')return 'この商品は、もう一方の端末で削除されたようです。';if(e?.code==='unavailable')return '通信できません。接続を確認してください。';return 'エラーが発生しました：'+(e?.code||'通信または設定を確認してください')}
+function safeError(e){if(e?.code==='already-listed')return 'すでに買うものに入っています。';if(e?.code==='schedule-exists')return 'この予定はもう一方の端末で戻されています（上書きしませんでした）。';if(e?.code==='permission-denied')return 'この操作の権限がありません。（名簿の変更は管理者だけです）';if(e?.code==='auth/popup-blocked')return 'ログイン画面がブロックされました。ポップアップを許可してください。';if(e?.code==='auth/unauthorized-domain')return 'このサイトのドメインがFirebaseで承認されていません。';if(e?.code==='not-found')return 'この商品は、もう一方の端末で削除されたようです。';if(e?.code==='unavailable')return '通信できません。接続を確認してください。';return 'エラーが発生しました：'+(e?.code||'通信または設定を確認してください')}
 
 // ---------- タブ ----------
 const TITLES={home:'今日',schedule:'予定',family:'家族'};
@@ -364,31 +424,158 @@ for(const b of document.querySelectorAll('.tabs button'))b.addEventListener('cli
 $('goAddSchedule').addEventListener('click',()=>{switchTab('schedule');setTimeout(()=>$('quickText').focus(),50)});
 
 // ---------- 予定の表示 ----------
-function eventRow(e){
+function eventRow(e,overlapWith){
   const who=normWho(e.who);
+  const name=el('span',{className:'name'},e.name||'予定');
+  if(overlapWith)name.append(el('span',{className:'ov',textContent:'「'+overlapWith+'」と時間が重なっています'}));
   return el('button',{type:'button',className:'ev',ariaLabel:fmtDay(e.date)+' '+WHO[who]+' '+(e.name||'予定')+'を編集',onclick:()=>startEditSchedule(e)},
     el('div',{className:'t num'},el('b',{textContent:fmtTime(e.departure)||'未定'}),el('span',{textContent:e.returnTime?'→'+fmtTime(e.returnTime):'帰宅 未定'})),
     el('span',{className:'tag '+who,textContent:WHO[who]}),
-    el('span',{className:'name',textContent:e.name||'予定'}));
+    name);
 }
-function drawDay(root,ymd,emptyText){
-  const list=sortDay(schedules.filter(x=>x.date===ymd));
-  root.replaceChildren(...(list.length?list.map(eventRow):[el('p',{className:'empty',textContent:emptyText})]));
+const eventsOn=ymd=>schedules.filter(x=>x.date===ymd);
+// 出発〜帰宅の帯グラフ（時刻が入っている予定だけ。帰宅未定は点だけで推測しない）
+function timeline(list){
+  const timed=list.filter(e=>e.departure);
+  if(!timed.length)return null;
+  const toH=t=>{const [h,m]=t.split(':').map(Number);return h+m/60};
+  const start=Math.min(6,Math.floor(Math.min(...timed.map(e=>toH(e.departure))))),end=24;
+  const pct=h=>((Math.max(start,Math.min(end,h))-start)/(end-start)*100).toFixed(2)+'%';
+  const box=el('div',{className:'tl',ariaHidden:'true'});
+  for(const who of ['husband','wife','family']){
+    const mine=timed.filter(e=>normWho(e.who)===who);if(!mine.length)continue;
+    const track=el('div',{className:'track'});
+    for(const e of mine){
+      const d=toH(e.departure);
+      if(e.returnTime){let r=toH(e.returnTime);if(r<=d)r=end;track.append(el('div',{className:'bar '+who,style:`left:${pct(d)};width:calc(${pct(r)} - ${pct(d)})`}))}
+      else track.append(el('div',{className:'dot '+who,style:`left:${pct(d)}`}));
+    }
+    box.append(el('div',{className:'lane'},el('b',{className:who,textContent:WHO[who]}),track));
+  }
+  const ticks=el('div',{className:'ticks num'});
+  for(let h=start;h<=end;h+=start<6?(end-start)/6:3)ticks.append(el('span',{textContent:(h===start?h+'時':String(Math.round(h)))}));
+  box.append(ticks);
+  return box;
 }
+// 1日のカード：見出し・＋追加・帯グラフ・予定（4件まで→すべて見る）
+function dayCard(ymd,{title,limit=4,chart=true}={}){
+  const all=eventsOn(ymd),ov=findOverlaps(all);
+  const [y,m,d]=ymd.split('-').map(Number),dow=DOW[new Date(y,m-1,d).getDay()];
+  const card=el('section',{className:'card daycard'+(ymd<today()?' past':'')});
+  card.append(el('div',{className:'dayhead'},el('h3',{},title||`${m}/${d}`,el('small',{textContent:title?`${m}/${d}（${dow}）`:dow})),
+    el('button',{type:'button',className:'link',textContent:'＋ 追加',ariaLabel:`${m}月${d}日に予定を追加`,onclick:()=>startAddForDate(ymd)})));
+  if(chart){const tl=timeline(all);if(tl)card.append(tl)}
+  const {shown,more}=clampDay(all,limit,expanded.has(ymd));
+  if(!shown.length)card.append(el('p',{className:'empty',textContent:'予定なし'}));
+  for(const e of shown)card.append(eventRow(e,ov.get(e.id)));
+  if(more)card.append(el('button',{type:'button',className:'more',textContent:`すべて見る（ほか${more}件）`,onclick:()=>{expanded.add(ymd);drawScheduleList()}}));
+  return card;
+}
+function weekCard(days){
+  const card=el('section',{className:'card weekcard'});
+  for(const ymd of days){
+    const [y,m,d]=ymd.split('-').map(Number),dow=DOW[new Date(y,m-1,d).getDay()];
+    const {shown,more}=clampDay(eventsOn(ymd),3);
+    const lines=el('div',{className:'lines'});
+    if(!shown.length)lines.append(el('span',{className:'none',textContent:'予定なし'}));
+    for(const e of shown){const w=normWho(e.who);lines.append(el('span',{},el('b',{className:w,textContent:WHO[w]}),'　'+(e.name||'予定')+'　',el('span',{className:'tm num',textContent:e.departure?fmtTime(e.departure)+' → '+(fmtTime(e.returnTime)||'未定'):''})))}
+    if(more)lines.append(el('span',{className:'tm',textContent:`ほか${more}件`}));
+    card.append(el('button',{type:'button',className:'wrow'+(ymd===today()?' today':''),ariaLabel:`${m}月${d}日（${dow}）の予定を開く`,onclick:()=>{dayFocus=ymd;drawScheduleList()}},
+      el('div',{className:'d'},el('small',{textContent:dow}),el('b',{className:'num',textContent:String(d)})),lines));
+  }
+  return card;
+}
+const mdRange=(a,b)=>{const [,m1,d1]=a.split('-').map(Number),[,m2,d2]=b.split('-').map(Number);return m1===m2?`${m1}/${d1}〜${d2}`:`${m1}/${d1}〜${m2}/${d2}`};
 function drawSchedules(){
   $('todayLabel').textContent=fmtDay(today()).replace('（','　').replace('）','曜日');
-  drawDay($('todaySchedule'),today(),'今日の予定はありません');
+  const tl=eventsOn(today()),ov=findOverlaps(tl);
+  $('todaySchedule').replaceChildren(...(tl.length?sortDay(tl).map(e=>eventRow(e,ov.get(e.id))):[el('p',{className:'empty',textContent:'今日の予定はありません'})]));
+  drawHomeWeekend();
   if(tab==='schedule')drawScheduleList();
 }
-function selectedDay(){return scheduleView==='today'?today():toYmd(addDays(new Date(),1))}
-function drawScheduleList(){
-  $('viewToday').setAttribute('aria-selected',scheduleView==='today');
-  $('viewTomorrow').setAttribute('aria-selected',scheduleView==='tomorrow');
-  $('dayTitle').textContent=(scheduleView==='today'?'今日　':'明日　')+fmtDay(selectedDay());
-  drawDay($('scheduleList'),selectedDay(),'予定はありません');
+function drawHomeWeekend(){
+  const p=homeWeekendPreview(new Date(),schedules,wkMode);
+  $('homeWeekend').hidden=!p;if(!p)return;
+  $('hWk').textContent=p.title+'　'+(p.days.length===2?mdRange(p.days[0],p.days[1]):fmtDay(p.days[0]));
+  const rows=p.shown.map(e=>eventRow(e));
+  if(p.empty)rows.push(el('p',{className:'empty',textContent:p.title+'の予定はまだありません'}));
+  if(p.more)rows.push(el('button',{type:'button',className:'more',textContent:`ほか${p.more}件`,onclick:openWeekendFromHome}));
+  $('homeWeekendList').replaceChildren(...rows);
 }
-$('viewToday').addEventListener('click',()=>{scheduleView='today';drawScheduleList()});
-$('viewTomorrow').addEventListener('click',()=>{scheduleView='tomorrow';drawScheduleList()});
+function openWeekendFromHome(){const now=new Date();scheduleView=now.getDay()===6?'tomorrow':'weekend';weekendOffset=now.getDay()===0?1:0;dayFocus=null;switchTab('schedule');saveView();subscribeSchedules()}
+$('goWeekend').addEventListener('click',openWeekendFromHome);
+function saveView(){store.set('wm.view',scheduleView)}
+function drawScheduleList(){
+  for(const b of document.querySelectorAll('.seg4 button'))b.setAttribute('aria-selected',b.dataset.view===scheduleView);
+  const nav=$('periodNav'),body=$('scheduleBody');
+  const now=new Date();
+  if(dayFocus){
+    nav.replaceChildren(el('button',{type:'button',className:'back',textContent:'‹ 週間に戻る',onclick:()=>{dayFocus=null;drawScheduleList()}}));
+    body.replaceChildren(dayCard(dayFocus,{limit:99}));return;
+  }
+  if(scheduleView==='today'||scheduleView==='tomorrow'){
+    nav.replaceChildren();
+    const ymd=scheduleView==='today'?today():toYmd(addDays(now,1));
+    body.replaceChildren(dayCard(ymd,{title:scheduleView==='today'?'今日':'明日'}));
+  }else if(scheduleView==='weekend'){
+    const w0=weekendOf(now,0),w1=weekendOf(now,1),w=weekendOf(now,weekendOffset);
+    const toggle=(off,label,ww)=>{const t=el('button',{type:'button',className:'wk',onclick:()=>setOffset('weekend',off)},label,el('small',{textContent:mdRange(ww.sat,ww.sun)}));t.setAttribute('aria-pressed',String(weekendOffset===off));return t};
+    nav.replaceChildren(
+      el('button',{type:'button',className:'arrow',textContent:'‹',ariaLabel:'前の週末',onclick:()=>setOffset('weekend',weekendOffset-1)}),
+      toggle(0,'今週末',w0),toggle(1,'来週末',w1),
+      el('button',{type:'button',className:'arrow',textContent:'›',ariaLabel:'次の週末',onclick:()=>setOffset('weekend',weekendOffset+1)}));
+    const other=weekendOffset!==0&&weekendOffset!==1?[el('p',{className:'hint',style:'margin:8px 4px 0',textContent:`${mdRange(w.sat,w.sun)}（${weekendOffset<0?-weekendOffset+'週前':weekendOffset+'週後'}の週末）`})]:[];
+    body.replaceChildren(...other,dayCard(w.sat),dayCard(w.sun));
+  }else{
+    const days=weekOf(now,weekOffset);
+    nav.replaceChildren(
+      el('button',{type:'button',className:'arrow',textContent:'‹',ariaLabel:'前の週',onclick:()=>setOffset('week',weekOffset-1)}),
+      el('span',{className:'label num',textContent:(weekOffset===0?'今週　':weekOffset===1?'来週　':'')+mdRange(days[0],days[6])}),
+      el('button',{type:'button',className:'arrow',textContent:'›',ariaLabel:'次の週',onclick:()=>setOffset('week',weekOffset+1)}));
+    body.replaceChildren(weekCard(days));
+  }
+}
+function setOffset(kind,v){if(kind==='weekend')weekendOffset=v;else weekOffset=v;drawScheduleList();subscribeSchedules()}
+for(const b of document.querySelectorAll('.seg4 button'))b.addEventListener('click',()=>{scheduleView=b.dataset.view;dayFocus=null;saveView();drawScheduleList();subscribeSchedules()});
+// 左右スワイプで前後へ（今日⇔明日、週末・週間は前後の週）
+(()=>{let x0=0,y0=0,on=false;const area=$('scheduleBody');
+  area.addEventListener('pointerdown',e=>{x0=e.clientX;y0=e.clientY;on=true});
+  area.addEventListener('pointerup',e=>{if(!on)return;on=false;const dx=e.clientX-x0,dy=e.clientY-y0;if(Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*2||dayFocus)return;
+    const dir=dx<0?1:-1;
+    if(scheduleView==='today'&&dir===1){scheduleView='tomorrow'}else if(scheduleView==='tomorrow'&&dir===-1){scheduleView='today'}
+    else if(scheduleView==='weekend')return setOffset('weekend',weekendOffset+dir);else if(scheduleView==='week')return setOffset('week',weekOffset+dir);else return;
+    saveView();drawScheduleList();subscribeSchedules()});
+})();
+// ホームの週末欄の設定（端末ごと）
+function paintWkMode(){for(const b of $('wkMode').querySelectorAll('button'))b.setAttribute('aria-pressed',b.dataset.v===wkMode)}
+for(const b of $('wkMode').querySelectorAll('button'))b.addEventListener('click',()=>{wkMode=b.dataset.v;store.set('wm.weekendMode',wkMode);paintWkMode();drawHomeWeekend()});
+paintWkMode();
+
+// ---------- 予定の読み込み：表示している期間だけ ----------
+// ホーム用（今日〜来週末）＋ 予定タブで見ている期間（ホームの範囲外のときだけ追加）
+let schedUnsubs=[],schedSets={},schedErr=false;
+function currentViewRange(){
+  const now=new Date();
+  if(dayFocus)return {start:dayFocus,end:dayFocus};
+  if(scheduleView==='weekend')return rangeFor('weekend',now,weekendOffset);
+  if(scheduleView==='week')return rangeFor('week',now,weekOffset);
+  return rangeFor(scheduleView,now);
+}
+function subscribeSchedules(){
+  if(!user||!canWrite)return;
+  schedUnsubs.forEach(f=>f());schedUnsubs=[];schedSets={};
+  const home=rangeFor('home',new Date()),view=currentViewRange();
+  const ranges={home};
+  if(view.start<home.start||view.end>home.end)ranges.view=view;
+  for(const [k,r] of Object.entries(ranges)){
+    const q=query(collection(db,'familySchedules'),where('date','>=',r.start),where('date','<=',r.end));
+    schedUnsubs.push(onSnapshot(q,snap=>{schedSets[k]=snap.docs.map(d=>({id:d.id,...d.data()}));mergeSchedules()},e=>{console.warn('schedules',e?.code);schedErr=true;$('todaySchedule').replaceChildren(el('p',{className:'empty',textContent:'予定を読み込めません（ルールの設定を確認してください）'}))}));
+  }
+}
+function mergeSchedules(){const m=new Map();for(const list of Object.values(schedSets))for(const e of list)m.set(e.id,e);schedules=[...m.values()];drawSchedules()}
+// 日付が変わったら読み直す（画面を開きっぱなしでも翌日に正しく出す）
+let lastDay=today();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&today()!==lastDay){lastDay=today();subscribeSchedules()}});
 
 // ---------- かんたん予定入力 ----------
 // 手で直した欄は、文章を打ち直しても上書きしない
@@ -416,10 +603,16 @@ function askButtons(text,buttons){
 let answered={sig:'',date:''};
 $('quickText').addEventListener('input',()=>{
   const text=$('quickText').value;
-  if(!text.trim()){touched.clear();answered={sig:'',date:''}}
+  if(!text.trim()){touched.clear();answered={sig:'',date:''};if(prefillDate){quick.date=prefillDate;touched.add('date')}}
   const r=parseQuickSchedule(text);
   for(const k of ['date','name','who','departure','returnTime'])if(!touched.has(k))quick[k]=r[k];
   $('quickAsk').hidden=true;
+  // 日の「＋追加」から開いたのに、文章に別の日付が書かれていたら確認する
+  if(prefillDate&&r.date&&r.date!==prefillDate&&touched.has('date')){
+    const sig='prefill:'+r.date;
+    if(answered.sig===sig)quick.date=answered.date;
+    else askButtons('文章の日付は'+fmtDay(r.date)+'です。どちらにしますか？',[[fmtDay(r.date),()=>{quick.date=r.date;answered={sig,date:r.date}}],[fmtDay(prefillDate)+'のまま',()=>{quick.date=prefillDate;answered={sig,date:prefillDate}}]]);
+  }
   const pick=r.needsConfirm.find(x=>x.type==='pick-day');
   const past=r.needsConfirm.find(x=>x.type==='past-date');
   const q=pick||past;
@@ -445,6 +638,12 @@ $('quickText').addEventListener('input',()=>{
 });
 for(const [k,id] of Object.entries(fieldIds))$(id).addEventListener('input',()=>{quick[k]=k==='name'?$(id).value.trim():$(id).value;touched.add(k);paintQuick()});
 for(const b of $('quickWho').querySelectorAll('button'))b.addEventListener('click',()=>{quick.who=b.dataset.v;touched.add('who');paintQuick()});
+// ---------- 日付を決めて追加（日の「＋ 追加」） ----------
+function startAddForDate(ymd){
+  if(editingSchedule)endEditSchedule();
+  resetQuick();quick.date=ymd;touched.add('date');prefillDate=ymd;paintQuick();
+  $('hQuick').scrollIntoView({block:'start'});$('quickText').focus();
+}
 // ---------- 予定の編集・削除（予定の行をタップ） ----------
 let editingSchedule=null;
 function startEditSchedule(e){
@@ -465,10 +664,11 @@ $('quickDelete').addEventListener('click',async()=>{
   const backup={date:data.date,name:data.name,who:data.who,departure:data.departure??'',returnTime:data.returnTime??''};
   if(await write(()=>deleteDoc(ref))){
     endEditSchedule();resetQuick();drawScheduleList();
-    toast('「'+e.name+'」を削除しました',async()=>{if(await write(()=>setDoc(ref,backup)))toast('元に戻しました')});
+    // 元に戻す：その間に相手が同じ予定を戻した・作り直した場合は上書きしない
+    toast('「'+e.name+'」を削除しました',async()=>{if(await write(()=>runTransaction(db,async tx=>{const ex=await tx.get(ref);if(ex.exists())throw {code:'schedule-exists'};tx.set(ref,backup)})))toast('元に戻しました')});
   }
 });
-function resetQuick(){$('quickText').value='';for(const k in quick)quick[k]='';touched.clear();answered={sig:'',date:''};$('quickAsk').hidden=true;paintQuick()}
+function resetQuick(){$('quickText').value='';for(const k in quick)quick[k]='';touched.clear();answered={sig:'',date:''};prefillDate='';$('quickAsk').hidden=true;paintQuick()}
 $('quickSave').addEventListener('click',async()=>{
   const record={date:quick.date,name:quick.name.slice(0,80),who:quick.who,departure:quick.departure||'',returnTime:quick.returnTime||''};
   if(!/^\d{4}-\d{2}-\d{2}$/.test(record.date)||!record.name||!WHO[record.who])return;
@@ -476,8 +676,12 @@ $('quickSave').addEventListener('click',async()=>{
   const id=editingSchedule?.id||crypto.randomUUID?.()||String(Date.now())+'-'+Math.random().toString(36).slice(2);
   const wasEdit=!!editingSchedule;
   if(await write(()=>setDoc(doc(db,'familySchedules',id),record))){
-    if(record.date===today())scheduleView='today';
-    else if(record.date===toYmd(addDays(new Date(),1)))scheduleView='tomorrow';
+    if(!wasEdit){
+      if(record.date===today()){scheduleView='today';dayFocus=null}
+      else if(record.date===toYmd(addDays(new Date(),1))){scheduleView='tomorrow';dayFocus=null}
+      else dayFocus=record.date;
+      saveView();subscribeSchedules();
+    }
     if(wasEdit)endEditSchedule();
     resetQuick();drawScheduleList();
     toast(wasEdit?'予定を変更しました':fmtDay(record.date)+'の予定を保存しました');
@@ -527,16 +731,16 @@ async function removeItem(item){
 }
 
 // ---------- 編集シート（商品名をタップ） ----------
-let editing=null,editQty=1,lastFocus=null;
+let editing=null,editQty=1,editQtyTouched=false,lastFocus=null;
 function openEdit(item){
-  editing=item;editQty=item.quantity||1;lastFocus=document.activeElement;
+  editing=item;editQty=item.quantity||1;editQtyTouched=false;lastFocus=document.activeElement;
   $('editName').value=item.name;$('editQty').textContent=editQty;paintEdit();
   $('sheetBg').hidden=false;$('editSheet').hidden=false;$('editName').focus();
 }
 function closeEdit(){editing=null;$('sheetBg').hidden=true;$('editSheet').hidden=true;lastFocus?.focus?.()}
 function paintEdit(){$('editQty').textContent=editQty;$('editMinus').disabled=editQty<=1;$('editPlus').disabled=editQty>=999}
-$('editMinus').addEventListener('click',()=>{editQty=Math.max(1,editQty-1);paintEdit()});
-$('editPlus').addEventListener('click',()=>{editQty=Math.min(999,editQty+1);paintEdit()});
+$('editMinus').addEventListener('click',()=>{editQty=Math.max(1,editQty-1);editQtyTouched=true;paintEdit()});
+$('editPlus').addEventListener('click',()=>{editQty=Math.min(999,editQty+1);editQtyTouched=true;paintEdit()});
 $('editClose').addEventListener('click',closeEdit);$('sheetBg').addEventListener('click',closeEdit);
 addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('editSheet').hidden)closeEdit()});
 $('editDelete').addEventListener('click',()=>{const it=editing;closeEdit();if(it)removeItem(it)});
@@ -548,7 +752,8 @@ $('editSave').addEventListener('click',async()=>{
   let ok;
   if(key(name)===key(it.name)){
     // 名前の表記だけ・個数だけの変更
-    ok=await write(()=>runTransaction(db,async tx=>{const s=await tx.get(oldRef);if(!s.exists())throw {code:'not-found'};tx.update(oldRef,{name,quantity:editQty})}));
+    // 個数をシートで触っていなければ、相手が＋−した最新の個数を使う
+    ok=await write(()=>runTransaction(db,async tx=>{const s=await tx.get(oldRef);if(!s.exists())throw {code:'not-found'};tx.update(oldRef,{name,quantity:editQtyTouched?editQty:(s.data().quantity||1)})}));
   }else{
     // 名前の変更：IDが商品名から決まるので「新しいIDで作成→古いIDを削除」を1回の処理で
     const newRef=doc(db,'shoppingItems',newId);
@@ -559,8 +764,8 @@ $('editSave').addEventListener('click',async()=>{
       const s=await tx.get(oldRef),n=await tx.get(newRef);
       if(!s.exists())throw {code:'not-found'};
       if(n.exists()&&!n.data().done)throw {code:'already-listed'};
-      const d=s.data();
-      tx.set(newRef,n.exists()?{name,quantity:editQty,done:false,createdAt:d.createdAt??Date.now(),doneAt:null}:{name,quantity:editQty,done:!!d.done,createdAt:d.createdAt??Date.now(),doneAt:d.doneAt??null});
+      const d=s.data(),q=editQtyTouched?editQty:(d.quantity||1);
+      tx.set(newRef,n.exists()?{name,quantity:q,done:false,createdAt:d.createdAt??Date.now(),doneAt:null}:{name,quantity:q,done:!!d.done,createdAt:d.createdAt??Date.now(),doneAt:d.doneAt??null});
       tx.delete(oldRef);
     }));
   }
@@ -594,7 +799,7 @@ async function write(fn){if(!user||!canWrite){message('共有データへのア�
 function stop(){unsubs.forEach(f=>f());unsubs=[];readyItems=readyFavs=canWrite=false;items=[];favs=[];members=[];schedules=[];$('content').hidden=true;$('dock').hidden=true;$('signin').hidden=false;updateSync()}
 $('login').addEventListener('click',async()=>{try{await signInWithPopup(auth,provider)}catch(e){message(safeError(e),true)}});
 $('logout').addEventListener('click',()=>signOut(auth).catch(e=>message(safeError(e),true)));
-function renderReady(){if(!readyItems||!readyFavs)return;const first=!canWrite;canWrite=true;$('signin').hidden=true;$('content').hidden=false;$('dock').hidden=false;if(first)switchTab(tab);updateSync();draw();drawSchedules()}
+function renderReady(){if(!readyItems||!readyFavs)return;const first=!canWrite;canWrite=true;$('signin').hidden=true;$('content').hidden=false;$('dock').hidden=false;if(first){switchTab(tab);subscribeSchedules()}updateSync();draw();drawSchedules()}
 onAuthStateChanged(auth,u=>{
   stop();user=u;$('account').textContent=u?'ログイン中：'+(u.email||'アカウント'):'';
   $('login').hidden=!!u;updateSync();
@@ -604,7 +809,7 @@ onAuthStateChanged(auth,u=>{
   unsubs.push(onSnapshot(collection(db,'shoppingItems'),snap=>{items=snap.docs.map(d=>({id:d.id,...d.data()}));readyItems=true;renderReady()},err));
   unsubs.push(onSnapshot(collection(db,'shoppingFavorites'),snap=>{favs=snap.docs.map(d=>({id:d.id,...d.data()}));readyFavs=true;renderReady()},err));
   unsubs.push(onSnapshot(collection(db,'familyMembers'),snap=>{members=snap.docs.map(d=>d.id);if(canWrite)draw()},e=>{console.warn('roster',e?.code);$('rosterPanel').hidden=true}));
-  unsubs.push(onSnapshot(collection(db,'familySchedules'),snap=>{schedules=snap.docs.map(d=>({id:d.id,...d.data()}));drawSchedules()},e=>{console.warn('schedules',e?.code);schedules=[];$('todaySchedule').replaceChildren(el('p',{className:'empty',textContent:'予定を読み込めません（ルールの設定を確認してください）'}))}));
+  unsubs.push(()=>{schedUnsubs.forEach(f=>f());schedUnsubs=[];schedSets={}});
 });
 $('todayLabel').textContent=fmtDay(today()).replace('（','　').replace('）','曜日');
 paintQuick();

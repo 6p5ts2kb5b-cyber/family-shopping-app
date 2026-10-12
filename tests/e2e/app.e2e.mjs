@@ -50,8 +50,8 @@ ok((await A.textContent('#quickAsk')).includes('過ぎています')&&(await A.t
 await A.click('#quickAsk button >> nth=0');ok((await A.inputValue('#quickDate')).startsWith(String(now.getFullYear()+1)),'来年にする');
 // tomorrow quick save shows in B
 await A.fill('#quickText','明日 病院 9:00〜11:00 妻');await A.click('#quickSave');await A.waitForTimeout(300);
-await B.click('.tabs button[data-tab=schedule]');await B.click('#viewTomorrow');
-ok((await B.textContent('#scheduleList')).includes('病院')&&(await B.textContent('#scheduleList .tag'))==='妻','夫が保存した明日の予定が妻の画面に反映');
+await B.click('.tabs button[data-tab=schedule]');await B.click('.seg4 button[data-view=tomorrow]');
+ok((await B.textContent('#scheduleBody')).includes('病院')&&(await B.textContent('#scheduleBody .tag'))==='妻','夫が保存した明日の予定が妻の画面に反映');
 // shopping: add, stepper, check, delete+undo, favorite
 await A.click('.tabs button[data-tab=home]');
 await A.fill('#product','豆腐');await A.press('#product','Enter');await A.waitForTimeout(300);
@@ -108,12 +108,12 @@ const leg=(await db()).familySchedules.legacy;
 ok(leg&&leg.returnTime==='18:00'&&leg.who==='husband'&&Object.keys((await db()).familySchedules).length===Object.keys(await A.evaluate(()=>JSON.parse(localStorage.getItem('fakeDB')).familySchedules)).length,'同じ予定を更新（新しい予定は増えない）');
 ok((await A.textContent('#hQuick'))==='文章で予定を追加'&&!(await A.isDisabled('#quickText')),'保存後は追加モードに戻る');
 await B.click('.tabs button[data-tab=home]');ok((await B.textContent('#todaySchedule')).includes('→18:00'),'予定の変更が相手に反映');
-await A.click('#scheduleList button.ev:has-text("野球部")').catch(async()=>{await A.click('#viewToday');await A.click('#scheduleList button.ev:has-text("野球部")')});
+await A.click('#scheduleBody button.ev:has-text("野球部")').catch(async()=>{await A.click('.seg4 button[data-view=today]');await A.click('#scheduleBody button.ev:has-text("野球部")')});
 await A.click('#quickDelete');await A.waitForTimeout(300);
 ok(!(await db()).familySchedules.legacy,'予定を削除');
 await A.click('#toastUndo');await A.waitForTimeout(300);
 ok((await db()).familySchedules.legacy?.name==='野球部','予定の削除を元に戻す');
-await A.click('#scheduleList button.ev >> nth=0').catch(()=>{});await A.click('#quickCancel').catch(()=>{});
+await A.click('#scheduleBody button.ev >> nth=0').catch(()=>{});await A.click('#quickCancel').catch(()=>{});
 // stranger
 const C=await open('strangerUID000');ok(await C.isHidden('#content')&&(await C.textContent('#status')).includes('名簿にありません'),'名簿外は入れない');
 // wife cannot change roster
