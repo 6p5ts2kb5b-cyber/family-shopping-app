@@ -153,9 +153,9 @@ button.ev:first-child{border-top:0}
 .wkprev .ev{padding:8px 0}
 
 /* よく買うもの */
-.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 4px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:2px 0 6px;overflow:visible}
 .chips::-webkit-scrollbar{display:none}
-.chip{flex:none;min-height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--line2);background:var(--card);color:var(--green);font-size:16px;font-weight:700;white-space:nowrap}
+.chip{width:100%;min-width:0;min-height:48px;padding:9px 8px;border-radius:14px;border:1px solid var(--line2);background:var(--card);color:var(--green);font-size:16px;font-weight:700;white-space:normal;overflow-wrap:anywhere;text-align:center}
 .chip.in{border-style:dashed;background:transparent;color:#7A867E;font-weight:500}
 details.fold{margin-top:8px}
 details.fold>summary{list-style:none;cursor:pointer;color:var(--green);font-weight:700;font-size:15px;min-height:44px;display:flex;align-items:center;padding:0 4px}
@@ -221,7 +221,7 @@ details.fold>summary::-webkit-details-marker{display:none}
 #doneBody{border-top:1px solid var(--line)}
 #doneBody .hint{padding:8px 16px 12px}
 .backbtn{flex:none;min-height:40px;min-width:52px;border:1px solid var(--line2);border-radius:999px;background:var(--card);color:var(--green);font-weight:700;font-size:14px;padding:0 12px;margin-left:4px}
-.chipwrap{position:relative}
+.chipwrap{position:relative}.chipwrap.favgrid{overflow:visible}.chipwrap.favgrid::before,.chipwrap.favgrid::after{display:none}
 .chipwrap::before,.chipwrap::after{content:"";position:absolute;top:0;bottom:6px;width:44px;pointer-events:none;opacity:0;transition:opacity .15s;z-index:1}
 .chipwrap::before{left:0;background:linear-gradient(90deg,var(--bg),rgba(246,244,239,0))}
 .chipwrap::after{right:0;background:linear-gradient(270deg,var(--bg) 30%,rgba(246,244,239,0))}
@@ -301,11 +301,8 @@ details.fold>summary::-webkit-details-marker{display:none}
 
     <section class="section" aria-labelledby="hFav">
       <div class="head"><h2 id="hFav" style="font-size:15px;color:var(--muted)">よく買うもの <span class="badge soft num" id="favCount">0</span><span style="font-weight:500">タップで追加</span></h2></div>
-      <div class="chipwrap" id="favWrap">
-        <button type="button" class="chiparrow left" id="favLeft" aria-label="よく買うものを左へ">‹</button>
+      <div class="chipwrap favgrid" id="favWrap">
         <div class="chips" id="favorites"></div>
-        <svg class="more-hint" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
-        <button type="button" class="chiparrow right" id="favRight" aria-label="よく買うものを右へ">›</button>
       </div>
       <details class="fold" id="favFold">
         <summary>よく買うものを編集</summary>
@@ -876,15 +873,7 @@ $('doneToggle').addEventListener('click',()=>{
   $('doneToggle').setAttribute('aria-expanded',String(open));$('doneBody').hidden=!open;$('doneHint').textContent=open?'タップで閉じる':'タップで表示';
 });
 // よく買うもの：横に続きがあるときは端をぼかして「›」の目印。PCでは矢印ボタンで移動
-function updateChipHints(){
-  const c=$('favorites'),w=$('favWrap');
-  w.classList.toggle('can-left',c.scrollLeft>4);
-  w.classList.toggle('can-right',c.scrollLeft+c.clientWidth<c.scrollWidth-4);
-}
-$('favorites').addEventListener('scroll',updateChipHints,{passive:true});
-addEventListener('resize',updateChipHints);
-$('favLeft').addEventListener('click',()=>$('favorites').scrollBy({left:-Math.max(160,$('favorites').clientWidth*0.7),behavior:'smooth'}));
-$('favRight').addEventListener('click',()=>$('favorites').scrollBy({left:Math.max(160,$('favorites').clientWidth*0.7),behavior:'smooth'}));
+function updateChipHints(){ /* よく買うものは2列一覧のため横スクロール不要 */ }
 const pendingNames=()=>new Set(items.filter(x=>!x.done).map(x=>key(x.name)));
 function draw(){
   const todo=items.filter(x=>!x.done).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
@@ -895,7 +884,7 @@ function draw(){
   const pend=pendingNames();
   const sortedFavs=favs.slice().sort((a,b)=>a.name.localeCompare(b.name,'ja'));
   $('favorites').replaceChildren(...(sortedFavs.length?sortedFavs.map(f=>{const inList=pend.has(key(f.name));return el('button',{type:'button',className:'chip'+(inList?' in':''),textContent:(inList?'✓ ':'＋ ')+f.name,ariaLabel:inList?f.name+'（リストにあります）':f.name+'を追加',onclick:()=>inList?toast('「'+f.name+'」はリストにあります'):addProduct(f.name,1)})}):[el('span',{className:'hint',textContent:'「よく買うものを編集」から登録できます'})]));
-  requestAnimationFrame(updateChipHints);
+  // 2列一覧は常時表示
   $('favList').replaceChildren(...sortedFavs.map(f=>el('li',{className:'item'},el('span',{className:'name',textContent:f.name,style:'padding-left:8px'}),el('button',{type:'button',className:'del',textContent:'×',ariaLabel:f.name+'をよく買うものから外す',onclick:()=>{if(confirm('「'+f.name+'」をよく買うものから外しますか？'))write(()=>deleteDoc(doc(db,'shoppingFavorites',f.id)))}}))));
   $('roster').replaceChildren(...(members.length?members.slice().sort().map(m=>el('div',{className:'member'},el('span',{textContent:m}),el('button',{type:'button',className:'del',textContent:'×',ariaLabel:m+'を名簿から外す',onclick:()=>{if(confirm(m+' を名簿から外しますか？外すとこの人はリストを使えなくなります。'))write(()=>deleteDoc(doc(db,'familyMembers',m)))}}))):[el('p',{className:'hint',textContent:'まだ誰も追加されていません（管理者は名簿なしで使えます）。'})]));
 }
