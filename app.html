@@ -384,13 +384,6 @@ details.fold>summary::-webkit-details-marker{display:none}
       <form id="rosterForm" class="row"><label class="sr" for="memberEmail">配偶者のGmailアドレス</label><input class="field" id="memberEmail" type="email" inputmode="email" autocomplete="off" maxlength="120" placeholder="配偶者のGmailアドレス" required><button class="btn sub" style="min-height:48px">追加</button></form>
     </section>
     <section class="card fam section">
-      <h2>ホームの週末の予定</h2>
-      <div class="opts" id="wkMode" role="group" aria-label="ホームに週末の予定を表示">
-        <button type="button" data-v="auto">おまかせ</button><button type="button" data-v="always">常に表示</button><button type="button" data-v="off">表示しない</button>
-      </div>
-      <p class="hint">おまかせ：木・金は今週末、土曜は明日の予定を表示。この端末だけの設定です。</p>
-    </section>
-    <section class="card fam section">
       <a class="plain" href="./check.html">接続チェック ›</a>
       <a class="plain" href="./shared.html">従来版の買い物アプリ ›</a>
       <a class="plain" href="./schedule.html">従来版の予定 ›</a>
@@ -453,7 +446,7 @@ const store={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k
 let tab='home',scheduleView=initialView(store.get('wm.view'));
 let weekendOffset=0,weekOffset=0,dayFocus=null,prefillDate='';
 const expanded=new Set();
-let wkMode=['auto','always','off'].includes(store.get('wm.weekendMode'))?store.get('wm.weekendMode'):'auto';
+// ホームには土曜・日曜の予定を常に表示する
 
 // ---------- LINE内ブラウザ ----------
 const ua=navigator.userAgent||'';
@@ -578,7 +571,10 @@ function drawSchedules(){
   if(tab==='schedule')drawScheduleList();
 }
 function drawHomeWeekend(){
-  const p=homeWeekendPreview(new Date(),schedules,wkMode);
+  const w=weekendOf(new Date(),0);
+  const days=[w.sat,w.sun];
+  const list=days.flatMap(d=>sortDay(schedules.filter(e=>e.date===d)));
+  const p={title:'今週末',days,shown:list.slice(0,2),more:Math.max(0,list.length-2),empty:list.length===0};
   $('homeWeekend').hidden=!p;if(!p)return;
   $('hWk').textContent=p.title+'　'+(p.days.length===2?mdRange(p.days[0],p.days[1]):fmtDay(p.days[0]));
   const rows=p.shown.map(e=>eventRow(e));
@@ -630,11 +626,6 @@ for(const b of document.querySelectorAll('.seg4 button'))b.addEventListener('cli
     else if(scheduleView==='weekend')return setOffset('weekend',weekendOffset+dir);else if(scheduleView==='week')return setOffset('week',weekOffset+dir);else return;
     saveView();drawScheduleList();subscribeSchedules()});
 })();
-// ホームの週末欄の設定（端末ごと）
-function paintWkMode(){for(const b of $('wkMode').querySelectorAll('button'))b.setAttribute('aria-pressed',b.dataset.v===wkMode)}
-for(const b of $('wkMode').querySelectorAll('button'))b.addEventListener('click',()=>{wkMode=b.dataset.v;store.set('wm.weekendMode',wkMode);paintWkMode();drawHomeWeekend()});
-paintWkMode();
-
 // ---------- 予定の読み込み：表示している期間だけ ----------
 // ホーム用（今日〜来週末）＋ 予定タブで見ている期間（ホームの範囲外のときだけ追加）
 let schedUnsubs=[],schedSets={},schedErr=false;
