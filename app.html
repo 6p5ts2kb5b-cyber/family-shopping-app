@@ -571,16 +571,20 @@ function drawSchedules(){
   if(tab==='schedule')drawScheduleList();
 }
 function drawHomeWeekend(){
-  const w=weekendOf(new Date(),0);
-  const days=[w.sat,w.sun];
-  const list=days.flatMap(d=>sortDay(schedules.filter(e=>e.date===d)));
-  const p={title:'今週末',days,shown:list.slice(0,2),more:Math.max(0,list.length-2),empty:list.length===0};
-  $('homeWeekend').hidden=!p;if(!p)return;
-  $('hWk').textContent=p.title+'　'+(p.days.length===2?mdRange(p.days[0],p.days[1]):fmtDay(p.days[0]));
-  const rows=p.shown.map(e=>eventRow(e));
-  if(p.empty)rows.push(el('p',{className:'empty',textContent:p.title+'の予定はまだありません'}));
-  if(p.more)rows.push(el('button',{type:'button',className:'more',textContent:`ほか${p.more}件`,onclick:openWeekendFromHome}));
-  $('homeWeekendList').replaceChildren(...rows);
+  const w=weekendOf(new Date(),0),days=[w.sat,w.sun];
+  $('homeWeekend').hidden=false;
+  $('hWk').textContent='今週末の予定　'+mdRange(days[0],days[1]);
+  const out=[];
+  for(let i=0;i<days.length;i++){
+    const d=days[i],dayEvents=sortDay(schedules.filter(e=>e.date===d));
+    const head=el('div',{className:'dayhead'},el('strong',{textContent:(i?'日曜日':'土曜日')+' '+fmtDay(d)}),
+      el('button',{type:'button',className:'link',textContent:'＋ 予定を入力',onclick:()=>startAddForDate(d)}));
+    out.push(head);
+    if(!dayEvents.length)out.push(el('p',{className:'empty',textContent:'予定なし。右の「＋ 予定を入力」から登録できます。'}));
+    else for(const e of dayEvents.slice(0,3))out.push(eventRow(e));
+    if(dayEvents.length>3)out.push(el('button',{type:'button',className:'more',textContent:'ほか'+(dayEvents.length-3)+'件を見る',onclick:openWeekendFromHome}));
+  }
+  $('homeWeekendList').replaceChildren(...out);
 }
 function openWeekendFromHome(){const now=new Date();scheduleView=now.getDay()===6?'tomorrow':'weekend';weekendOffset=now.getDay()===0?1:0;dayFocus=null;switchTab('schedule');saveView();subscribeSchedules()}
 $('goWeekend').addEventListener('click',openWeekendFromHome);
