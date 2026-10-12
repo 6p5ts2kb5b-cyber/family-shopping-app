@@ -172,7 +172,8 @@ $("reset").addEventListener("click", () => { uids[0] = ""; $("m1").value = ""; r
 render();
 </script></body></html>
 )
-        && validName(request.resource.data.name)
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 80
         && request.resource.data.who in ['family','wife','me']
         && request.resource.data.departure is string
