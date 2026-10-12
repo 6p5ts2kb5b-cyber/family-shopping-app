@@ -86,6 +86,25 @@ main{padding-bottom:190px}
 .stepper output{min-width:24px;text-align:center;font-size:17px;font-weight:700}
 .qty{flex:none;font-size:15px;color:var(--muted);padding:0 6px}
 .del{flex:none;width:44px;height:44px;border:0;background:none;color:#A86A62;font-size:22px;padding:0}
+.list.card{overflow:hidden}
+.swipe{position:relative;border-top:1px solid var(--line)}
+.swipe:first-child{border-top:0}
+.swipe>.item{border-top:0;background:var(--card);position:relative;touch-action:pan-y;transition:transform .18s ease}
+.swipe>.item.dragging{transition:none}
+.swipe>.bg{position:absolute;inset:0;background:#B3261E;color:#fff;display:flex;align-items:center;justify-content:flex-end;padding-right:22px;font-weight:700;font-size:15px}
+.namebtn{flex:1;min-width:0;min-height:48px;border:0;background:none;text-align:left;padding:0 4px;font-size:18px;font-weight:500;overflow-wrap:anywhere;color:inherit}
+.done .namebtn{color:var(--muted);text-decoration:line-through}
+/* 編集シート */
+.backdrop{position:fixed;inset:0;background:rgba(20,28,24,.42);z-index:30}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:31;max-width:640px;margin:auto;background:var(--card);border-radius:24px 24px 0 0;padding:10px 20px max(24px,env(safe-area-inset-bottom));display:grid;gap:14px;box-shadow:0 -8px 30px rgba(20,28,24,.18)}
+.sheet .grab{justify-self:center;width:40px;height:5px;border-radius:3px;background:var(--line2)}
+.sheet h2{margin:0;font-size:20px}
+.sheet .stepper{padding:4px;gap:4px}
+.sheet .stepper button{width:52px;height:48px;background:var(--card);border-radius:999px;font-size:24px}
+.sheet .stepper output{min-width:48px;font-size:22px}
+.dangerbtn{min-height:48px;border:0;background:none;color:#B3261E;font-weight:700;font-size:16px}
+button.ev{width:100%;border:0;background:none;text-align:left;padding:10px 0;font:inherit;color:inherit;border-top:1px solid var(--line)}
+button.ev:first-child{border-top:0}
 
 /* よく買うもの */
 .chips{display:flex;gap:8px;overflow-x:auto;padding:2px 4px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
@@ -211,6 +230,7 @@ details.fold>summary::-webkit-details-marker{display:none}
 
     <section class="card quick section" aria-labelledby="hQuick">
       <h2 id="hQuick">文章で予定を追加</h2>
+      <p class="hint" id="editingNote" hidden>予定を編集中です。文章欄は使わず、下の欄を直してください。</p>
       <label class="sr" for="quickText">予定を文章で入力</label>
       <input id="quickText" class="field big" type="text" autocomplete="off" placeholder="例：11.3 野球大会 6:00から17:00">
       <p class="hint">日付・予定・時間を自由に書くと、下の欄に自動で入ります。読めなかった欄は手で直せます。</p>
@@ -231,6 +251,7 @@ details.fold>summary::-webkit-details-marker{display:none}
       </div>
       <p id="quickWarn" class="hint" aria-live="polite"></p>
       <button type="button" id="quickSave" class="btn primary" disabled>予定を保存</button>
+      <div class="row" id="editActions" hidden><button type="button" class="btn sub" id="quickCancel" style="flex:1">やめる</button><button type="button" class="dangerbtn" id="quickDelete" style="flex:1">この予定を削除</button></div>
     </section>
   </div>
 
@@ -268,6 +289,16 @@ details.fold>summary::-webkit-details-marker{display:none}
   </nav>
 </div>
 
+<div class="backdrop" id="sheetBg" hidden></div>
+<section class="sheet" id="editSheet" role="dialog" aria-modal="true" aria-labelledby="editTitle" hidden>
+  <div class="grab" aria-hidden="true"></div>
+  <div class="row" style="justify-content:space-between"><h2 id="editTitle">商品を編集</h2><button type="button" class="link" id="editClose">閉じる</button></div>
+  <label class="lbl">商品名<input id="editName" type="text" maxlength="60" autocomplete="off"></label>
+  <div class="row" style="justify-content:space-between"><span style="font-weight:700">個数</span>
+    <div class="stepper"><button type="button" id="editMinus" aria-label="1つ減らす">−</button><output id="editQty" class="num">1</output><button type="button" id="editPlus" aria-label="1つ増やす">＋</button></div></div>
+  <button type="button" class="btn primary" id="editSave">保存</button>
+  <button type="button" class="dangerbtn" id="editDelete">この商品を削除</button>
+</section>
 <div class="toast" id="toast" role="status" hidden><span id="toastText"></span><button type="button" id="toastUndo" hidden>元に戻す</button></div>
 
 <script type="module">
@@ -335,7 +366,7 @@ $('goAddSchedule').addEventListener('click',()=>{switchTab('schedule');setTimeou
 // ---------- 予定の表示 ----------
 function eventRow(e){
   const who=normWho(e.who);
-  return el('div',{className:'ev'},
+  return el('button',{type:'button',className:'ev',ariaLabel:fmtDay(e.date)+' '+WHO[who]+' '+(e.name||'予定')+'を編集',onclick:()=>startEditSchedule(e)},
     el('div',{className:'t num'},el('b',{textContent:fmtTime(e.departure)||'未定'}),el('span',{textContent:e.returnTime?'→'+fmtTime(e.returnTime):'帰宅 未定'})),
     el('span',{className:'tag '+who,textContent:WHO[who]}),
     el('span',{className:'name',textContent:e.name||'予定'}));
@@ -414,45 +445,127 @@ $('quickText').addEventListener('input',()=>{
 });
 for(const [k,id] of Object.entries(fieldIds))$(id).addEventListener('input',()=>{quick[k]=k==='name'?$(id).value.trim():$(id).value;touched.add(k);paintQuick()});
 for(const b of $('quickWho').querySelectorAll('button'))b.addEventListener('click',()=>{quick.who=b.dataset.v;touched.add('who');paintQuick()});
+// ---------- 予定の編集・削除（予定の行をタップ） ----------
+let editingSchedule=null;
+function startEditSchedule(e){
+  editingSchedule=e;switchTab('schedule');
+  $('quickText').value='';$('quickText').disabled=true;$('quickAsk').hidden=true;
+  quick.date=e.date||'';quick.name=e.name||'';quick.who=normWho(e.who);quick.departure=e.departure||'';quick.returnTime=e.returnTime||'';
+  for(const k of ['date','name','who','departure','returnTime'])touched.add(k);
+  $('hQuick').textContent='予定を編集';$('editingNote').hidden=false;$('editActions').hidden=false;$('quickSave').textContent='変更を保存';
+  paintQuick();$('hQuick').scrollIntoView({block:'start'});$('quickName').focus();
+}
+function endEditSchedule(){
+  editingSchedule=null;$('quickText').disabled=false;$('hQuick').textContent='文章で予定を追加';$('editingNote').hidden=true;$('editActions').hidden=true;$('quickSave').textContent='予定を保存';
+}
+$('quickCancel').addEventListener('click',()=>{endEditSchedule();resetQuick()});
+$('quickDelete').addEventListener('click',async()=>{
+  const e=editingSchedule;if(!e)return;
+  const {id,...data}=e,ref=doc(db,'familySchedules',id);
+  const backup={date:data.date,name:data.name,who:data.who,departure:data.departure??'',returnTime:data.returnTime??''};
+  if(await write(()=>deleteDoc(ref))){
+    endEditSchedule();resetQuick();drawScheduleList();
+    toast('「'+e.name+'」を削除しました',async()=>{if(await write(()=>setDoc(ref,backup)))toast('元に戻しました')});
+  }
+});
 function resetQuick(){$('quickText').value='';for(const k in quick)quick[k]='';touched.clear();answered={sig:'',date:''};$('quickAsk').hidden=true;paintQuick()}
 $('quickSave').addEventListener('click',async()=>{
   const record={date:quick.date,name:quick.name.slice(0,80),who:quick.who,departure:quick.departure||'',returnTime:quick.returnTime||''};
   if(!/^\d{4}-\d{2}-\d{2}$/.test(record.date)||!record.name||!WHO[record.who])return;
   $('quickSave').disabled=true;
-  const id=crypto.randomUUID?.()||String(Date.now())+'-'+Math.random().toString(36).slice(2);
+  const id=editingSchedule?.id||crypto.randomUUID?.()||String(Date.now())+'-'+Math.random().toString(36).slice(2);
+  const wasEdit=!!editingSchedule;
   if(await write(()=>setDoc(doc(db,'familySchedules',id),record))){
     if(record.date===today())scheduleView='today';
     else if(record.date===toYmd(addDays(new Date(),1)))scheduleView='tomorrow';
+    if(wasEdit)endEditSchedule();
     resetQuick();drawScheduleList();
-    toast(fmtDay(record.date)+'の予定を保存しました');
+    toast(wasEdit?'予定を変更しました':fmtDay(record.date)+'の予定を保存しました');
   }else paintQuick();
 });
 
 // ---------- 買い物 ----------
 function itemRow(item){
   const done=!!item.done;
-  const li=el('li',{className:'item'+(done?' done':'')});
-  li.append(
+  const row=el('div',{className:'item'+(done?' done':'')});
+  row.append(
     el('button',{type:'button',className:'check',ariaLabel:item.name+(done?'を未購入に戻す':'を購入済みにする'),onclick:()=>write(()=>setDoc(doc(db,'shoppingItems',item.id),{done:!done,doneAt:!done?Date.now():null},{merge:true}))},el('i')),
-    el('span',{className:'name',textContent:item.name}));
+    el('button',{type:'button',className:'namebtn',textContent:item.name,ariaLabel:item.name+'を編集',onclick:()=>openEdit(item)}));
   const q=item.quantity||1;
   if(!done){
     const st=el('div',{className:'stepper'});
     st.append(el('button',{type:'button',textContent:'−',ariaLabel:item.name+'を1つ減らす',disabled:q<=1,onclick:()=>adjust(item,-1)}),
       el('output',{className:'num',textContent:String(q)}),
       el('button',{type:'button',textContent:'＋',ariaLabel:item.name+'を1つ増やす',disabled:q>=999,onclick:()=>adjust(item,1)}));
-    li.append(st);
-  }else if(q>1)li.append(el('span',{className:'qty num',textContent:'×'+q}));
-  li.append(el('button',{type:'button',className:'del',textContent:'×',ariaLabel:item.name+'を削除',onclick:()=>removeItem(item)}));
+    row.append(st);
+  }else if(q>1)row.append(el('span',{className:'qty num',textContent:'×'+q}));
+  const li=el('li',{className:'swipe'},el('div',{className:'bg',ariaHidden:'true',textContent:'削除'}),row);
+  enableSwipe(row,()=>removeItem(item));
   return li;
 }
+// 左スワイプで削除（横の動きが縦の2倍以上のときだけ。縦スクロールは邪魔しない）
+function enableSwipe(row,onDelete){
+  let x0=0,y0=0,dx=0,active=false,decided=false;
+  row.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;x0=e.clientX;y0=e.clientY;dx=0;active=true;decided=false});
+  row.addEventListener('pointermove',e=>{
+    if(!active)return;const mx=e.clientX-x0,my=e.clientY-y0;
+    if(!decided){if(Math.abs(mx)<8&&Math.abs(my)<8)return;decided=true;if(!(Math.abs(mx)>Math.abs(my)*2&&mx<0)){active=false;return}row.setPointerCapture?.(e.pointerId);row.classList.add('dragging')}
+    dx=Math.min(0,Math.max(-140,mx));row.style.transform=`translateX(${dx}px)`;
+  });
+  const end=()=>{if(!active)return;active=false;row.classList.remove('dragging');
+    if(decided&&dx<=-72){row.style.transform='translateX(-100%)';setTimeout(onDelete,120)}else row.style.transform='';
+    if(decided)row.addEventListener('click',ev=>{ev.stopPropagation();ev.preventDefault()},{capture:true,once:true});};
+  row.addEventListener('pointerup',end);row.addEventListener('pointercancel',()=>{active=false;row.classList.remove('dragging');row.style.transform=''});
+}
 function adjust(item,diff){const ref=doc(db,'shoppingItems',item.id);write(()=>runTransaction(db,async tx=>{const s=await tx.get(ref);if(!s.exists())throw {code:'not-found'};const q=(s.data().quantity||1)+diff;if(q<1||q>999)return;tx.update(ref,{quantity:q})}))}
-// 削除は「元に戻す」付き（同じIDで同じ内容を書き戻す）
+// 削除は「元に戻す」付き（同じIDで同じ内容を書き戻す。相手が同じ物を追加済みなら上書きしない）
 async function removeItem(item){
   const backup={name:item.name,quantity:Number.isInteger(item.quantity)?item.quantity:1,done:!!item.done,createdAt:item.createdAt??Date.now(),doneAt:item.doneAt??null};
-  if(await write(()=>deleteDoc(doc(db,'shoppingItems',item.id))))
-    toast('「'+item.name+'」を削除しました',async()=>{if(await write(()=>setDoc(doc(db,'shoppingItems',item.id),backup)))toast('元に戻しました')});
+  const ref=doc(db,'shoppingItems',item.id);
+  if(await write(()=>deleteDoc(ref)))
+    toast('「'+item.name+'」を削除しました',async()=>{if(await write(()=>runTransaction(db,async tx=>{const ex=await tx.get(ref);if(ex.exists())throw {code:'already-listed'};tx.set(ref,backup)})))toast('元に戻しました')});
 }
+
+// ---------- 編集シート（商品名をタップ） ----------
+let editing=null,editQty=1,lastFocus=null;
+function openEdit(item){
+  editing=item;editQty=item.quantity||1;lastFocus=document.activeElement;
+  $('editName').value=item.name;$('editQty').textContent=editQty;paintEdit();
+  $('sheetBg').hidden=false;$('editSheet').hidden=false;$('editName').focus();
+}
+function closeEdit(){editing=null;$('sheetBg').hidden=true;$('editSheet').hidden=true;lastFocus?.focus?.()}
+function paintEdit(){$('editQty').textContent=editQty;$('editMinus').disabled=editQty<=1;$('editPlus').disabled=editQty>=999}
+$('editMinus').addEventListener('click',()=>{editQty=Math.max(1,editQty-1);paintEdit()});
+$('editPlus').addEventListener('click',()=>{editQty=Math.min(999,editQty+1);paintEdit()});
+$('editClose').addEventListener('click',closeEdit);$('sheetBg').addEventListener('click',closeEdit);
+addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('editSheet').hidden)closeEdit()});
+$('editDelete').addEventListener('click',()=>{const it=editing;closeEdit();if(it)removeItem(it)});
+$('editSave').addEventListener('click',async()=>{
+  const it=editing;if(!it)return;
+  const name=clean($('editName').value);
+  if(!name||name.length>60){toast('商品名は1〜60文字で入力してください');return}
+  const oldRef=doc(db,'shoppingItems',it.id),newId=encode(name);
+  let ok;
+  if(key(name)===key(it.name)){
+    // 名前の表記だけ・個数だけの変更
+    ok=await write(()=>runTransaction(db,async tx=>{const s=await tx.get(oldRef);if(!s.exists())throw {code:'not-found'};tx.update(oldRef,{name,quantity:editQty})}));
+  }else{
+    // 名前の変更：IDが商品名から決まるので「新しいIDで作成→古いIDを削除」を1回の処理で
+    const newRef=doc(db,'shoppingItems',newId);
+    const other=items.find(x=>x.id===newId);
+    if(other&&!other.done){toast('「'+name+'」はすでにリストにあります');return}
+    if(other&&other.done&&!confirm('購入済みに「'+name+'」があります。買うものに戻して1つにまとめますか？'))return;
+    ok=await write(()=>runTransaction(db,async tx=>{
+      const s=await tx.get(oldRef),n=await tx.get(newRef);
+      if(!s.exists())throw {code:'not-found'};
+      if(n.exists()&&!n.data().done)throw {code:'already-listed'};
+      const d=s.data();
+      tx.set(newRef,n.exists()?{name,quantity:editQty,done:false,createdAt:d.createdAt??Date.now(),doneAt:null}:{name,quantity:editQty,done:!!d.done,createdAt:d.createdAt??Date.now(),doneAt:d.doneAt??null});
+      tx.delete(oldRef);
+    }));
+  }
+  if(ok){closeEdit();toast('保存しました')}
+});
 const pendingNames=()=>new Set(items.filter(x=>!x.done).map(x=>key(x.name)));
 function draw(){
   const todo=items.filter(x=>!x.done).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));

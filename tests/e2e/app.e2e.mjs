@@ -63,13 +63,57 @@ ok(await A.isDisabled('#todo li:has-text("牛乳") .stepper button >> nth=0')===
 await A.click('#todo li:has-text("豆腐") .check');await A.waitForTimeout(300);
 ok((await B.textContent('#done')).includes('豆腐'),'購入済みが相手に反映');
 const before=(await db()).shoppingItems.old1;
-await A.click('#todo li:has-text("牛乳") .del');await A.waitForTimeout(300);
-ok(!(await db()).shoppingItems.old1&&await A.isVisible('#toastUndo'),'削除と「元に戻す」表示');
+// 編集シートから削除→元に戻す
+await A.click('#todo button.namebtn:has-text("牛乳")');ok(await A.isVisible('#editSheet')&&await A.evaluate(()=>document.activeElement.id)==='editName','商品名タップで編集シート');
+await A.click('#editDelete');await A.waitForTimeout(300);
+ok(!(await db()).shoppingItems.old1&&await A.isVisible('#toastUndo')&&await A.isHidden('#editSheet'),'編集シートから削除→「元に戻す」表示');
 await A.click('#toastUndo');await A.waitForTimeout(300);
 ok(JSON.stringify((await db()).shoppingItems.old1)===JSON.stringify(before),'元に戻すで同じ内容に復元');
-ok((await A.textContent('#favorites')).includes('✓ 牛乳'),'リストにある「よく買うもの」は✓');
+// 個数変更（シート）
+await A.click('#todo button.namebtn:has-text("牛乳")');await A.click('#editPlus');await A.click('#editPlus');await A.click('#editSave');await A.waitForTimeout(300);
+ok((await db()).shoppingItems.old1.quantity===4&&(await B.textContent('#todo li:has-text("牛乳") output'))==='4','シートで個数変更→相手に反映');
+// 名前変更（新IDへ移動、個数・作成日時を引き継ぐ）
+await A.click('#todo button.namebtn:has-text("牛乳")');await A.fill('#editName','低脂肪牛乳');await A.click('#editSave');await A.waitForTimeout(300);
+const items1=(await db()).shoppingItems;const renamed=Object.values(items1).find(x=>x.name==='低脂肪牛乳');
+ok(!items1.old1&&renamed&&renamed.quantity===4&&renamed.createdAt===1,'名前変更：古いものは消え、個数・作成日時を引き継ぐ');
+ok((await B.textContent('#todo')).includes('低脂肪牛乳')&&!(await B.textContent('#todo')).includes('牛乳低')&&!(await B.$$eval('#todo .namebtn',x=>x.map(y=>y.textContent))).includes('牛乳'),'名前変更が相手に反映');
+// 同名が未購入であれば中止
+await A.fill('#product','バター');await A.press('#product','Enter');await A.waitForTimeout(300);
+await A.click('#todo button.namebtn:has-text("バター")');await A.fill('#editName','低脂肪牛乳');await A.click('#editSave');await A.waitForTimeout(300);
+ok(Object.values((await db()).shoppingItems).filter(x=>x.name==='低脂肪牛乳').length===1&&Object.values((await db()).shoppingItems).some(x=>x.name==='バター'),'同じ名前が既にあれば変更しない');
+await A.click('#editClose');
+// スワイプ削除
+const swipe=async(p,sel,dx,dy)=>{const bx=await p.locator(sel).boundingBox();const x=bx.x+bx.width*0.45,y=bx.y+bx.height/2;await p.mouse.move(x,y);await p.mouse.down();for(let i=1;i<=8;i++)await p.mouse.move(x+dx*i/8,y+dy*i/8);await p.mouse.up();await p.waitForTimeout(400)};
+await swipe(A,'#todo li:has-text("バター") .item',0,-60);
+ok(Object.values((await db()).shoppingItems).some(x=>x.name==='バター'),'縦に動かしても消えない');
+await swipe(A,'#todo li:has-text("バター") .item',-40,0);
+ok(Object.values((await db()).shoppingItems).some(x=>x.name==='バター'),'少しだけ左にずらしても消えない');
+await swipe(A,'#todo li:has-text("バター") .item',-150,0);
+ok(!Object.values((await db()).shoppingItems).some(x=>x.name==='バター')&&await A.isVisible('#toastUndo'),'左スワイプで削除→元に戻す表示');
+// 相手が同じ物を追加済みなら、元に戻すは上書きしない
+await B.fill('#product','バター');await B.press('#product','Enter');await B.waitForTimeout(300);
+await B.click('#todo li:has-text("バター") .stepper button >> nth=1');await B.waitForTimeout(300);
+await A.click('#toastUndo');await A.waitForTimeout(300);
+ok(Object.values((await db()).shoppingItems).find(x=>x.name==='バター').quantity===2,'相手が追加済みなら元に戻すで上書きしない');
+ok((await A.textContent('#favorites')).includes('＋ 牛乳'),'リストにない「よく買うもの」は＋（名前変更後）');
+await B.click('#favorites button:has-text("牛乳")');await A.waitForTimeout(300);ok((await A.textContent('#favorites')).includes('✓ 牛乳'),'リストにある「よく買うもの」は✓');
 await A.click('#favorites button:has-text("卵")');await A.waitForTimeout(300);
 ok((await B.textContent('#todo')).includes('卵'),'よく買うものを1タップ追加→相手に反映');
+// 予定の編集（同じIDで更新）と削除→元に戻す（旧meの予定）
+const legacyBefore=(await db()).familySchedules.legacy;
+await A.click('.tabs button[data-tab=home]');await A.click('#todaySchedule button.ev:has-text("野球部")');
+ok(await A.isVisible('#scheduleScreen')&&(await A.textContent('#hQuick'))==='予定を編集'&&await A.inputValue('#quickName')==='野球部'&&(await A.getAttribute('#quickWho button[data-v=husband]','aria-pressed'))==='true','予定タップで編集（旧meは夫）');
+await A.fill('#quickReturn','18:00');await A.click('#quickSave');await A.waitForTimeout(300);
+const leg=(await db()).familySchedules.legacy;
+ok(leg&&leg.returnTime==='18:00'&&leg.who==='husband'&&Object.keys((await db()).familySchedules).length===Object.keys(await A.evaluate(()=>JSON.parse(localStorage.getItem('fakeDB')).familySchedules)).length,'同じ予定を更新（新しい予定は増えない）');
+ok((await A.textContent('#hQuick'))==='文章で予定を追加'&&!(await A.isDisabled('#quickText')),'保存後は追加モードに戻る');
+await B.click('.tabs button[data-tab=home]');ok((await B.textContent('#todaySchedule')).includes('→18:00'),'予定の変更が相手に反映');
+await A.click('#scheduleList button.ev:has-text("野球部")').catch(async()=>{await A.click('#viewToday');await A.click('#scheduleList button.ev:has-text("野球部")')});
+await A.click('#quickDelete');await A.waitForTimeout(300);
+ok(!(await db()).familySchedules.legacy,'予定を削除');
+await A.click('#toastUndo');await A.waitForTimeout(300);
+ok((await db()).familySchedules.legacy?.name==='野球部','予定の削除を元に戻す');
+await A.click('#scheduleList button.ev >> nth=0').catch(()=>{});await A.click('#quickCancel').catch(()=>{});
 // stranger
 const C=await open('strangerUID000');ok(await C.isHidden('#content')&&(await C.textContent('#status')).includes('名簿にありません'),'名簿外は入れない');
 // wife cannot change roster
