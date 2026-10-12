@@ -14,8 +14,8 @@ jobs:
         with: { node-version: 22 }
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 21 }
-      - name: Quick schedule parser tests
-        run: node --test tests/quick-schedule.test.mjs
+      - name: Schedule logic tests
+        run: node --test tests/quick-schedule.test.mjs tests/schedule-views.test.mjs
       - run: npm install --no-audit --no-fund
       - name: Run rules tests
         run: |
