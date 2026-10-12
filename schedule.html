@@ -18,7 +18,7 @@ const normWho=w=>w==='me'?'husband':(w==='wife'||w==='family'||w==='husband'?w:'
 const WHO_LABEL={family:'👨‍👩‍👧 家族全員',wife:'👩 妻',husband:'👨 夫'};
 const localDate=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
 const shift=(s,n)=>{let [y,m,d]=s.split('-').map(Number);return localDate(new Date(y,m-1,d+n))};
-$('selectedDay').value=localDate(new Date());$('date').value=$('selectedDay').value;
+const requestedDate=new URLSearchParams(location.search).get('date');const initialDate=requestedDate&&/^\d{4}-\d{2}-\d{2}$/.test(requestedDate)&&!Number.isNaN(new Date(requestedDate+'T12:00:00').getTime())?requestedDate:localDate(new Date());$('selectedDay').value=initialDate;$('date').value=initialDate;
 const err=e=>e?.code==='permission-denied'?'予定のアクセス権限がありません。Firestoreのルールに familySchedules の許可を追加してください。':e?.code==='unavailable'?'通信ができません。電波を確認してください。':e?.code==='auth/popup-blocked'?'ポップアップがブロックされました。Safariで開いてください。':'エラー：'+(e?.code||'設定を確認してください');
 function status(s){$('status').textContent=s}
 function resetEdit(){editing=null;$('form').reset();$('date').value=$('selectedDay').value;$('formTitle').textContent='予定を追加';$('cancel').classList.add('hidden')}
