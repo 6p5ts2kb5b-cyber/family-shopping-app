@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#F6F4EF">
 <meta name="robots" content="noindex">
+<link rel="manifest" href="app.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-title" content="わが家のメモ">
 <title>わが家のメモ｜試用版</title>
 <style>
 :root{
@@ -202,6 +206,8 @@ details.fold>summary::-webkit-details-marker{display:none}
 .tabs button[aria-current=page]{color:var(--green);font-weight:700}
 
 /* お知らせ（元に戻す） */
+.offline{background:#EEF1EF;color:#3F4D45;border-radius:16px;padding:10px 14px;margin:0 0 14px;font-size:14px;line-height:1.6}
+.pend{display:inline-flex;align-items:center;gap:3px;margin-left:6px;font-size:12px;font-weight:700;color:var(--warn);vertical-align:middle;text-decoration:none}
 .trial{background:var(--warn-soft);color:#5C3D00;border-radius:16px;padding:12px 14px;margin:0 0 14px;font-size:14px;line-height:1.6}
 .trial b{color:#4A3000}
 .trial a{color:#1F5C45;font-weight:700;white-space:nowrap}
@@ -229,6 +235,7 @@ details.fold>summary::-webkit-details-marker{display:none}
 </section>
 
 <main id="content" hidden>
+  <p class="offline" id="offlineNote" role="status" hidden><b>オフラインです。</b>追加・チェック・削除はこの端末に保存し、電波が戻ると自動で送ります。</p>
   <p class="trial" id="trialNote" role="note"><b>試用版</b>：今の買い物リスト・予定と<b>同じデータ</b>です。ここでの追加・変更・削除は従来版にも反映されます。試しに入れるものは「<b>テスト</b>」で始まる名前に（例：テスト牛乳）。<a href="./shared.html">従来版に戻る ›</a></p>
   <!-- 今日 -->
   <div id="homeScreen" class="screen">
@@ -364,12 +371,16 @@ details.fold>summary::-webkit-details-marker{display:none}
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import {getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import {getFirestore,collection,doc,onSnapshot,runTransaction,deleteDoc,setDoc,query,where} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import {getFirestore,initializeFirestore,persistentLocalCache,persistentMultipleTabManager,terminate,clearIndexedDbPersistence,collection,doc,onSnapshot,runTransaction,deleteDoc,setDoc,updateDoc,writeBatch,increment,query,where} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import {firebaseConfig} from "./firebase-config.js?v=20261011-fix2";
 import {parseQuickSchedule} from "./lib/quick-schedule.js";
 import {normWho,sortDay,toYmd,addDays,weekendOf,weekOf,findOverlaps,clampDay,homeWeekendPreview,initialView,rangeFor} from "./lib/schedule-views.js";
 
-const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),provider=new GoogleAuthProvider();
+const app=initializeApp(firebaseConfig),auth=getAuth(app),provider=new GoogleAuthProvider();
+// 端末内に保存（オフラインでも見られる・操作できる。電波が戻ると自動で送る）。使えない環境では通常の方式で動く
+let db;
+try{db=initializeFirestore(app,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})})}
+catch(e){console.warn('offline cache unavailable',e);db=getFirestore(app)}
 const $=id=>document.getElementById(id);
 const clean=s=>String(s).normalize('NFKC').trim().replace(/\s+/g,' ');
 const key=s=>clean(s).toLocaleLowerCase('ja-JP');
@@ -406,12 +417,24 @@ function message(s,err=false){
   $('status').textContent=s;$('status').className='msg '+(err?'err':'muted');
 }
 function setSync(tone,text){const s=$('sync');s.dataset.tone=tone;s.textContent=text}
+// 送信待ち（端末にはあるが、まだサーバーに届いていない変更）
+const pendingByCol={};
+const pendingCount=()=>Object.values(pendingByCol).reduce((n,v)=>n+v,0);
 function updateSync(){
+  $('offlineNote').hidden=navigator.onLine||!canWrite;
   if(!user){setSync('wait','未ログイン');return}
-  if(!navigator.onLine){setSync('warn','オフライン');return}
-  setSync(canWrite?'ok':'wait',canWrite?'同期済み':'接続中…');
+  const n=pendingCount();
+  if(!navigator.onLine){setSync('warn',n?'オフライン・未送信'+n+'件':'オフライン');return}
+  if(!canWrite){setSync('wait','接続中…');return}
+  if(n){setSync('wait','保存中…');return}
+  setSync('ok','同期済み');
 }
-addEventListener('online',updateSync);addEventListener('offline',updateSync);
+function trackPending(col,snap){
+  const docsPending=snap.docs.filter(d=>d.metadata?.hasPendingWrites).length;
+  pendingByCol[col]=docsPending||(snap.metadata?.hasPendingWrites?1:0);
+  updateSync();
+}
+addEventListener('online',()=>{updateSync();if(canWrite)toast('オンラインに戻りました。未送信の変更を送ります')});addEventListener('offline',updateSync);
 function safeError(e){if(e?.code==='already-listed')return 'すでに買うものに入っています。';if(e?.code==='schedule-exists')return 'この予定はもう一方の端末で戻されています（上書きしませんでした）。';if(e?.code==='permission-denied')return 'この操作の権限がありません。（名簿の変更は管理者だけです）';if(e?.code==='auth/popup-blocked')return 'ログイン画面がブロックされました。ポップアップを許可してください。';if(e?.code==='auth/unauthorized-domain')return 'このサイトのドメインがFirebaseで承認されていません。';if(e?.code==='not-found')return 'この商品は、もう一方の端末で削除されたようです。';if(e?.code==='unavailable')return '通信できません。接続を確認してください。';return 'エラーが発生しました：'+(e?.code||'通信または設定を確認してください')}
 
 // ---------- タブ ----------
@@ -431,7 +454,7 @@ $('goAddSchedule').addEventListener('click',()=>{switchTab('schedule');setTimeou
 // ---------- 予定の表示 ----------
 function eventRow(e,overlapWith){
   const who=normWho(e.who);
-  const name=el('span',{className:'name'},e.name||'予定');
+  const name=el('span',{className:'name'},e.name||'予定',...(e.pending?[el('span',{className:'pend',textContent:'未送信'})]:[]));
   if(overlapWith)name.append(el('span',{className:'ov',textContent:'「'+overlapWith+'」と時間が重なっています'}));
   return el('button',{type:'button',className:'ev',ariaLabel:fmtDay(e.date)+' '+WHO[who]+' '+(e.name||'予定')+'を編集',onclick:()=>startEditSchedule(e)},
     el('div',{className:'t num'},el('b',{textContent:fmtTime(e.departure)||'未定'}),el('span',{textContent:e.returnTime?'→'+fmtTime(e.returnTime):'帰宅 未定'})),
@@ -574,7 +597,7 @@ function subscribeSchedules(){
   if(view.start<home.start||view.end>home.end)ranges.view=view;
   for(const [k,r] of Object.entries(ranges)){
     const q=query(collection(db,'familySchedules'),where('date','>=',r.start),where('date','<=',r.end));
-    schedUnsubs.push(onSnapshot(q,snap=>{schedSets[k]=snap.docs.map(d=>({id:d.id,...d.data()}));mergeSchedules()},e=>{console.warn('schedules',e?.code);schedErr=true;$('todaySchedule').replaceChildren(el('p',{className:'empty',textContent:'予定を読み込めません（ルールの設定を確認してください）'}))}));
+    schedUnsubs.push(onSnapshot(q,{includeMetadataChanges:true},snap=>{schedSets[k]=snap.docs.map(d=>({id:d.id,...d.data(),pending:!!d.metadata?.hasPendingWrites}));trackPending('sched-'+k,snap);mergeSchedules()},e=>{console.warn('schedules',e?.code);schedErr=true;$('todaySchedule').replaceChildren(el('p',{className:'empty',textContent:'予定を読み込めません（ルールの設定を確認してください）'}))}));
   }
 }
 function mergeSchedules(){const m=new Map();for(const list of Object.values(schedSets))for(const e of list)m.set(e.id,e);schedules=[...m.values()];drawSchedules()}
@@ -670,7 +693,9 @@ $('quickDelete').addEventListener('click',async()=>{
   if(await write(()=>deleteDoc(ref))){
     endEditSchedule();resetQuick();drawScheduleList();
     // 元に戻す：その間に相手が同じ予定を戻した・作り直した場合は上書きしない
-    toast('「'+e.name+'」を削除しました',async()=>{if(await write(()=>runTransaction(db,async tx=>{const ex=await tx.get(ref);if(ex.exists())throw {code:'schedule-exists'};tx.set(ref,backup)})))toast('元に戻しました')});
+    toast('「'+e.name+'」を削除しました',async()=>{if(await write(txOr(
+      async tx=>{const ex=await tx.get(ref);if(ex.exists())throw {code:'schedule-exists'};tx.set(ref,backup)},
+      ()=>{if(schedules.some(x=>x.id===id))throw {code:'schedule-exists'};return setDoc(ref,backup)})))toast('元に戻しました')});
   }
 });
 function resetQuick(){$('quickText').value='';for(const k in quick)quick[k]='';touched.clear();answered={sig:'',date:''};prefillDate='';$('quickAsk').hidden=true;paintQuick()}
@@ -699,7 +724,7 @@ function itemRow(item){
   const row=el('div',{className:'item'+(done?' done':'')});
   row.append(
     el('button',{type:'button',className:'check',ariaLabel:item.name+(done?'を未購入に戻す':'を購入済みにする'),onclick:()=>write(()=>setDoc(doc(db,'shoppingItems',item.id),{done:!done,doneAt:!done?Date.now():null},{merge:true}))},el('i')),
-    el('button',{type:'button',className:'namebtn',textContent:item.name,ariaLabel:item.name+'を編集',onclick:()=>openEdit(item)}));
+    el('button',{type:'button',className:'namebtn',ariaLabel:item.name+'を編集'+(item.pending?'（未送信）':''),onclick:()=>openEdit(item)},item.name,...(item.pending?[el('span',{className:'pend',textContent:'未送信'})]:[])));
   const q=item.quantity||1;
   if(!done){
     const st=el('div',{className:'stepper'});
@@ -726,13 +751,20 @@ function enableSwipe(row,onDelete){
     if(decided)row.addEventListener('click',ev=>{ev.stopPropagation();ev.preventDefault()},{capture:true,once:true});};
   row.addEventListener('pointerup',end);row.addEventListener('pointercancel',()=>{active=false;row.classList.remove('dragging');row.style.transform=''});
 }
-function adjust(item,diff){const ref=doc(db,'shoppingItems',item.id);write(()=>runTransaction(db,async tx=>{const s=await tx.get(ref);if(!s.exists())throw {code:'not-found'};const q=(s.data().quantity||1)+diff;if(q<1||q>999)return;tx.update(ref,{quantity:q})}))}
+// 個数：サーバー側で足し引きする方式（同時に押しても両方反映・オフラインでも使える）
+function adjust(item,diff){
+  const cur=items.find(x=>x.id===item.id)?.quantity||1;
+  if(cur+diff<1||cur+diff>999)return;
+  write(()=>updateDoc(doc(db,'shoppingItems',item.id),{quantity:increment(diff)}));
+}
 // 削除は「元に戻す」付き（同じIDで同じ内容を書き戻す。相手が同じ物を追加済みなら上書きしない）
 async function removeItem(item){
   const backup={name:item.name,quantity:Number.isInteger(item.quantity)?item.quantity:1,done:!!item.done,createdAt:item.createdAt??Date.now(),doneAt:item.doneAt??null};
   const ref=doc(db,'shoppingItems',item.id);
   if(await write(()=>deleteDoc(ref)))
-    toast('「'+item.name+'」を削除しました',async()=>{if(await write(()=>runTransaction(db,async tx=>{const ex=await tx.get(ref);if(ex.exists())throw {code:'already-listed'};tx.set(ref,backup)})))toast('元に戻しました')});
+    toast('「'+item.name+'」を削除しました',async()=>{if(await write(txOr(
+      async tx=>{const ex=await tx.get(ref);if(ex.exists())throw {code:'already-listed'};tx.set(ref,backup)},
+      ()=>{if(items.some(x=>x.id===item.id))throw {code:'already-listed'};return setDoc(ref,backup)})))toast('元に戻しました')});
 }
 
 // ---------- 編集シート（商品名をタップ） ----------
@@ -758,20 +790,23 @@ $('editSave').addEventListener('click',async()=>{
   if(key(name)===key(it.name)){
     // 名前の表記だけ・個数だけの変更
     // 個数をシートで触っていなければ、相手が＋−した最新の個数を使う
-    ok=await write(()=>runTransaction(db,async tx=>{const s=await tx.get(oldRef);if(!s.exists())throw {code:'not-found'};tx.update(oldRef,{name,quantity:editQtyTouched?editQty:(s.data().quantity||1)})}));
+    ok=await write(()=>updateDoc(oldRef,editQtyTouched?{name,quantity:editQty}:{name}));
   }else{
     // 名前の変更：IDが商品名から決まるので「新しいIDで作成→古いIDを削除」を1回の処理で
     const newRef=doc(db,'shoppingItems',newId);
     const other=items.find(x=>x.id===newId);
     if(other&&!other.done){toast('「'+name+'」はすでにリストにあります');return}
     if(other&&other.done&&!confirm('購入済みに「'+name+'」があります。買うものに戻して1つにまとめますか？'))return;
-    ok=await write(()=>runTransaction(db,async tx=>{
+    const moved=(d,n)=>{const q=editQtyTouched?editQty:(d.quantity||1);return n?{name,quantity:q,done:false,createdAt:d.createdAt??Date.now(),doneAt:null}:{name,quantity:q,done:!!d.done,createdAt:d.createdAt??Date.now(),doneAt:d.doneAt??null}};
+    ok=await write(txOr(async tx=>{
       const s=await tx.get(oldRef),n=await tx.get(newRef);
       if(!s.exists())throw {code:'not-found'};
       if(n.exists()&&!n.data().done)throw {code:'already-listed'};
-      const d=s.data(),q=editQtyTouched?editQty:(d.quantity||1);
-      tx.set(newRef,n.exists()?{name,quantity:q,done:false,createdAt:d.createdAt??Date.now(),doneAt:null}:{name,quantity:q,done:!!d.done,createdAt:d.createdAt??Date.now(),doneAt:d.doneAt??null});
+      tx.set(newRef,moved(s.data(),n.exists()));
       tx.delete(oldRef);
+    },()=>{
+      const cur=items.find(x=>x.id===it.id);if(!cur)throw {code:'not-found'};
+      const b=writeBatch(db);b.set(newRef,moved(cur,!!other));b.delete(oldRef);return b.commit();
     }));
   }
   if(ok){closeEdit();toast('保存しました')}
@@ -793,17 +828,46 @@ async function addProduct(raw,q){
   const name=clean(raw),quantity=Number(q);
   if(!name||name.length>60||!Number.isInteger(quantity)||quantity<1||quantity>999){message('商品名と個数を確認してください。',true);return false}
   const ref=doc(db,'shoppingItems',encode(name));
-  return write(()=>runTransaction(db,async tx=>{const ex=await tx.get(ref);if(ex.exists()&&!ex.data().done)throw {code:'already-listed'};tx.set(ref,{name,quantity,done:false,createdAt:Date.now(),doneAt:null})}));
+  // 同じ名前が「買うもの」にあれば追加しない（表記ゆれも同じ扱い。IDの形式に関係なく名前で確認）
+  if(items.some(x=>!x.done&&key(x.name)===key(name))){message(safeError({code:'already-listed'}),true);return false}
+  const data={name,quantity,done:false,createdAt:Date.now(),doneAt:null};
+  return write(txOr(
+    async tx=>{const ex=await tx.get(ref);if(ex.exists()&&!ex.data().done)throw {code:'already-listed'};tx.set(ref,data)},
+    ()=>{const ex=items.find(x=>x.id===ref.id);if(ex&&!ex.done)throw {code:'already-listed'};return setDoc(ref,data)}));
 }
 $('add').addEventListener('submit',async e=>{e.preventDefault();if(await addProduct($('product').value,1))$('product').value=''});
 $('favForm').addEventListener('submit',e=>{e.preventDefault();const name=clean($('favName').value);if(!name||name.length>60)return;write(()=>setDoc(doc(db,'shoppingFavorites',encode(name)),{name})).then(ok=>{if(ok)$('favName').value=''})});
 $('rosterForm').addEventListener('submit',async e=>{e.preventDefault();const email=$('memberEmail').value.trim().toLowerCase();if(!/^[^@\s/]+@[^@\s/]+\.[^@\s/]+$/.test(email)){message('メールアドレスを確認してください。',true);return}if(members.length>=1&&!confirm('すでに名簿に'+members.length+'人います。夫婦2人用ですが、本当に追加しますか？'))return;if(await write(()=>setDoc(doc(db,'familyMembers',email),{addedAt:Date.now()}))){$('memberEmail').value='';message(email+' を名簿に追加しました。')}});
 
 // ---------- ログインと同期 ----------
-async function write(fn){if(!user||!canWrite){message('共有データへのアクセス権限を確認してください。',true);return false}try{await fn();return true}catch(e){message(safeError(e),true);return false}}
-function stop(){unsubs.forEach(f=>f());unsubs=[];readyItems=readyFavs=canWrite=false;items=[];favs=[];members=[];schedules=[];$('content').hidden=true;$('dock').hidden=true;$('signin').hidden=false;updateSync()}
+// 書き込み：オフラインでは端末に保存した時点で完了扱い（送信は電波が戻ってから自動）。
+// オンラインでも10秒以上かかる場合は「送信待ち」として先へ進む。
+async function write(fn){
+  if(!user||!canWrite){message('共有データへのアクセス権限を確認してください。',true);return false}
+  let p;
+  try{p=Promise.resolve(fn())}catch(e){message(safeError(e),true);return false}
+  if(!navigator.onLine){p.catch(e=>message(safeError(e),true));return true}
+  let timer;
+  try{
+    await Promise.race([p,new Promise((_,rej)=>{timer=setTimeout(()=>rej({code:'slow'}),10000)})]);
+    return true;
+  }catch(e){
+    if(e?.code==='slow'){p.catch(err=>message(safeError(err),true));toast('通信が遅いため送信待ちにしました。届くと自動で反映されます');return true}
+    message(safeError(e),true);return false;
+  }finally{clearTimeout(timer)}
+}
+// トランザクション（重複・上書き防止）はオンライン専用。オフラインでは端末内のデータで確認して普通に書く
+const txOr=(txFn,offlineFn)=>()=>navigator.onLine
+  ?runTransaction(db,txFn).catch(e=>{if(e?.code==='unavailable')return offlineFn();throw e})
+  :offlineFn();
+function stop(){for(const k in pendingByCol)delete pendingByCol[k];unsubs.forEach(f=>f());unsubs=[];readyItems=readyFavs=canWrite=false;items=[];favs=[];members=[];schedules=[];$('content').hidden=true;$('dock').hidden=true;$('signin').hidden=false;updateSync()}
 $('login').addEventListener('click',async()=>{try{await signInWithPopup(auth,provider)}catch(e){message(safeError(e),true)}});
-$('logout').addEventListener('click',()=>signOut(auth).catch(e=>message(safeError(e),true)));
+// ログアウト時は、この端末に保存した家族のデータも消す（未送信の変更があれば確認）
+$('logout').addEventListener('click',async()=>{
+  if(pendingCount()&&!confirm('まだ送信していない変更があります。ログアウトすると消えます。よろしいですか？'))return;
+  try{await signOut(auth);await terminate(db);await clearIndexedDbPersistence(db)}catch(e){console.warn(e)}
+  location.reload();
+});
 function renderReady(){if(!readyItems||!readyFavs)return;const first=!canWrite;canWrite=true;$('signin').hidden=true;$('content').hidden=false;$('dock').hidden=false;if(first){switchTab(tab);subscribeSchedules()}updateSync();draw();drawSchedules()}
 onAuthStateChanged(auth,u=>{
   stop();user=u;$('account').textContent=u?'ログイン中：'+(u.email||'アカウント'):'';
@@ -811,8 +875,8 @@ onAuthStateChanged(auth,u=>{
   if(!u){message('ログインすると、家族の買い物リストと予定を読み込みます。');return}
   message('アクセス権限を確認中…');
   const err=e=>{stop();$('login').hidden=false;setSync('err','接続できません');if(e?.code==='permission-denied'){message('このアカウント（'+(u.email||'不明')+'）はまだ家族の名簿にありません。管理者に「家族」タブの名簿へ追加してもらってから、再読み込みしてください。',true);return}message(safeError(e),true)};
-  unsubs.push(onSnapshot(collection(db,'shoppingItems'),snap=>{items=snap.docs.map(d=>({id:d.id,...d.data()}));readyItems=true;renderReady()},err));
-  unsubs.push(onSnapshot(collection(db,'shoppingFavorites'),snap=>{favs=snap.docs.map(d=>({id:d.id,...d.data()}));readyFavs=true;renderReady()},err));
+  unsubs.push(onSnapshot(collection(db,'shoppingItems'),{includeMetadataChanges:true},snap=>{items=snap.docs.map(d=>({id:d.id,...d.data(),pending:!!d.metadata?.hasPendingWrites}));trackPending('items',snap);readyItems=true;renderReady()},err));
+  unsubs.push(onSnapshot(collection(db,'shoppingFavorites'),{includeMetadataChanges:true},snap=>{favs=snap.docs.map(d=>({id:d.id,...d.data()}));trackPending('favs',snap);readyFavs=true;renderReady()},err));
   unsubs.push(onSnapshot(collection(db,'familyMembers'),snap=>{members=snap.docs.map(d=>d.id);if(canWrite)draw()},e=>{console.warn('roster',e?.code);$('rosterPanel').hidden=true}));
   unsubs.push(()=>{schedUnsubs.forEach(f=>f());schedUnsubs=[];schedSets={}});
 });

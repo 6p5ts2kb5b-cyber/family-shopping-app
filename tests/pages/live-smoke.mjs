@@ -18,7 +18,7 @@ async function fetchFile(path) {
 }
 
 // 1) 公開待ち（最大10分）
-const NEW = ['app.html', 'lib/quick-schedule.js', 'lib/schedule-views.js'];
+const NEW = ['app.html', 'lib/quick-schedule.js', 'lib/schedule-views.js', 'app.webmanifest', 'icons/icon-180.png'];
 let deployed = false;
 for (let i = 0; i < 40 && !deployed; i++) {
   const results = await Promise.all(NEW.map(async (p) => { const f = await fetchFile(p); return f.status === 200 && sha(f.buf) === sha(readFileSync(p)); }));

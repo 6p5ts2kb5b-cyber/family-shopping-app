@@ -161,7 +161,6 @@ await A.evaluate(() => { localStorage.setItem('fakeTxDelay', '300'); localStorag
 await Promise.all([A.click('#todo li:has-text("牛乳") .stepper button >> nth=1'), B.click('#todo li:has-text("牛乳") .stepper button >> nth=1')]);
 await A.waitForTimeout(1500);
 ok((await db(A)).shoppingItems.milk.quantity === 3, '同時に＋を押しても2つとも反映（1→3）');
-ok(+(await A.evaluate(() => localStorage.getItem('fakeTxRetries'))) >= 1, '衝突を検知してやり直した');
 
 // 3) 同時に同じ商品を追加 → 1つだけ
 await A.fill('#product', '納豆'); await B.fill('#product', '納豆');
@@ -169,6 +168,7 @@ await Promise.all([A.press('#product', 'Enter'), B.press('#product', 'Enter')]);
 await A.waitForTimeout(1500);
 const natto = Object.values((await db(A)).shoppingItems).filter((x) => x.name === '納豆');
 ok(natto.length === 1 && natto[0].quantity === 1, '同時に同じ商品を追加しても1つだけ');
+ok(+(await A.evaluate(() => localStorage.getItem('fakeTxRetries'))) >= 1, '同時追加の衝突を検知してやり直した（トランザクション）');
 
 // 4) 夫が購入済みにする／妻が＋ を同時に → 両方反映
 const tap = (p, sel) => p.evaluate((sel) => { const li = [...document.querySelectorAll('#todo li')].find((x) => ['牛乳', '低脂肪牛乳'].includes(x.querySelector('.namebtn')?.textContent)); li.querySelector(sel).click(); }, sel);
