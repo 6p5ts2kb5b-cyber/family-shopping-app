@@ -33,25 +33,29 @@ for (const p of ['shared.html', 'schedule.html', 'setup.html', 'check.html', 'fi
   ok(f.status === 200 && sha(f.buf) === sha(readFileSync(p)), `${p} は公開中で、リポジトリと同じ内容（変更なし）`);
 }
 
-// 3) iPhone相当の画面で開く
+// 3) iPhone SE・iPhone 13・PC の3サイズで開く
 const b = await chromium.launch();
-const ctx = await b.newContext({ ...devices['iPhone 13'] });
-const page = await ctx.newPage();
-const errors = [], failed = [];
-page.on('pageerror', (e) => errors.push(e.message));
-page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-page.on('requestfailed', (r) => failed.push(r.url() + ' ' + (r.failure()?.errorText || '')));
-page.on('response', (r) => { if (r.url().startsWith(BASE) && r.status() >= 400) failed.push(r.url() + ' ' + r.status()); });
-const res = await page.goto(BASE + 'app.html', { waitUntil: 'networkidle' });
-await page.waitForTimeout(3000);
-ok(res.status() === 200, 'app.html が開ける（200）');
-ok((await page.title()).includes('わが家のメモ'), 'タイトル「わが家のメモ」');
-ok(await page.isVisible('#login'), 'Googleログインのボタンが表示される');
-ok((await page.textContent('#signin')).includes('同じデータ'), '試用版の注意書き（同じデータを使う）が表示される');
-ok(await page.locator('#signin a[href="./shared.html"]').count() === 1, '従来版へのリンクがある');
-ok((await page.textContent('#sync')).includes('未ログイン'), 'Firebaseの読み込みが完了（未ログイン表示）');
-ok(failed.length === 0, '読み込みに失敗したファイルなし ' + failed.join(' | '));
-ok(errors.length === 0, 'JavaScriptのエラーなし ' + errors.join(' | '));
-const sw = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-ok(sw <= 0, '横スクロールなし');
+const SIZES = [['iPhone SE', devices['iPhone SE']], ['iPhone 13', devices['iPhone 13']], ['PC 1280×800', { viewport: { width: 1280, height: 800 } }]];
+for (const [label, opts] of SIZES) {
+  const ctx = await b.newContext({ ...opts });
+  const page = await ctx.newPage();
+  const errors = [], failed = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  page.on('requestfailed', (r) => failed.push(r.url() + ' ' + (r.failure()?.errorText || '')));
+  page.on('response', (r) => { if (r.url().startsWith(BASE) && r.status() >= 400) failed.push(r.url() + ' ' + r.status()); });
+  const res = await page.goto(BASE + 'app.html', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(3000);
+  ok(res.status() === 200, `${label}：app.html が開ける（200）`);
+  ok((await page.title()).includes('わが家のメモ'), `${label}：タイトル「わが家のメモ」`);
+  ok(await page.isVisible('#login'), `${label}：Googleログインのボタンが表示される`);
+  ok((await page.textContent('#signin')).includes('同じデータ'), `${label}：試用版の注意書き（同じデータを使う）`);
+  ok(await page.locator('#signin a[href="./shared.html"]').count() === 1, `${label}：従来版へのリンクがある`);
+  ok((await page.textContent('#sync')).includes('未ログイン'), `${label}：Firebaseの読み込みが完了（未ログイン表示）`);
+  const w = (opts.viewport || {}).width;
+  ok(await page.evaluate((w) => document.documentElement.scrollWidth <= w && innerWidth === w, w), `${label}：画面幅どおりに表示（縮小・横スクロールなし）`);
+  ok(failed.length === 0, `${label}：読み込みに失敗したファイルなし ` + failed.join(' | '));
+  ok(errors.length === 0, `${label}：JavaScriptのエラーなし ` + errors.join(' | '));
+  await ctx.close();
+}
 await b.close();
