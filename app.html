@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#F6F4EF">
 <meta name="robots" content="noindex">
-<title>わが家のメモ｜開発中</title>
+<title>わが家のメモ｜試用版</title>
 <style>
 :root{
   --bg:#F6F4EF;--card:#FFFFFF;--ink:#1F2A24;--muted:#5E6B63;--line:#EEEBE4;--line2:#D5DDD7;
@@ -202,6 +202,9 @@ details.fold>summary::-webkit-details-marker{display:none}
 .tabs button[aria-current=page]{color:var(--green);font-weight:700}
 
 /* お知らせ（元に戻す） */
+.trial{background:var(--warn-soft);color:#5C3D00;border-radius:16px;padding:12px 14px;margin:0 0 14px;font-size:14px;line-height:1.6}
+.trial b{color:#4A3000}
+.trial a{color:#1F5C45;font-weight:700;white-space:nowrap}
 .toast{position:fixed;left:16px;right:16px;bottom:calc(150px + env(safe-area-inset-bottom));z-index:20;max-width:608px;margin:auto;background:#24302A;color:#fff;border-radius:16px;padding:6px 6px 6px 16px;display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.2);font-size:15px}
 .toast span{flex:1;padding:8px 0}
 .toast button{min-height:44px;border:0;border-radius:12px;background:#3B4A42;color:#BFE3CF;font-weight:700;padding:0 14px}
@@ -216,7 +219,8 @@ details.fold>summary::-webkit-details-marker{display:none}
 <section class="signin" id="signin">
   <div class="card">
     <h2>わが家のメモ</h2>
-    <p class="muted" style="margin:0 0 14px">夫婦で共有する買い物リストと予定です。<br><b>開発中の新しい画面</b>（段階2試作・本番未公開）</p>
+    <p class="muted" style="margin:0 0 14px">夫婦で共有する買い物リストと予定です。</p>
+    <p class="trial"><b>新しい画面の試用版です。</b>今の買い物リスト・予定と<b>同じデータ</b>を使うため、ここで追加・変更・削除した内容は従来版にもそのまま反映されます。</p>
     <p id="lineHelp" class="notice" hidden>LINE内ブラウザではGoogleログインが完了しないことがあります。右上のメニューから「Safariで開く」を選んでください。<br><button id="copySafari" type="button" class="link">Safari用URLをコピー</button></p>
     <button id="login" class="btn primary" type="button" style="width:100%">Googleでログイン</button>
     <p id="status" class="msg muted">ログインすると、家族の買い物リストと予定を読み込みます。</p>
@@ -225,6 +229,7 @@ details.fold>summary::-webkit-details-marker{display:none}
 </section>
 
 <main id="content" hidden>
+  <p class="trial" id="trialNote" role="note"><b>試用版</b>：今の買い物リスト・予定と<b>同じデータ</b>です。ここでの追加・変更・削除は従来版にも反映されます。試しに入れるものは「<b>テスト</b>」で始まる名前に（例：テスト牛乳）。<a href="./shared.html">従来版に戻る ›</a></p>
   <!-- 今日 -->
   <div id="homeScreen" class="screen">
     <section aria-labelledby="hToday" class="card sched">

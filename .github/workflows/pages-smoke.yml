@@ -1,0 +1,24 @@
+name: Live site check
+on:
+  push:
+    branches: [main]
+    paths: ['app.html', 'lib/**', 'tests/pages/**', '.github/workflows/pages-smoke.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm install --no-save --no-audit --no-fund playwright
+      - run: npx playwright install --with-deps chromium
+      - name: Check GitHub Pages (real URL)
+        run: |
+          node tests/pages/live-smoke.mjs > live.txt 2>&1; code=$?
+          cat live.txt
+          echo "::notice title=live summary::exit=$code pass=$(grep -c '^PASS' live.txt) fail=$(grep -c '^FAIL' live.txt)"
+          grep '^FAIL' live.txt | head -10 | while read -r l; do echo "::error title=live failed::$l"; done
+          exit $code
