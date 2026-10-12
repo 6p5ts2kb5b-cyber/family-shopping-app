@@ -2,7 +2,7 @@
 // 実行：node --test tests/schedule-views.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { weekendOf, weekOf, sortDay, findOverlaps, clampDay, homeWeekendPreview, initialView } from '../lib/schedule-views.js';
+import { weekendOf, weekOf, sortDay, findOverlaps, clampDay, homeWeekendPreview, initialView, rangeFor } from '../lib/schedule-views.js';
 import { parseQuickSchedule } from '../lib/quick-schedule.js';
 
 const D = (y, m, d) => new Date(y, m - 1, d, 9, 0);
@@ -60,9 +60,9 @@ test('同じ人の時間の重なりだけを知らせる', () => {
   assert.equal(o.get('b'), '美容院');
   assert.equal(o.has('c'), false); // 夫と妻の重なりは普通のこと
 });
-test('重なり：ぴったり続く予定は重ならない／帰宅未定は1時間とみなす／出発未定は判定しない／別の日は別', () => {
+test('重なり：ぴったり続く予定は重ならない／帰宅未定・出発未定は判定しない／別の日は別', () => {
   assert.equal(findOverlaps([ev('a', 'd', 'wife', 'A', '10:00', '12:00'), ev('b', 'd', 'wife', 'B', '12:00', '13:00')]).size, 0);
-  assert.equal(findOverlaps([ev('a', 'd', 'wife', 'A', '10:00'), ev('b', 'd', 'wife', 'B', '10:30', '11:00')]).size, 2);
+  assert.equal(findOverlaps([ev('a', 'd', 'wife', 'A', '10:00'), ev('b', 'd', 'wife', 'B', '10:30', '11:00')]).size, 0);
   assert.equal(findOverlaps([ev('a', 'd', 'wife', 'A'), ev('b', 'd', 'wife', 'B', '10:30', '11:00')]).size, 0);
   assert.equal(findOverlaps([ev('a', 'd1', 'wife', 'A', '10:00', '12:00'), ev('b', 'd2', 'wife', 'B', '10:00', '12:00')]).size, 0);
 });
@@ -77,6 +77,12 @@ test('1日に5件なら4件表示＋「ほか1件」', () => {
   assert.equal(r.shown.length, 4);
   assert.equal(r.more, 1);
   assert.equal(clampDay(day.slice(0, 3), 4).more, 0);
+});
+test('「すべて見る」でその日の全件を表示', () => {
+  const day = Array.from({ length: 7 }, (_, i) => ev(String(i), 'd', 'family', `予定${i}`, `0${i + 1}:00`));
+  const r = clampDay(day, 4, true);
+  assert.equal(r.shown.length, 7);
+  assert.equal(r.more, 0);
 });
 
 // ---- ホームの週末欄 ----
@@ -109,6 +115,31 @@ test('ホームの週末欄：土曜は「明日（日曜）」', () => {
 });
 test('ホームの週末欄：予定がなければ empty（「＋予定を追加」を出す）', () => {
   assert.equal(homeWeekendPreview(FRI, []).empty, true);
+});
+
+test('ホームの週末欄：設定「常に表示」は月〜金も今週末、日曜は来週末', () => {
+  assert.equal(homeWeekendPreview(MON, weekendEvents, 'always').title, '今週末');
+  assert.equal(homeWeekendPreview(MON, weekendEvents, 'always').more, 3);
+  const sun = homeWeekendPreview(SUN, weekendEvents, 'always');
+  assert.equal(sun.title, '来週末');
+  assert.deepEqual(sun.shown.map((e) => e.id), ['6']);
+});
+test('ホームの週末欄：設定「表示しない」は木金でも出さない', () => {
+  assert.equal(homeWeekendPreview(FRI, weekendEvents, 'off'), null);
+});
+
+// ---- 読み込む日付の範囲（過去も見られる） ----
+test('表示ごとに必要な日付だけ読む', () => {
+  assert.deepEqual(rangeFor('today', MON), { start: '2026-10-12', end: '2026-10-12' });
+  assert.deepEqual(rangeFor('tomorrow', MON), { start: '2026-10-13', end: '2026-10-13' });
+  assert.deepEqual(rangeFor('weekend', MON), { start: '2026-10-17', end: '2026-10-18' });
+  assert.deepEqual(rangeFor('week', MON), { start: '2026-10-12', end: '2026-10-18' });
+  assert.deepEqual(rangeFor('home', SUN), { start: '2026-10-18', end: '2026-10-25' });
+});
+test('過去の週・前月の週末も読める', () => {
+  assert.deepEqual(rangeFor('week', MON, -3), { start: '2026-09-21', end: '2026-09-27' });
+  assert.deepEqual(rangeFor('weekend', MON, -2), { start: '2026-10-03', end: '2026-10-04' });
+  assert.deepEqual(rangeFor('today', MON, -12), { start: '2026-09-30', end: '2026-09-30' });
 });
 
 test('予定タブの初期表示は前回の選択、なければ今日', () => {
