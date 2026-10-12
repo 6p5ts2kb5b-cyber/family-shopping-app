@@ -75,30 +75,13 @@ for (const [label, opts, kind] of VIEWS) {
   await p.click('#doneToggle');
   ok(await p.isHidden('#doneBody'), `${label}：もう一度タップで閉じる`);
 
-  // ---- よく買うもの ----
+  // ---- よく買うもの（横スライドなし・全部見える一覧） ----
   ok((await p.textContent('#favCount')) === '12', `${label}：よく買うものの件数`);
-  await p.evaluate(() => { const c = document.getElementById('favorites'); c.scrollLeft = 0; c.dispatchEvent(new Event('scroll')); });
-  await p.waitForTimeout(200);
-  const overflow = await p.evaluate(() => { const c = document.getElementById('favorites'); return c.scrollWidth > c.clientWidth + 4; });
-  if (overflow) {
-    ok(await p.evaluate(() => document.getElementById('favWrap').classList.contains('can-right')), `${label}：続きがあると右端に目印`);
-    if (kind === 'pc') {
-      ok(await p.isVisible('#favRight') && await p.isHidden('#favLeft'), `${label}：PCは右矢印ボタンが出る`);
-      const before = await p.evaluate(() => document.getElementById('favorites').scrollLeft);
-      await p.click('#favRight'); await p.waitForTimeout(700);
-      const after = await p.evaluate(() => document.getElementById('favorites').scrollLeft);
-      ok(after > before && await p.isVisible('#favLeft'), `${label}：矢印で右へ移動し、左矢印も出る`);
-      await p.click('#favLeft'); await p.waitForTimeout(700);
-      ok(await p.evaluate(() => document.getElementById('favorites').scrollLeft) < after, `${label}：左矢印で戻る`);
-    } else {
-      ok(await p.isHidden('#favRight') && await p.isVisible('#favWrap .more-hint'), `${label}：スマホは矢印ボタンなし・「›」の目印`);
-      await p.evaluate(() => { const c = document.getElementById('favorites'); c.scrollLeft = c.scrollWidth; c.dispatchEvent(new Event('scroll')); });
-      await p.waitForTimeout(200);
-      ok(await p.evaluate(() => { const w = document.getElementById('favWrap'); return w.classList.contains('can-left') && !w.classList.contains('can-right'); }), `${label}：指で右端まで動かすと目印が左側に変わる`);
-    }
-  } else {
-    ok(await p.isHidden('#favRight') && await p.isHidden('#favLeft'), `${label}：全部見えるときは矢印なし`);
-  }
+  const fv = await p.evaluate(() => { const c = document.getElementById('favorites'); const bs = [...c.querySelectorAll('button.chip')]; return { sw: c.scrollWidth, cw: c.clientWidth, n: bs.length, visible: bs.filter((x) => { const r = x.getBoundingClientRect(); const cr = c.getBoundingClientRect(); return r.left >= cr.left - 1 && r.right <= cr.right + 1; }).length, rows: new Set(bs.map((x) => Math.round(x.getBoundingClientRect().top))).size, minH: Math.min(...bs.map((x) => x.getBoundingClientRect().height)) }; });
+  ok(fv.sw <= fv.cw + 1, `${label}：横にはみ出さない（横スライド不要）`);
+  ok(fv.n === 12 && fv.visible === 12, `${label}：12件すべてが横スクロールなしで見える`);
+  ok(fv.rows >= 2, `${label}：複数行で並ぶ（${fv.rows}行）`);
+  ok(fv.minH >= 44, `${label}：ボタンは押しやすい高さ（${Math.round(fv.minH)}px）`);
   await p.click('#favorites button:has-text("ヨーグルト")');
   await p.waitForTimeout(300);
   ok((await p.textContent('#todo')).includes('ヨーグルト'), `${label}：よく買うものを1タップで追加（そのまま使える）`);

@@ -33,6 +33,14 @@ for (const p of ['shared.html', 'schedule.html', 'setup.html', 'check.html', 'fi
   ok(f.status === 200 && sha(f.buf) === sha(readFileSync(p)), `${p} は公開中で、リポジトリと同じ内容（変更なし）`);
 }
 
+// 2b) トップページは新しい画面へ移動、以前の端末保存版も開ける
+{
+  const top = await fetchFile('index.html');
+  ok(top.status === 200 && top.buf.toString().includes('app.html'), 'トップページ（index.html）は新しい画面へ案内');
+  const legacy = await fetchFile('local-classic.html');
+  ok(legacy.status === 200, '以前の端末保存版（local-classic.html）も開ける');
+}
+
 // 3) iPhone SE・iPhone 13・PC の3サイズで開く
 const b = await chromium.launch();
 const SIZES = [['iPhone SE', devices['iPhone SE']], ['iPhone 13', devices['iPhone 13']], ['PC 1280×800', { viewport: { width: 1280, height: 800 } }]];
@@ -49,8 +57,7 @@ for (const [label, opts] of SIZES) {
   ok(res.status() === 200, `${label}：app.html が開ける（200）`);
   ok((await page.title()).includes('わが家のメモ'), `${label}：タイトル「わが家のメモ」`);
   ok(await page.isVisible('#login'), `${label}：Googleログインのボタンが表示される`);
-  ok((await page.textContent('#signin')).includes('同じデータ'), `${label}：試用版の注意書き（同じデータを使う）`);
-  ok(await page.locator('#signin a[href="./shared.html"]').count() === 1, `${label}：従来版へのリンクがある`);
+  ok(await page.locator('#signin a[href="./shared.html"]').count() === 1, `${label}：以前の共有版へのリンクがある`);
   ok((await page.textContent('#sync')).includes('未ログイン'), `${label}：Firebaseの読み込みが完了（未ログイン表示）`);
   const w = (opts.viewport || {}).width;
   ok(await page.evaluate((w) => document.documentElement.scrollWidth <= w && innerWidth === w, w), `${label}：画面幅どおりに表示（縮小・横スクロールなし）`);
