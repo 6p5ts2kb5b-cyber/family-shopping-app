@@ -1,65 +1,500 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#23634b"><title>わが家のメモ｜開発中</title><style>
-*{box-sizing:border-box}body{margin:0;background:#f3f7f3;color:#244638;font-family:system-ui,-apple-system,sans-serif}.wrap{max-width:620px;margin:auto;padding:22px 15px 70px}h1{font-size:25px}h2{font-size:19px}.panel{background:white;padding:18px;border-radius:17px;margin:15px 0;box-shadow:0 3px 12px #132e2110}button,input{font:inherit}button{border:0;border-radius:10px;min-height:43px;padding:9px 12px;cursor:pointer}.green{background:#23634b;color:white}.secondary{background:#eaf3ec;color:#23634b}.danger{color:#9a3535;background:transparent}.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}input[type=text],input[type=number]{min-height:43px;border:1px solid #c6d2c9;border-radius:10px;padding:8px;font-size:16px}input[type=text]{flex:1;min-width:150px}input[type=number]{width:70px}.note{color:#5d756a;font-size:13px;line-height:1.6}.warning{background:#ffefd6;padding:12px;border-radius:12px;color:#784e1d}.error{color:#9b3333}.item{display:flex;align-items:center;gap:7px;border-top:1px solid #e8eee9;padding:8px 0;min-height:56px}.item label{display:flex;gap:10px;align-items:center;flex:1;min-width:0;overflow-wrap:anywhere}.item input[type=checkbox]{width:21px;height:21px;accent-color:#23634b}.item button{padding:4px 10px}.amount{font-weight:bold;min-width:27px;text-align:center}.chips{display:flex;flex-wrap:wrap;gap:8px}.chips button{background:#e9f4ed;color:#23634b}button:disabled{opacity:.45}#status{font-size:14px}.hidden{display:none}a{color:#23634b}.day-card{border-top:1px solid #e6eee8;padding:10px 0}.day-card strong{display:block}.day-meta{color:#557162;font-size:13px;margin-top:4px}.schedule-empty{font-size:14px;color:#60756b}
-.tabs{display:flex;position:sticky;bottom:0;background:#fff;border-top:1px solid #dce7dd;gap:3px;padding:8px;z-index:5}.tabs button{flex:1;background:#fff;color:#426451}.tabs button.active{background:#e6f1e8;font-weight:700}.screen.hidden{display:none}.scheduleRow{padding:10px 0;border-bottom:1px solid #e7eee9}.screenHeading{margin:8px 0}.quick{display:grid;gap:10px}.quick input,.quick select{min-height:44px;width:100%;border:1px solid #bacbbf;padding:9px;border-radius:10px;font:inherit}.quick label{display:grid;gap:3px;font-size:14px}.quickgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.modalNote{background:#eef4ef;padding:10px;border-radius:9px;font-size:13px}.wrap{padding-bottom:105px}</style></head><body><main class="wrap"><h1>わが家のメモ</h1><p class="note">開発中の新しい画面（段階2試作・本番未公開）</p>
-<section class="panel"><p id="lineHelp" class="warning hidden">LINE内ブラウザではGoogleログインが完了しないことがあります。右上のメニューから「Safariで開く」を選ぶか、URLをコピーしてSafariで直接開いてください。<br><button id="copySafari" type="button" class="secondary">Safari用URLをコピー</button></p><div class="row"><button id="login" class="green">Googleでログイン</button><button id="logout" class="secondary hidden">ログアウト</button></div><p id="account" class="note">ログインしてください。</p><p id="status" class="warning">データへのアクセスは、夫婦2人限定ルールが設定されるまで拒否されます。</p><p class="note">以前のお試し版の買い物リストは、そのまま端末内に残ります。自動移行・自動削除はしません。</p></section>
-<div id="content" class="hidden"><div class="screen" id="homeScreen"><section class="panel"><h2>📅 今日の家族の予定</h2><div id="todaySchedule" aria-live="polite"><p class="schedule-empty">予定を読み込み中…</p></div><p id="scheduleWarning" class="note hidden"></p><a href="./schedule.html" class="secondary" style="display:inline-block;padding:12px;border-radius:10px;text-decoration:none;font-weight:700">予定を追加・変更 →</a></section><section class="panel"><form id="add" class="row"><input id="product" type="text" required maxlength="60" placeholder="何を買う？"><input id="qty" type="number" min="1" max="999" value="1" aria-label="個数" required><button class="green">＋追加</button></form></section>
-<section class="panel"><h2>買うもの <span id="todoCount">0</span></h2><div id="todo"></div></section>
-<section class="panel"><h2>よく買うもの</h2><div id="favorites" class="chips"></div><form id="favForm" class="row" style="margin-top:12px"><input id="favName" type="text" maxlength="60" placeholder="よく買うものを登録" required><button class="secondary">＋登録</button></form></section>
-<section class="panel"><h2>購入済み <span id="doneCount">0</span></h2><div id="done"></div></section>
-</div><div class="screen hidden" id="scheduleScreen"><section class="panel"><h2>📅 予定</h2><div class="row"><button type="button" class="secondary" id="viewToday">今日</button><button type="button" class="secondary" id="viewTomorrow">明日</button></div><div id="scheduleList"></div></section><section class="panel"><h2>文章で予定を追加</h2><div class="quick"><input id="quickText" type="text" placeholder="11.3野球大会6:00から17:00"><p id="quickWarn" class="note"></p><div class="quickgrid"><label>日付<input type="date" id="quickDate"></label><label>誰の予定<select id="quickWho"><option value="">選択してください</option><option value="husband">夫</option><option value="wife">妻</option><option value="family">家族</option></select></label><label>出発<input type="time" id="quickDeparture"></label><label>帰宅予定<input type="time" id="quickReturn"></label></div><label>予定内容<input type="text" id="quickName" maxlength="80"></label><button type="button" id="quickSave" class="green">予定を保存</button></div></section></div><div class="screen hidden" id="familyScreen"><section class="panel" id="rosterPanel"><h2>家族の名簿</h2><p class="note">ここに載っているGoogleアカウントだけが、このリストを使えます。追加・削除できるのは管理者（最初に設定した人）だけです。<b>夫婦2人用なので、配偶者1人だけを追加してください。</b></p><div id="roster"></div><form id="rosterForm" class="row" style="margin-top:12px"><input id="memberEmail" type="email" inputmode="email" autocomplete="off" maxlength="120" placeholder="配偶者のGmailアドレス" required style="flex:1;min-width:180px;min-height:43px;border:1px solid #c6d2c9;border-radius:10px;padding:8px;font-size:16px"><button class="secondary">＋名簿に追加</button></form></section>
-</div></div><nav class="tabs" id="newTabs"><button type="button" data-tab="home" class="active">今日</button><button type="button" data-tab="schedule">予定</button><button type="button" data-tab="family">家族</button></nav><p class="note"><a href="./shared.html">従来版の買い物アプリに戻る</a></p></main>
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F6F4EF">
+<meta name="robots" content="noindex">
+<title>わが家のメモ｜開発中</title>
+<style>
+:root{
+  --bg:#F6F4EF;--card:#FFFFFF;--ink:#1F2A24;--muted:#5E6B63;--line:#EEEBE4;--line2:#D5DDD7;
+  --green:#1F5C45;--green-soft:#E3EEE7;--track:#F2F0EA;
+  --h:#24497C;--h-soft:#E1EAF6;--w:#8F3A10;--w-soft:#FBE7DA;--f:#1F5C45;--f-soft:#E3EEE7;
+  --warn:#7A4F00;--warn-soft:#FFF3D6;--err:#9A1F18;--err-soft:#FDE8E6;
+  --r-card:20px;--r-ctl:16px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;font-size:16px;line-height:1.5}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+[hidden]{display:none!important}
+.num{font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:3px solid #8DBBA5;outline-offset:2px}
+
+/* ヘッダー */
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;max-width:640px;margin:auto;padding:max(20px,env(safe-area-inset-top)) 20px 12px}
+.top .date{margin:0;font-size:14px;color:var(--muted);font-weight:500}
+.top h1{margin:0;font-size:30px;line-height:1.2;font-weight:800;letter-spacing:.01em}
+.sync{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font-size:13px;font-weight:700;white-space:nowrap;background:#EEF1EF;color:#3F4D45}
+.sync::before{content:"";width:9px;height:9px;border-radius:50%;background:currentColor}
+.sync[data-tone=ok]{background:var(--green-soft);color:var(--green)}
+.sync[data-tone=ok]::before{background:#2E8B57}
+.sync[data-tone=warn]{background:var(--warn-soft);color:var(--warn)}
+.sync[data-tone=err]{background:var(--err-soft);color:var(--err)}
+
+main,.signin{max-width:640px;margin:auto;padding:0 16px}
+main{padding-bottom:190px}
+.card{background:var(--card);border-radius:var(--r-card);box-shadow:0 1px 2px rgba(31,42,36,.06)}
+.section{margin-top:18px}
+.head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:0 4px 8px}
+.head h2{margin:0;font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px}
+.badge{font-size:13px;background:var(--green);color:#fff;border-radius:999px;padding:1px 9px;font-weight:700}
+.link{border:0;background:none;color:var(--green);font-weight:700;font-size:15px;min-height:44px;padding:0 4px}
+.muted{color:var(--muted)}
+.empty{padding:16px;color:var(--muted);font-size:15px;text-align:center}
+
+/* ログイン */
+.signin .card{padding:20px}
+.signin h2{margin:0 0 6px;font-size:20px}
+.btn{min-height:52px;border:0;border-radius:var(--r-ctl);padding:0 20px;font-size:17px;font-weight:700}
+.btn.primary{background:var(--green);color:#fff}
+.btn.primary:disabled{background:#A7B8AE;cursor:not-allowed}
+.btn.sub{background:var(--card);color:var(--green);border:1px solid var(--line2);min-height:48px;font-size:16px}
+.msg{margin:12px 0 0;font-size:15px}
+.msg.err{color:var(--err);font-weight:700}
+.notice{background:var(--warn-soft);color:var(--warn);border-radius:14px;padding:12px 14px;font-size:14px;margin:0 0 12px}
+
+/* 予定（行） */
+.sched{padding:6px 16px 6px}
+.ev{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.ev:first-child{border-top:0}
+.ev .t{flex:none;width:56px;display:flex;flex-direction:column;line-height:1.25}
+.ev .t b{font-size:17px}
+.ev .t span{font-size:13px;color:var(--muted)}
+.ev .name{flex:1;min-width:0;font-size:17px;font-weight:700;overflow-wrap:anywhere}
+.tag{flex:none;padding:3px 9px;border-radius:8px;font-size:13px;font-weight:700}
+.tag.husband{background:var(--h-soft);color:var(--h)}
+.tag.wife{background:var(--w-soft);color:var(--w)}
+.tag.family{background:var(--f-soft);color:var(--f)}
+
+/* 買い物（行） */
+.list{list-style:none;margin:0;padding:0 4px}
+.item{display:flex;align-items:center;gap:2px;min-height:60px;padding:0 4px 0 2px;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.check{flex:none;width:48px;height:48px;border:0;background:none;display:flex;align-items:center;justify-content:center;padding:0}
+.check i{width:26px;height:26px;border-radius:50%;border:2px solid #A7B3AB;display:flex;align-items:center;justify-content:center}
+.done .check i{background:var(--green);border-color:var(--green)}
+.done .check i::after{content:"";width:10px;height:6px;border:solid #fff;border-width:0 0 2.5px 2.5px;transform:rotate(-45deg) translate(1px,-1px)}
+.item .name{flex:1;min-width:0;font-size:18px;font-weight:500;overflow-wrap:anywhere}
+.done .name{color:var(--muted);text-decoration:line-through}
+.stepper{flex:none;display:flex;align-items:center;background:var(--track);border-radius:999px}
+.stepper button{width:44px;height:40px;border:0;background:none;color:var(--green);font-size:20px;font-weight:700;padding:0}
+.stepper button:disabled{color:#B9C3BC;cursor:default}
+.stepper output{min-width:24px;text-align:center;font-size:17px;font-weight:700}
+.qty{flex:none;font-size:15px;color:var(--muted);padding:0 6px}
+.del{flex:none;width:44px;height:44px;border:0;background:none;color:#A86A62;font-size:22px;padding:0}
+
+/* よく買うもの */
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 4px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;min-height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--line2);background:var(--card);color:var(--green);font-size:16px;font-weight:700;white-space:nowrap}
+.chip.in{border-style:dashed;background:transparent;color:#7A867E;font-weight:500}
+details.fold{margin-top:8px}
+details.fold>summary{list-style:none;cursor:pointer;color:var(--green);font-weight:700;font-size:15px;min-height:44px;display:flex;align-items:center;padding:0 4px}
+details.fold>summary::-webkit-details-marker{display:none}
+.favedit{padding:8px 12px 12px}
+.row{display:flex;gap:8px;align-items:center}
+.field{flex:1;min-width:0;height:48px;border:1px solid var(--line2);border-radius:14px;background:var(--card);padding:0 14px;font-size:16px}
+
+/* 予定タブ */
+.seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;background:#E9E6DE;border-radius:14px;padding:4px}
+.seg button{min-height:40px;border:0;border-radius:10px;background:none;color:var(--muted);font-size:15px;font-weight:500}
+.seg button[aria-selected=true]{background:var(--card);color:var(--ink);font-weight:700;box-shadow:0 1px 2px rgba(31,42,36,.1)}
+.dayTitle{margin:14px 4px 8px;font-size:18px;font-weight:700}
+.quick{padding:16px;display:grid;gap:12px}
+.quick h2{margin:0;font-size:18px}
+.quick .big{height:56px;font-size:17px;border-width:2px}
+.quick .big:focus{border-color:var(--green)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.lbl{display:grid;gap:4px;font-size:13px;font-weight:700;color:var(--muted)}
+.lbl input{height:48px;border:1px solid var(--line2);border-radius:12px;padding:0 10px;font-size:16px;background:var(--card);width:100%;min-width:0}
+.lbl.miss input{border-color:#D99A3A;background:#FFFBF2}
+.who{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.who button{min-height:48px;border-radius:12px;border:1px solid var(--line2);background:var(--card);font-weight:700;font-size:16px}
+.who button[data-v=husband]{color:var(--h)}.who button[data-v=wife]{color:var(--w)}.who button[data-v=family]{color:var(--f)}
+.who button[aria-pressed=true][data-v=husband]{background:var(--h-soft);border-color:var(--h)}
+.who button[aria-pressed=true][data-v=wife]{background:var(--w-soft);border-color:var(--w)}
+.who button[aria-pressed=true][data-v=family]{background:var(--f-soft);border-color:var(--f)}
+.who.miss button{border-color:#D99A3A}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.ask{background:var(--warn-soft);color:#5C3D00;border-radius:12px;padding:10px 12px;font-size:14px;display:grid;gap:8px}
+.ask .row button{flex:1;min-height:44px;border-radius:12px;border:1px solid #E2C27A;background:#fff;color:#5C3D00;font-weight:700}
+
+/* 家族タブ */
+.fam{padding:16px;display:grid;gap:10px}
+.fam h2{margin:0;font-size:18px}
+.member{display:flex;align-items:center;gap:8px;min-height:48px;border-top:1px solid var(--line)}
+.member span{flex:1;min-width:0;overflow-wrap:anywhere}
+.plain{color:var(--green);font-weight:700;text-decoration:none;min-height:44px;display:flex;align-items:center}
+
+/* 下部（追加欄・タブ） */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:10;background:rgba(246,244,239,.97);border-top:1px solid #E6E2D9;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.dock>*{max-width:640px;margin-left:auto;margin-right:auto}
+.addbar{display:flex;gap:8px;padding:10px 16px 0}
+.addbar input{flex:1;min-width:0;height:52px;border-radius:16px;border:1px solid var(--line2);background:var(--card);padding:0 16px;font-size:17px}
+.addbar button{flex:none;width:52px;height:52px;border-radius:16px;border:0;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center}
+.tabs{display:flex;justify-content:space-around;padding:6px 8px max(10px,env(safe-area-inset-bottom))}
+.tabs button{flex:1;max-width:120px;min-height:52px;border:0;background:none;color:var(--muted);font-size:12px;font-weight:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.tabs button[aria-current=page]{color:var(--green);font-weight:700}
+
+/* お知らせ（元に戻す） */
+.toast{position:fixed;left:16px;right:16px;bottom:calc(150px + env(safe-area-inset-bottom));z-index:20;max-width:608px;margin:auto;background:#24302A;color:#fff;border-radius:16px;padding:6px 6px 6px 16px;display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.2);font-size:15px}
+.toast span{flex:1;padding:8px 0}
+.toast button{min-height:44px;border:0;border-radius:12px;background:#3B4A42;color:#BFE3CF;font-weight:700;padding:0 14px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div><p class="date" id="todayLabel"></p><h1 id="screenTitle">わが家のメモ</h1></div>
+  <span id="sync" class="sync" role="status" data-tone="wait">確認中…</span>
+</header>
+
+<section class="signin" id="signin">
+  <div class="card">
+    <h2>わが家のメモ</h2>
+    <p class="muted" style="margin:0 0 14px">夫婦で共有する買い物リストと予定です。<br><b>開発中の新しい画面</b>（段階2試作・本番未公開）</p>
+    <p id="lineHelp" class="notice" hidden>LINE内ブラウザではGoogleログインが完了しないことがあります。右上のメニューから「Safariで開く」を選んでください。<br><button id="copySafari" type="button" class="link">Safari用URLをコピー</button></p>
+    <button id="login" class="btn primary" type="button" style="width:100%">Googleでログイン</button>
+    <p id="status" class="msg muted">ログインすると、家族の買い物リストと予定を読み込みます。</p>
+    <p class="hint" style="margin-top:12px"><a href="./shared.html" style="color:var(--green)">従来版の買い物アプリへ</a></p>
+  </div>
+</section>
+
+<main id="content" hidden>
+  <!-- 今日 -->
+  <div id="homeScreen" class="screen">
+    <section aria-labelledby="hToday" class="card sched">
+      <div class="head" style="padding:0">
+        <h2 id="hToday" style="font-size:16px">今日の予定</h2>
+        <button type="button" class="link" id="goAddSchedule">＋ 予定を追加</button>
+      </div>
+      <div id="todaySchedule" aria-live="polite"></div>
+    </section>
+
+    <section class="section" aria-labelledby="hTodo">
+      <div class="head"><h2 id="hTodo">買うもの <span class="badge num" id="todoCount">0</span></h2></div>
+      <ul class="card list" id="todo"></ul>
+    </section>
+
+    <section class="section" aria-labelledby="hFav">
+      <div class="head"><h2 id="hFav" style="font-size:15px;color:var(--muted)">よく買うもの　タップで追加</h2></div>
+      <div class="chips" id="favorites"></div>
+      <details class="fold" id="favFold">
+        <summary>よく買うものを編集</summary>
+        <div class="card favedit">
+          <form id="favForm" class="row"><label class="sr" for="favName">よく買うものの名前</label><input class="field" id="favName" type="text" maxlength="60" placeholder="例：ヨーグルト" required><button class="btn sub" style="min-height:48px">登録</button></form>
+          <ul class="list" id="favList" style="padding:0;margin-top:6px"></ul>
+        </div>
+      </details>
+    </section>
+
+    <section class="section">
+      <details class="fold" id="doneFold">
+        <summary>購入済み <span class="num" id="doneCount" style="margin-left:6px">0</span></summary>
+        <ul class="card list" id="done"></ul>
+      </details>
+    </section>
+  </div>
+
+  <!-- 予定 -->
+  <div id="scheduleScreen" class="screen" hidden>
+    <div class="seg" role="tablist" aria-label="表示する日">
+      <button type="button" role="tab" id="viewToday" aria-selected="true">今日</button>
+      <button type="button" role="tab" id="viewTomorrow" aria-selected="false">明日</button>
+    </div>
+    <p class="hint" style="margin:6px 4px 0">週末・週間の表示は次の段階で追加します。</p>
+    <h2 class="dayTitle" id="dayTitle"></h2>
+    <section class="card sched" id="scheduleList" aria-live="polite"></section>
+
+    <section class="card quick section" aria-labelledby="hQuick">
+      <h2 id="hQuick">文章で予定を追加</h2>
+      <label class="sr" for="quickText">予定を文章で入力</label>
+      <input id="quickText" class="field big" type="text" autocomplete="off" placeholder="例：11.3 野球大会 6:00から17:00">
+      <p class="hint">日付・予定・時間を自由に書くと、下の欄に自動で入ります。読めなかった欄は手で直せます。</p>
+      <div id="quickAsk" class="ask" hidden></div>
+      <div class="grid2">
+        <label class="lbl" id="lDate">日付<input type="date" id="quickDate"></label>
+        <label class="lbl" id="lName">予定内容<input type="text" id="quickName" maxlength="80"></label>
+        <label class="lbl">家を出る時間<input type="time" id="quickDeparture"></label>
+        <label class="lbl">帰宅予定<input type="time" id="quickReturn"></label>
+      </div>
+      <div>
+        <p class="lbl" style="margin:0 0 4px" id="whoLabel">誰の予定</p>
+        <div class="who" id="quickWho" role="group" aria-labelledby="whoLabel">
+          <button type="button" data-v="husband" aria-pressed="false">夫</button>
+          <button type="button" data-v="wife" aria-pressed="false">妻</button>
+          <button type="button" data-v="family" aria-pressed="false">家族</button>
+        </div>
+      </div>
+      <p id="quickWarn" class="hint" aria-live="polite"></p>
+      <button type="button" id="quickSave" class="btn primary" disabled>予定を保存</button>
+    </section>
+  </div>
+
+  <!-- 家族 -->
+  <div id="familyScreen" class="screen" hidden>
+    <section class="card fam">
+      <h2>アカウント</h2>
+      <p id="account" class="muted" style="margin:0;overflow-wrap:anywhere"></p>
+      <button id="logout" type="button" class="btn sub">ログアウト</button>
+    </section>
+    <section class="card fam section" id="rosterPanel">
+      <h2>家族の名簿</h2>
+      <p class="hint">ここに載っているGoogleアカウントだけが使えます。追加・削除できるのは管理者だけです。<b>夫婦2人用なので、配偶者1人だけを追加してください。</b></p>
+      <div id="roster"></div>
+      <form id="rosterForm" class="row"><label class="sr" for="memberEmail">配偶者のGmailアドレス</label><input class="field" id="memberEmail" type="email" inputmode="email" autocomplete="off" maxlength="120" placeholder="配偶者のGmailアドレス" required><button class="btn sub" style="min-height:48px">追加</button></form>
+    </section>
+    <section class="card fam section">
+      <a class="plain" href="./check.html">接続チェック ›</a>
+      <a class="plain" href="./shared.html">従来版の買い物アプリ ›</a>
+      <a class="plain" href="./schedule.html">従来版の予定 ›</a>
+    </section>
+  </div>
+</main>
+
+<div class="dock" id="dock" hidden>
+  <form id="add" class="addbar">
+    <label class="sr" for="product">買うものを追加</label>
+    <input id="product" type="text" maxlength="60" autocomplete="off" enterkeyhint="done" placeholder="何を買う？" required>
+    <button aria-label="追加する"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+  </form>
+  <nav class="tabs" aria-label="メイン">
+    <button type="button" data-tab="home" aria-current="page"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>今日</button>
+    <button type="button" data-tab="schedule"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>予定</button>
+    <button type="button" data-tab="family"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>家族</button>
+  </nav>
+</div>
+
+<div class="toast" id="toast" role="status" hidden><span id="toastText"></span><button type="button" id="toastUndo" hidden>元に戻す</button></div>
+
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import {getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import {getFirestore,collection,doc,onSnapshot,runTransaction,deleteDoc,setDoc} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import {firebaseConfig} from "./firebase-config.js?v=20261011-fix2";
 import {parseQuickSchedule} from "./lib/quick-schedule.js";
+import {normWho,sortDay,toYmd,addDays} from "./lib/schedule-views.js";
+
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),provider=new GoogleAuthProvider();
-const ua=navigator.userAgent||'';
-const inLine=/\bLine\//i.test(ua)||/\bLine\b/i.test(ua);
-if(inLine)document.getElementById('lineHelp').classList.remove('hidden');
-document.getElementById('copySafari').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(location.href);alert('コピーしました。Safariに貼り付けて開いてください。')}catch{prompt('このURLをコピーしてSafariで開いてください',location.href)}});
-
-const $=id=>document.getElementById(id),clean=s=>String(s).normalize('NFKC').trim().replace(/\s+/g,' '),key=s=>clean(s).toLocaleLowerCase('ja-JP');
+const $=id=>document.getElementById(id);
+const clean=s=>String(s).normalize('NFKC').trim().replace(/\s+/g,' ');
+const key=s=>clean(s).toLocaleLowerCase('ja-JP');
 const encode=s=>Array.from(new TextEncoder().encode(key(s)),x=>x.toString(16).padStart(2,'0')).join('');
+const el=(tag,props={},...kids)=>{const n=Object.assign(document.createElement(tag),props);n.append(...kids);return n};
+const WHO={husband:'夫',wife:'妻',family:'家族'};
+const DOW='日月火水木金土';
+const fmtDay=ymd=>{const [y,m,d]=ymd.split('-').map(Number);const t=new Date(y,m-1,d);return `${m}月${d}日（${DOW[t.getDay()]}）`};
+const fmtTime=t=>t?t.replace(/^0(\d)/,'$1'):'';
+const today=()=>toYmd(new Date());
+
 let user=null,canWrite=false,items=[],favs=[],members=[],schedules=[],unsubs=[],readyItems=false,readyFavs=false;
-let selectedScheduleDay=todayLocal(),quickParse=null;
-function todayLocal(){const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
-function drawSchedules(){const root=$('todaySchedule');if(!root)return;const entries=schedules.filter(x=>x.date===todayLocal()).sort((a,b)=>(a.departure||'99:99').localeCompare(b.departure||'99:99'));root.replaceChildren();if(!entries.length){let p=document.createElement('p');p.className='schedule-empty';p.textContent='今日の予定はありません。';root.append(p);return}for(const e of entries){let box=document.createElement('div');box.className='day-card';let title=document.createElement('strong');title.textContent=({family:'👨‍👩‍👧 家族全員',wife:'👩 妻',husband:'👨 夫',me:'👨 夫'}[e.who]||'家族')+'｜'+(e.name||'予定');let times=document.createElement('div');times.className='day-meta';times.textContent='出発 '+(e.departure||'未定')+'　・　帰宅予定 '+(e.returnTime||'未定');box.append(title,times);root.append(box)}drawScheduleList()}
+let tab='home',scheduleView='today';
 
-function message(s,err=false){$('status').textContent=s;$('status').className=err?'error':'note'}
-function safeError(e){if(e?.code==='already-listed')return 'すでに買うものに登録されています。';if(e?.code==='permission-denied')return 'この操作の権限がありません。（名簿の変更は管理者だけ／ルール未設定の場合は setup.html から）';if(e?.code==='auth/popup-blocked')return 'ログイン画面がブロックされました。ポップアップを許可してください。';if(e?.code==='auth/unauthorized-domain')return 'このサイトのドメインがFirebaseで承認されていません。';if(e?.code==='not-found')return 'この商品は、もう一方の端末で削除されたようです。';if(e?.code==='unavailable')return '通信できません。接続を確認してください。';return 'エラーが発生しました：'+(e?.code||'通信または設定を確認してください')}
-function switchTab(tab){for(const k of ['home','schedule','family'])$(''+k+'Screen').classList.toggle('hidden',k!==tab);for(const b of document.querySelectorAll('#newTabs button'))b.classList.toggle('active',b.dataset.tab===tab);if(tab==='schedule')drawScheduleList()}
-for(const b of document.querySelectorAll('#newTabs button'))b.onclick=()=>switchTab(b.dataset.tab);
-$('viewToday').onclick=()=>{selectedScheduleDay=todayLocal();drawScheduleList()};
-$('viewTomorrow').onclick=()=>{const d=new Date();d.setDate(d.getDate()+1);selectedScheduleDay=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');drawScheduleList()};
-function drawScheduleList(){const list=$('scheduleList');list.replaceChildren();const h=document.createElement('p');h.className='note';h.textContent='表示日：'+selectedScheduleDay;list.append(h);const es=schedules.filter(x=>x.date===selectedScheduleDay);for(const e of es){const div=document.createElement('div');div.className='scheduleRow';div.textContent=({husband:'夫',me:'夫',wife:'妻',family:'家族'}[e.who]||'家族')+'｜'+e.name+'　出発 '+(e.departure||'未定')+' → 帰宅 '+(e.returnTime||'未定');list.append(div)}if(!es.length){const p=document.createElement('p');p.className='note';p.textContent='予定はありません';list.append(p)}}
-$('quickText').oninput=()=>{const r=parseQuickSchedule($('quickText').value);quickParse=r;$('quickDate').value=r.date;$('quickName').value=r.name;$('quickWho').value=r.who;$('quickDeparture').value=r.departure;$('quickReturn').value=r.returnTime;let notices=[];if(r.needsConfirm.some(x=>x.type==='past-date'))notices.push('過去の日付です。保存前に日付を確認してください。');if(r.needsConfirm.some(x=>x.type==='pick-day'))notices.push('週末の土曜または日曜を選択してください。');if(r.warnings.length)notices.push('一部を読み取れませんでした。入力欄を確認してください。');$('quickWarn').textContent=notices.join(' ')||'読み取り結果を確認してから保存してください。'};
-$('quickSave').onclick=async()=>{const record={date:$('quickDate').value,name:$('quickName').value.trim(),who:$('quickWho').value,departure:$('quickDeparture').value,returnTime:$('quickReturn').value};if(!/^\d{4}-\d{2}-\d{2}$/.test(record.date)||!record.name||!['husband','wife','family'].includes(record.who)){message('日付・予定内容・誰の予定かを入力してください。',true);return}const id=(crypto.randomUUID?.()||String(Date.now())+'-'+Math.random().toString(36).slice(2));if(await write(()=>setDoc(doc(db,'familySchedules',id),record))){selectedScheduleDay=record.date;$('quickText').value='';$('quickName').value='';$('quickWarn').textContent='予定を保存しました。';drawScheduleList()}};
-function stop(){unsubs.forEach(f=>f());unsubs=[];readyItems=readyFavs=canWrite=false;items=[];favs=[];members=[];schedules=[];$('content').classList.add('hidden')}
-async function login(){try{await signInWithPopup(auth,provider)}catch(e){message(safeError(e),true)}}
-$('login').addEventListener('click',login);$('logout').addEventListener('click',()=>signOut(auth).catch(e=>message(safeError(e),true)));
-onAuthStateChanged(auth,u=>{stop();user=u;$('login').classList.toggle('hidden',!!u);$('logout').classList.toggle('hidden',!u);$('account').textContent=u?'Googleログイン済み：'+(u.email||'アカウント'):'ログインしてください。';if(!u){message('Googleでログインすると、許可された家族の買い物リストを読み込みます。');return}message('アクセス権限を確認中…');
-const err=e=>{stop();if(e?.code==='permission-denied'){message('このアカウント（'+(u.email||'不明')+'）はまだ家族の名簿にありません。管理者の画面の「家族の名簿」に、このメールアドレスを追加してもらってから、ページを再読み込みしてください。',true);return}message(safeError(e),true)};
-unsubs.push(onSnapshot(collection(db,'shoppingItems'),snap=>{items=snap.docs.map(d=>({id:d.id,...d.data()}));readyItems=true;renderReady()},err));
-unsubs.push(onSnapshot(collection(db,'shoppingFavorites'),snap=>{favs=snap.docs.map(d=>({id:d.id,...d.data()}));readyFavs=true;renderReady()},err));
-unsubs.push(onSnapshot(collection(db,'familyMembers'),snap=>{members=snap.docs.map(d=>d.id);if(canWrite)draw()},e=>{console.warn('roster',e?.code);$('rosterPanel').classList.add('hidden')}));
-unsubs.push(onSnapshot(collection(db,'familySchedules'),snap=>{schedules=snap.docs.map(d=>d.data());$('scheduleWarning').classList.add('hidden');drawSchedules()},e=>{schedules=[];$('todaySchedule').textContent='予定を表示するには追加の設定が必要です。';$('scheduleWarning').textContent='Firestoreのルールに「familySchedules」の許可を追加してください。買い物リストはそのまま使用できます。';$('scheduleWarning').classList.remove('hidden')}));
+// ---------- LINE内ブラウザ ----------
+const ua=navigator.userAgent||'';
+if(/\bLine\//i.test(ua))$('lineHelp').hidden=false;
+$('copySafari').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(location.href);toast('コピーしました。Safariに貼り付けて開いてください。')}catch{prompt('このURLをコピーしてSafariで開いてください',location.href)}});
 
+// ---------- 表示ユーティリティ ----------
+let toastTimer=null,undoFn=null;
+function toast(text,undo=null){
+  $('toastText').textContent=text;undoFn=undo;$('toastUndo').hidden=!undo;$('toast').hidden=false;
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>{$('toast').hidden=true;undoFn=null},undo?6000:3500);
+}
+$('toastUndo').addEventListener('click',async()=>{const f=undoFn;undoFn=null;$('toast').hidden=true;if(f)await f()});
+function message(s,err=false){
+  if(canWrite){toast(s);return}
+  $('status').textContent=s;$('status').className='msg '+(err?'err':'muted');
+}
+function setSync(tone,text){const s=$('sync');s.dataset.tone=tone;s.textContent=text}
+function updateSync(){
+  if(!user){setSync('wait','未ログイン');return}
+  if(!navigator.onLine){setSync('warn','オフライン');return}
+  setSync(canWrite?'ok':'wait',canWrite?'同期済み':'接続中…');
+}
+addEventListener('online',updateSync);addEventListener('offline',updateSync);
+function safeError(e){if(e?.code==='already-listed')return 'すでに買うものに入っています。';if(e?.code==='permission-denied')return 'この操作の権限がありません。（名簿の変更は管理者だけです）';if(e?.code==='auth/popup-blocked')return 'ログイン画面がブロックされました。ポップアップを許可してください。';if(e?.code==='auth/unauthorized-domain')return 'このサイトのドメインがFirebaseで承認されていません。';if(e?.code==='not-found')return 'この商品は、もう一方の端末で削除されたようです。';if(e?.code==='unavailable')return '通信できません。接続を確認してください。';return 'エラーが発生しました：'+(e?.code||'通信または設定を確認してください')}
+
+// ---------- タブ ----------
+const TITLES={home:'今日',schedule:'予定',family:'家族'};
+function switchTab(t){
+  tab=t;
+  for(const k of Object.keys(TITLES))$(k+'Screen').hidden=k!==t;
+  for(const b of document.querySelectorAll('.tabs button'))b.toggleAttribute('aria-current',b.dataset.tab===t),b.dataset.tab===t&&b.setAttribute('aria-current','page');
+  $('add').hidden=t!=='home';
+  $('screenTitle').textContent=TITLES[t];
+  if(t==='schedule')drawScheduleList();
+  scrollTo({top:0});
+}
+for(const b of document.querySelectorAll('.tabs button'))b.addEventListener('click',()=>switchTab(b.dataset.tab));
+$('goAddSchedule').addEventListener('click',()=>{switchTab('schedule');setTimeout(()=>$('quickText').focus(),50)});
+
+// ---------- 予定の表示 ----------
+function eventRow(e){
+  const who=normWho(e.who);
+  return el('div',{className:'ev'},
+    el('div',{className:'t num'},el('b',{textContent:fmtTime(e.departure)||'未定'}),el('span',{textContent:e.returnTime?'→'+fmtTime(e.returnTime):'帰宅 未定'})),
+    el('span',{className:'tag '+who,textContent:WHO[who]}),
+    el('span',{className:'name',textContent:e.name||'予定'}));
+}
+function drawDay(root,ymd,emptyText){
+  const list=sortDay(schedules.filter(x=>x.date===ymd));
+  root.replaceChildren(...(list.length?list.map(eventRow):[el('p',{className:'empty',textContent:emptyText})]));
+}
+function drawSchedules(){
+  $('todayLabel').textContent=fmtDay(today()).replace('（','　').replace('）','曜日');
+  drawDay($('todaySchedule'),today(),'今日の予定はありません');
+  if(tab==='schedule')drawScheduleList();
+}
+function selectedDay(){return scheduleView==='today'?today():toYmd(addDays(new Date(),1))}
+function drawScheduleList(){
+  $('viewToday').setAttribute('aria-selected',scheduleView==='today');
+  $('viewTomorrow').setAttribute('aria-selected',scheduleView==='tomorrow');
+  $('dayTitle').textContent=(scheduleView==='today'?'今日　':'明日　')+fmtDay(selectedDay());
+  drawDay($('scheduleList'),selectedDay(),'予定はありません');
+}
+$('viewToday').addEventListener('click',()=>{scheduleView='today';drawScheduleList()});
+$('viewTomorrow').addEventListener('click',()=>{scheduleView='tomorrow';drawScheduleList()});
+
+// ---------- かんたん予定入力 ----------
+// 手で直した欄は、文章を打ち直しても上書きしない
+const quick={date:'',name:'',who:'',departure:'',returnTime:''};
+const touched=new Set();
+const fieldIds={date:'quickDate',name:'quickName',departure:'quickDeparture',returnTime:'quickReturn'};
+function paintQuick(){
+  for(const [k,id] of Object.entries(fieldIds))if($(id).value!==quick[k])$(id).value=quick[k];
+  for(const b of $('quickWho').querySelectorAll('button'))b.setAttribute('aria-pressed',b.dataset.v===quick.who);
+  const hasText=!!$('quickText').value.trim()||touched.size>0;
+  $('lDate').classList.toggle('miss',hasText&&!quick.date);
+  $('lName').classList.toggle('miss',hasText&&!quick.name);
+  $('quickWho').classList.toggle('miss',hasText&&!quick.who);
+  const ready=/^\d{4}-\d{2}-\d{2}$/.test(quick.date)&&!!quick.name&&!!WHO[quick.who];
+  $('quickSave').disabled=!ready;
+  const missing=[!quick.date&&'日付',!quick.name&&'予定内容',!quick.who&&'誰の予定'].filter(Boolean);
+  $('quickWarn').textContent=!hasText?'':missing.length?missing.join('・')+'を入れると保存できます。':'内容を確認して「予定を保存」を押してください。';
+}
+function askButtons(text,buttons){
+  const box=$('quickAsk');
+  box.replaceChildren(el('span',{textContent:text}),el('div',{className:'row'},...buttons.map(([label,fn])=>el('button',{type:'button',textContent:label,onclick:()=>{fn();box.hidden=true;paintQuick()}}))));
+  box.hidden=false;
+}
+// 確認ボタン（土日・来年）の答えは、その質問に対してだけ有効にする
+let answered={sig:'',date:''};
+$('quickText').addEventListener('input',()=>{
+  const text=$('quickText').value;
+  if(!text.trim()){touched.clear();answered={sig:'',date:''}}
+  const r=parseQuickSchedule(text);
+  for(const k of ['date','name','who','departure','returnTime'])if(!touched.has(k))quick[k]=r[k];
+  $('quickAsk').hidden=true;
+  const pick=r.needsConfirm.find(x=>x.type==='pick-day');
+  const past=r.needsConfirm.find(x=>x.type==='past-date');
+  const q=pick||past;
+  const sig=q?JSON.stringify(q):'';
+  if(q&&!touched.has('date')){
+    if(answered.sig===sig)quick.date=answered.date;
+    else{
+      const choose=d=>()=>{quick.date=d;answered={sig,date:d}};
+      if(pick)askButtons('土曜と日曜のどちらですか？',[[fmtDay(pick.options[0]),choose(pick.options[0])],[fmtDay(pick.options[1]),choose(pick.options[1])]]);
+      else{
+        const btns=[['このまま（'+fmtDay(past.date)+'）',choose(past.date)]];
+        if(past.nextYearDate)btns.unshift(['来年にする（'+past.nextYearDate.slice(0,4)+'年）',choose(past.nextYearDate)]);
+        askButtons(fmtDay(past.date)+'は過ぎています。',btns);
+      }
+    }
+  }
+  const warn=[];
+  if(r.warnings.some(w=>w.type==='return-before-departure'))warn.push('帰宅が出発より前になっています（夜勤なら問題ありません）。');
+  if(r.warnings.some(w=>w.type==='invalid-date'||w.type==='invalid-time'))warn.push('読めない日付・時刻がありました。');
+  if(r.warnings.some(w=>w.type==='multiple-who'))warn.push('夫と妻の両方が書かれています。どちらか選んでください。');
+  paintQuick();
+  if(warn.length)$('quickWarn').textContent=warn.join(' ')+' '+$('quickWarn').textContent;
 });
-function renderReady(){if(!readyItems||!readyFavs)return;canWrite=true;$('content').classList.remove('hidden');message('共有データに接続しました。購入チェックや個数変更は夫婦で同期されます。');draw();drawSchedules()}
-function button(text,cb,cls='secondary'){let b=document.createElement('button');b.type='button';b.className=cls;b.textContent=text;b.addEventListener('click',cb);return b}
-async function write(fn){if(!user||!canWrite){message('共有データへのアクセス権限を確認してください。',true);return}try{await fn();return true}catch(e){message(safeError(e),true);return false}}
-function itemRow(item){const wrap=document.createElement('div');wrap.className='item';const label=document.createElement('label'),cb=document.createElement('input');cb.type='checkbox';cb.checked=!!item.done;cb.addEventListener('change',()=>write(()=>setDoc(doc(db,'shoppingItems',item.id),{done:cb.checked,doneAt:cb.checked?Date.now():null},{merge:true})));let span=document.createElement('span');span.textContent=item.name;label.append(cb,span);wrap.append(label);
-const amount=document.createElement('span');amount.className='amount';amount.textContent=String(item.quantity||1);
-wrap.append(button('−',()=>adjust(item,-1)),amount,button('＋',()=>adjust(item,1)),button('×',()=>write(()=>deleteDoc(doc(db,'shoppingItems',item.id))),'danger'));return wrap}
-function adjust(item,diff){const ref=doc(db,'shoppingItems',item.id);write(()=>runTransaction(db,async tx=>{const s=await tx.get(ref);if(!s.exists())throw {code:'not-found'};const q=(s.data().quantity||1)+diff;if(q<1||q>999)return;tx.update(ref,{quantity:q})}))}
-function draw(){const todo=items.filter(x=>!x.done).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)),done=items.filter(x=>x.done).sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));$('todoCount').textContent=todo.length;$('doneCount').textContent=done.length;$('todo').replaceChildren(...todo.map(itemRow));$('done').replaceChildren(...done.map(itemRow));$('favorites').replaceChildren(...favs.sort((a,b)=>a.name.localeCompare(b.name,'ja')).map(f=>{let box=document.createElement('span');box.className='row';box.append(button('＋ '+f.name,()=>addProduct(f.name,1)),button('×',()=>{if(confirm('「'+f.name+'」をよく買うものから外しますか？'))write(()=>deleteDoc(doc(db,'shoppingFavorites',f.id)))},'danger'));return box}));$('roster').replaceChildren(...(members.length?members.slice().sort().map(m=>{let r=document.createElement('div');r.className='item';let t=document.createElement('span');t.style.flex='1';t.style.overflowWrap='anywhere';t.textContent=m;r.append(t,button('×',()=>{if(confirm(m+' を名簿から外しますか？外すとこの人はリストを使えなくなります。'))write(()=>deleteDoc(doc(db,'familyMembers',m)))},'danger'));return r}):[Object.assign(document.createElement('p'),{className:'note',textContent:'まだ誰も追加されていません（管理者は名簿なしで使えます）。'})]))}
-async function addProduct(raw,q){let name=clean(raw),quantity=Number(q);if(!name||name.length>60||!Number.isInteger(quantity)||quantity<1||quantity>999){message('商品名と個数を確認してください。',true);return}
-const id=encode(name),ref=doc(db,'shoppingItems',id);
-return write(()=>runTransaction(db,async tx=>{let existing=await tx.get(ref);if(existing.exists()&&!existing.data().done)throw {code:'already-listed'};tx.set(ref,{name,quantity,done:false,createdAt:Date.now(),doneAt:null})}));}
-$('add').addEventListener('submit',async e=>{e.preventDefault();if(await addProduct($('product').value,$('qty').value)){$('product').value='';$('qty').value='1'}});
-$('favForm').addEventListener('submit',e=>{e.preventDefault();let name=clean($('favName').value);if(!name||name.length>60)return;const id=encode(name);write(()=>setDoc(doc(db,'shoppingFavorites',id),{name})).then(ok=>{if(ok)$('favName').value=''})});
+for(const [k,id] of Object.entries(fieldIds))$(id).addEventListener('input',()=>{quick[k]=k==='name'?$(id).value.trim():$(id).value;touched.add(k);paintQuick()});
+for(const b of $('quickWho').querySelectorAll('button'))b.addEventListener('click',()=>{quick.who=b.dataset.v;touched.add('who');paintQuick()});
+function resetQuick(){$('quickText').value='';for(const k in quick)quick[k]='';touched.clear();answered={sig:'',date:''};$('quickAsk').hidden=true;paintQuick()}
+$('quickSave').addEventListener('click',async()=>{
+  const record={date:quick.date,name:quick.name.slice(0,80),who:quick.who,departure:quick.departure||'',returnTime:quick.returnTime||''};
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(record.date)||!record.name||!WHO[record.who])return;
+  $('quickSave').disabled=true;
+  const id=crypto.randomUUID?.()||String(Date.now())+'-'+Math.random().toString(36).slice(2);
+  if(await write(()=>setDoc(doc(db,'familySchedules',id),record))){
+    if(record.date===today())scheduleView='today';
+    else if(record.date===toYmd(addDays(new Date(),1)))scheduleView='tomorrow';
+    resetQuick();drawScheduleList();
+    toast(fmtDay(record.date)+'の予定を保存しました');
+  }else paintQuick();
+});
 
-$('rosterForm').addEventListener('submit',async e=>{e.preventDefault();const email=$('memberEmail').value.trim().toLowerCase();if(!/^[^@\s/]+@[^@\s/]+\.[^@\s/]+$/.test(email)){message('メールアドレスを確認してください。',true);return}if(members.length>=1&&!confirm('すでに名簿に'+members.length+'人います。夫婦2人用ですが、本当に追加しますか？'))return;if(await write(()=>setDoc(doc(db,'familyMembers',email),{addedAt:Date.now()}))){$('memberEmail').value='';message(email+' を名簿に追加しました。相手のスマホでGoogleログイン（済みなら再読み込み）してもらってください。')}});
-</script></body></html>
+// ---------- 買い物 ----------
+function itemRow(item){
+  const done=!!item.done;
+  const li=el('li',{className:'item'+(done?' done':'')});
+  li.append(
+    el('button',{type:'button',className:'check',ariaLabel:item.name+(done?'を未購入に戻す':'を購入済みにする'),onclick:()=>write(()=>setDoc(doc(db,'shoppingItems',item.id),{done:!done,doneAt:!done?Date.now():null},{merge:true}))},el('i')),
+    el('span',{className:'name',textContent:item.name}));
+  const q=item.quantity||1;
+  if(!done){
+    const st=el('div',{className:'stepper'});
+    st.append(el('button',{type:'button',textContent:'−',ariaLabel:item.name+'を1つ減らす',disabled:q<=1,onclick:()=>adjust(item,-1)}),
+      el('output',{className:'num',textContent:String(q)}),
+      el('button',{type:'button',textContent:'＋',ariaLabel:item.name+'を1つ増やす',disabled:q>=999,onclick:()=>adjust(item,1)}));
+    li.append(st);
+  }else if(q>1)li.append(el('span',{className:'qty num',textContent:'×'+q}));
+  li.append(el('button',{type:'button',className:'del',textContent:'×',ariaLabel:item.name+'を削除',onclick:()=>removeItem(item)}));
+  return li;
+}
+function adjust(item,diff){const ref=doc(db,'shoppingItems',item.id);write(()=>runTransaction(db,async tx=>{const s=await tx.get(ref);if(!s.exists())throw {code:'not-found'};const q=(s.data().quantity||1)+diff;if(q<1||q>999)return;tx.update(ref,{quantity:q})}))}
+// 削除は「元に戻す」付き（同じIDで同じ内容を書き戻す）
+async function removeItem(item){
+  const backup={name:item.name,quantity:Number.isInteger(item.quantity)?item.quantity:1,done:!!item.done,createdAt:item.createdAt??Date.now(),doneAt:item.doneAt??null};
+  if(await write(()=>deleteDoc(doc(db,'shoppingItems',item.id))))
+    toast('「'+item.name+'」を削除しました',async()=>{if(await write(()=>setDoc(doc(db,'shoppingItems',item.id),backup)))toast('元に戻しました')});
+}
+const pendingNames=()=>new Set(items.filter(x=>!x.done).map(x=>key(x.name)));
+function draw(){
+  const todo=items.filter(x=>!x.done).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  const done=items.filter(x=>x.done).sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));
+  $('todoCount').textContent=todo.length;$('doneCount').textContent=done.length;
+  $('todo').replaceChildren(...(todo.length?todo.map(itemRow):[el('li',{className:'empty',textContent:'買うものはありません'})]));
+  $('done').replaceChildren(...(done.length?done.map(itemRow):[el('li',{className:'empty',textContent:'まだありません'})]));
+  const pend=pendingNames();
+  const sortedFavs=favs.slice().sort((a,b)=>a.name.localeCompare(b.name,'ja'));
+  $('favorites').replaceChildren(...(sortedFavs.length?sortedFavs.map(f=>{const inList=pend.has(key(f.name));return el('button',{type:'button',className:'chip'+(inList?' in':''),textContent:(inList?'✓ ':'＋ ')+f.name,ariaLabel:inList?f.name+'（リストにあります）':f.name+'を追加',onclick:()=>inList?toast('「'+f.name+'」はリストにあります'):addProduct(f.name,1)})}):[el('span',{className:'hint',textContent:'「よく買うものを編集」から登録できます'})]));
+  $('favList').replaceChildren(...sortedFavs.map(f=>el('li',{className:'item'},el('span',{className:'name',textContent:f.name,style:'padding-left:8px'}),el('button',{type:'button',className:'del',textContent:'×',ariaLabel:f.name+'をよく買うものから外す',onclick:()=>{if(confirm('「'+f.name+'」をよく買うものから外しますか？'))write(()=>deleteDoc(doc(db,'shoppingFavorites',f.id)))}}))));
+  $('roster').replaceChildren(...(members.length?members.slice().sort().map(m=>el('div',{className:'member'},el('span',{textContent:m}),el('button',{type:'button',className:'del',textContent:'×',ariaLabel:m+'を名簿から外す',onclick:()=>{if(confirm(m+' を名簿から外しますか？外すとこの人はリストを使えなくなります。'))write(()=>deleteDoc(doc(db,'familyMembers',m)))}}))):[el('p',{className:'hint',textContent:'まだ誰も追加されていません（管理者は名簿なしで使えます）。'})]));
+}
+async function addProduct(raw,q){
+  const name=clean(raw),quantity=Number(q);
+  if(!name||name.length>60||!Number.isInteger(quantity)||quantity<1||quantity>999){message('商品名と個数を確認してください。',true);return false}
+  const ref=doc(db,'shoppingItems',encode(name));
+  return write(()=>runTransaction(db,async tx=>{const ex=await tx.get(ref);if(ex.exists()&&!ex.data().done)throw {code:'already-listed'};tx.set(ref,{name,quantity,done:false,createdAt:Date.now(),doneAt:null})}));
+}
+$('add').addEventListener('submit',async e=>{e.preventDefault();if(await addProduct($('product').value,1))$('product').value=''});
+$('favForm').addEventListener('submit',e=>{e.preventDefault();const name=clean($('favName').value);if(!name||name.length>60)return;write(()=>setDoc(doc(db,'shoppingFavorites',encode(name)),{name})).then(ok=>{if(ok)$('favName').value=''})});
+$('rosterForm').addEventListener('submit',async e=>{e.preventDefault();const email=$('memberEmail').value.trim().toLowerCase();if(!/^[^@\s/]+@[^@\s/]+\.[^@\s/]+$/.test(email)){message('メールアドレスを確認してください。',true);return}if(members.length>=1&&!confirm('すでに名簿に'+members.length+'人います。夫婦2人用ですが、本当に追加しますか？'))return;if(await write(()=>setDoc(doc(db,'familyMembers',email),{addedAt:Date.now()}))){$('memberEmail').value='';message(email+' を名簿に追加しました。')}});
+
+// ---------- ログインと同期 ----------
+async function write(fn){if(!user||!canWrite){message('共有データへのアクセス権限を確認してください。',true);return false}try{await fn();return true}catch(e){message(safeError(e),true);return false}}
+function stop(){unsubs.forEach(f=>f());unsubs=[];readyItems=readyFavs=canWrite=false;items=[];favs=[];members=[];schedules=[];$('content').hidden=true;$('dock').hidden=true;$('signin').hidden=false;updateSync()}
+$('login').addEventListener('click',async()=>{try{await signInWithPopup(auth,provider)}catch(e){message(safeError(e),true)}});
+$('logout').addEventListener('click',()=>signOut(auth).catch(e=>message(safeError(e),true)));
+function renderReady(){if(!readyItems||!readyFavs)return;const first=!canWrite;canWrite=true;$('signin').hidden=true;$('content').hidden=false;$('dock').hidden=false;if(first)switchTab(tab);updateSync();draw();drawSchedules()}
+onAuthStateChanged(auth,u=>{
+  stop();user=u;$('account').textContent=u?'ログイン中：'+(u.email||'アカウント'):'';
+  $('login').hidden=!!u;updateSync();
+  if(!u){message('ログインすると、家族の買い物リストと予定を読み込みます。');return}
+  message('アクセス権限を確認中…');
+  const err=e=>{stop();$('login').hidden=false;setSync('err','接続できません');if(e?.code==='permission-denied'){message('このアカウント（'+(u.email||'不明')+'）はまだ家族の名簿にありません。管理者に「家族」タブの名簿へ追加してもらってから、再読み込みしてください。',true);return}message(safeError(e),true)};
+  unsubs.push(onSnapshot(collection(db,'shoppingItems'),snap=>{items=snap.docs.map(d=>({id:d.id,...d.data()}));readyItems=true;renderReady()},err));
+  unsubs.push(onSnapshot(collection(db,'shoppingFavorites'),snap=>{favs=snap.docs.map(d=>({id:d.id,...d.data()}));readyFavs=true;renderReady()},err));
+  unsubs.push(onSnapshot(collection(db,'familyMembers'),snap=>{members=snap.docs.map(d=>d.id);if(canWrite)draw()},e=>{console.warn('roster',e?.code);$('rosterPanel').hidden=true}));
+  unsubs.push(onSnapshot(collection(db,'familySchedules'),snap=>{schedules=snap.docs.map(d=>({id:d.id,...d.data()}));drawSchedules()},e=>{console.warn('schedules',e?.code);schedules=[];$('todaySchedule').replaceChildren(el('p',{className:'empty',textContent:'予定を読み込めません（ルールの設定を確認してください）'}))}));
+});
+$('todayLabel').textContent=fmtDay(today()).replace('（','　').replace('）','曜日');
+paintQuick();
+</script>
+</body>
+</html>
