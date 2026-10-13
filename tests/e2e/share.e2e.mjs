@@ -2,7 +2,7 @@
 // SHOTS=フォルダ を指定すると、作った画像とパネルのスクリーンショットを保存
 import { chromium, devices } from 'playwright';
 import fs from 'fs';
-import { toYmd, monthRange } from '../../lib/schedule-views.js';
+import { toYmd, monthRange, weekOf } from '../../lib/schedule-views.js';
 
 const F = new URL('./fake-firebase', import.meta.url).pathname;
 const URL0 = 'http://localhost:8790/app.html';
@@ -90,6 +90,29 @@ for (const [label, opts, kind] of [['iPhone SE', devices['iPhone SE'], 'phone'],
   ok((await info()).startsWith('1件'), `${label}：次の月の予定を読み込む（1件）`);
   await p.click('#sharePrev'); await p.click('#sharePrev'); await p.waitForTimeout(500);
   ok((await info()).startsWith('0件') && await imgW() === 1080, `${label}：予定のない月でも画像ができる`);
+  // ---- 1週間分 ----
+  await p.click('#shareNext'); await p.waitForTimeout(400); // 今月に戻す
+  await p.click('#shareUnit button[data-v=week]'); await p.waitForTimeout(500);
+  const wk = weekOf(new Date(), 0), md = (y) => { const [, m, d] = y.split('-').map(Number); return [m, d]; };
+  const [m0, d0] = md(wk[0]), [m6, d6] = md(wk[6]);
+  ok((await p.textContent('#shareMonth')) === (m0 === m6 ? `${m0}/${d0}〜${d6}` : `${m0}/${d0}〜${m6}/${d6}`), `${label}：「1週間」で今週（月〜日）になる`);
+  const inWeek = Object.values(SCHED).filter((e) => e.date >= wk[0] && e.date <= wk[6]).length;
+  ok((await info()).startsWith(`${inWeek}件`) && (await info()).includes('予定のない日も表示') && await imgW() === 1080, `${label}：今週の予定${inWeek}件と、予定のない日も入った画像`);
+  ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${label}：1週間でもはみ出さない`);
+  await p.click('#shareTextBtn'); await p.waitForTimeout(200);
+  const wt = kind === 'phone' ? (await p.evaluate(() => window.__shared))?.text : await p.evaluate(() => navigator.clipboard.readText());
+  ok(wt?.startsWith(`【${m0}/${d0}〜${m6}/${d6}の予定】`) && (wt.match(/^\d+\/\d+（/gm) || []).length === 7, `${label}：1週間の文章は7日分`);
+  await p.click('#shareNext'); await p.waitForTimeout(400);
+  const nx = weekOf(new Date(), 1); const [n0, e0] = md(nx[0]);
+  ok((await p.textContent('#shareMonth')).startsWith(`${n0}/${e0}〜`), `${label}：›で次の週へ`);
+  if (kind === 'pc') {
+    const [dl] = await Promise.all([p.waitForEvent('download'), p.click('#shareSave')]);
+    ok(dl.suggestedFilename() === `wagaya-memo_week-${nx[0]}.png`, `${label}：1週間の画像の名前（${dl.suggestedFilename()}）`);
+  }
+  await p.click('#shareClose'); await p.click('#shareOpen'); await p.waitForTimeout(500);
+  ok(await p.getAttribute('#shareUnit button[data-v=week]', 'aria-pressed') === 'true', `${label}：次に開いたときも「1週間」のまま`);
+  await p.click('#shareUnit button[data-v=month]'); await p.waitForTimeout(400);
+  ok((await p.textContent('#shareMonth')).endsWith('月'), `${label}：「1か月」に戻せる`);
   await p.click('#shareClose');
   ok(await p.isHidden('#shareSheet'), `${label}：閉じる`);
   ok(errs.length === 0, `${label}：JSエラーなし ${errs.join(' | ')}`);

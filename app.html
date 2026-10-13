@@ -370,7 +370,7 @@ details.fold>summary::-webkit-details-marker{display:none}
       <button type="button" role="tab" data-view="week" aria-selected="false">週間</button>
     </div>
     <div id="periodNav" class="pnav"></div>
-    <button type="button" class="sharebtn" id="shareOpen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>予定を画像で送る（1か月分）</button>
+    <button type="button" class="sharebtn" id="shareOpen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>予定を画像で送る（1週間・1か月）</button>
     <div id="scheduleBody" aria-live="polite"></div>
    </div>
    <div class="col col-form">
@@ -453,7 +453,10 @@ details.fold>summary::-webkit-details-marker{display:none}
 <section class="sheet" id="shareSheet" role="dialog" aria-modal="true" aria-labelledby="shareTitle" hidden>
   <div class="grab" aria-hidden="true"></div>
   <div class="row" style="justify-content:space-between"><h2 id="shareTitle">予定を送る</h2><button type="button" class="link" id="shareClose">閉じる</button></div>
-  <div class="mnav"><button type="button" id="sharePrev" aria-label="前の月">‹</button><b id="shareMonth" class="num"></b><button type="button" id="shareNext" aria-label="次の月">›</button></div>
+  <div class="opts two" id="shareUnit" role="group" aria-label="送る期間">
+    <button type="button" data-v="week">1週間</button><button type="button" data-v="month">1か月</button>
+  </div>
+  <div class="mnav"><button type="button" id="sharePrev" aria-label="前へ">‹</button><b id="shareMonth" class="num"></b><button type="button" id="shareNext" aria-label="次へ">›</button></div>
   <div class="opts four" id="shareWho" role="group" aria-label="誰の予定">
     <button type="button" data-v="all">すべて</button><button type="button" data-v="husband">義</button><button type="button" data-v="wife">祐</button><button type="button" data-v="child1">樹</button><button type="button" data-v="child2">篤</button><button type="button" data-v="child3">結</button><button type="button" data-v="family">家族</button>
   </div>
@@ -476,7 +479,7 @@ import {getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged} f
 import {getDocs,getFirestore,initializeFirestore,persistentLocalCache,persistentMultipleTabManager,terminate,clearIndexedDbPersistence,collection,doc,onSnapshot,runTransaction,deleteDoc,setDoc,updateDoc,writeBatch,increment,query,where} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import {firebaseConfig} from "./firebase-config.js?v=20261011-fix2";
 import {parseQuickSchedule} from "./lib/quick-schedule.js";
-import {MEMBERS,WHO,normWho,sortDay,toYmd,addDays,weekendOf,weekOf,findOverlaps,clampDay,homeWeekendPreview,initialView,rangeFor,monthRange,shareDays,shareTitle,shareText,timeText} from "./lib/schedule-views.js";
+import {MEMBERS,WHO,normWho,sortDay,toYmd,addDays,weekendOf,weekOf,findOverlaps,clampDay,homeWeekendPreview,initialView,rangeFor,monthRange,shareDays,shareDaysRange,shareWeekTitle,shareTitle,shareText,timeText} from "./lib/schedule-views.js";
 
 const app=initializeApp(firebaseConfig),auth=getAuth(app),provider=new GoogleAuthProvider();
 // 端末内に保存（オフラインでも見られる・操作できる。電波が戻ると自動で送る）。使えない環境では通常の方式で動く
@@ -689,8 +692,8 @@ for(const b of document.querySelectorAll('.seg4 button'))b.addEventListener('cli
     saveView();drawScheduleList();subscribeSchedules()});
 })();
 
-// ---------- 予定を画像で送る（1か月分） ----------
-const share={y:0,m:0,who:'all',weekend:false,events:[],blob:null,url:'',text:'',title:''};
+// ---------- 予定を画像で送る（1週間・1か月） ----------
+const share={unit:'month',wk:'',y:0,m:0,who:'all',weekend:false,events:[],blob:null,url:'',text:'',title:''};
 const SHARE_COLORS=Object.fromEntries(MEMBERS.map(m=>[m.key,[m.bg,m.fg]]));
 const FONT='"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",sans-serif';
 function fitText(ctx,text,maxW){if(ctx.measureText(text).width<=maxW)return text;let s=text;while(s.length>1&&ctx.measureText(s+'…').width>maxW)s=s.slice(0,-1);return s+'…'}
@@ -734,8 +737,9 @@ function drawShareCanvas(days,title){
   ctx.fillText(`${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 作成`,W/2,H-46);
   return c;
 }
+const shareRange=()=>{if(share.unit!=='week')return monthRange(share.y,share.m);const [y,m,d]=share.wk.split('-').map(Number);return {start:share.wk,end:toYmd(new Date(y,m-1,d+6))}};
 async function loadShareMonth(){
-  const {start,end}=monthRange(share.y,share.m);
+  const {start,end}=shareRange();
   $('shareInfo').textContent='読み込み中…';
   try{
     const snap=await getDocs(query(collection(db,'familySchedules'),where('date','>=',start),where('date','<=',end)));
@@ -747,15 +751,17 @@ async function loadShareMonth(){
   await renderShare();
 }
 async function renderShare(){
-  $('shareMonth').textContent=`${share.y}年${share.m}月`;
+  const {start,end}=shareRange();
+  $('shareMonth').textContent=share.unit==='week'?mdRange(start,end):`${share.y}年${share.m}月`;
+  for(const b of $('shareUnit').querySelectorAll('button'))b.setAttribute('aria-pressed',b.dataset.v===share.unit);
   for(const b of $('shareWho').querySelectorAll('button'))b.setAttribute('aria-pressed',b.dataset.v===share.who);
   for(const b of $('shareSpan').querySelectorAll('button'))b.setAttribute('aria-pressed',(b.dataset.v==='weekend')===share.weekend);
   const opt={who:share.who,weekendOnly:share.weekend};
-  const days=shareDays(share.events,share.y,share.m,opt);
-  share.title=shareTitle(share.y,share.m,opt);
+  const days=share.unit==='week'?shareDaysRange(share.events,start,end,{...opt,fillAll:true}):shareDays(share.events,share.y,share.m,opt);
+  share.title=share.unit==='week'?shareWeekTitle(start,end,opt):shareTitle(share.y,share.m,opt);
   share.text=shareText(days,share.title);
   const n=days.reduce((k,d)=>k+d.events.length,0);
-  $('shareInfo').textContent=`${n}件の予定${share.weekend?'（予定のない土日も表示）':''}`;
+  $('shareInfo').textContent=`${n}件の予定${share.weekend?'（予定のない土日も表示）':share.unit==='week'?'（予定のない日も表示）':''}`;
   const canvas=drawShareCanvas(days,share.title);
   share.blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
   if(share.url)URL.revokeObjectURL(share.url);
@@ -763,10 +769,12 @@ async function renderShare(){
   $('sharePreview').src=share.url;
 }
 // ファイル名は英数字だけ（端末によって日本語のファイル名が使えないため）。画像の中の見出しは日本語
-const shareFileName=()=>`wagaya-memo_${share.y}-${String(share.m).padStart(2,'0')}${share.who==='all'?'':'_'+share.who}${share.weekend?'_weekend':''}.png`;
+const shareFileName=()=>`wagaya-memo_${share.unit==='week'?'week-'+share.wk:share.y+'-'+String(share.m).padStart(2,'0')}${share.who==='all'?'':'_'+share.who}${share.weekend?'_weekend':''}.png`;
 function openShare(){
   const base=scheduleView==='week'?weekOf(new Date(),weekOffset)[0]:scheduleView==='weekend'?weekendOf(new Date(),weekendOffset).sat:today();
   const [y,m]=base.split('-').map(Number);share.y=y;share.m=m;
+  share.wk=weekOf(new Date(y,m-1,+base.slice(8)),0)[0];
+  share.unit=store.get('wm.shareUnit')||(scheduleView==='week'||scheduleView==='weekend'?'week':'month');
   $('shareBg').hidden=false;$('shareSheet').hidden=false;$('shareClose').focus();
   loadShareMonth();
 }
@@ -774,8 +782,22 @@ function closeShare(){$('shareBg').hidden=true;$('shareSheet').hidden=true;$('sh
 $('shareOpen').addEventListener('click',openShare);
 $('shareClose').addEventListener('click',closeShare);$('shareBg').addEventListener('click',closeShare);
 addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('shareSheet').hidden)closeShare()});
-$('sharePrev').addEventListener('click',()=>{share.m--;if(share.m<1){share.m=12;share.y--}loadShareMonth()});
-$('shareNext').addEventListener('click',()=>{share.m++;if(share.m>12){share.m=1;share.y++}loadShareMonth()});
+// 前へ・次へ：1週間なら7日ずつ、1か月なら1か月ずつ
+function moveShare(step){
+  if(share.unit==='week'){const [y,m,d]=share.wk.split('-').map(Number);share.wk=toYmd(new Date(y,m-1,d+7*step))}
+  else{share.m+=step;if(share.m<1){share.m=12;share.y--}if(share.m>12){share.m=1;share.y++}}
+  loadShareMonth();
+}
+$('sharePrev').addEventListener('click',()=>moveShare(-1));
+$('shareNext').addEventListener('click',()=>moveShare(1));
+// 期間の切り替え：見ている週の月／見ている月の最初の週へ
+for(const b of $('shareUnit').querySelectorAll('button'))b.addEventListener('click',()=>{
+  if(share.unit===b.dataset.v)return;
+  share.unit=b.dataset.v;store.set('wm.shareUnit',share.unit);
+  if(share.unit==='week'){const now=new Date();share.wk=(now.getFullYear()===share.y&&now.getMonth()+1===share.m)?weekOf(now,0)[0]:weekOf(new Date(share.y,share.m-1,1),0)[0]}
+  else{const [y,m]=share.wk.split('-').map(Number);share.y=y;share.m=m}
+  loadShareMonth();
+});
 for(const b of $('shareWho').querySelectorAll('button'))b.addEventListener('click',()=>{share.who=b.dataset.v;renderShare()});
 for(const b of $('shareSpan').querySelectorAll('button'))b.addEventListener('click',()=>{share.weekend=b.dataset.v==='weekend';renderShare()});
 function downloadShare(){const a=document.createElement('a');a.href=share.url;a.download=shareFileName();document.body.append(a);a.click();a.remove();toast('画像を保存しました')}

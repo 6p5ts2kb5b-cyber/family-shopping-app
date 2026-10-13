@@ -1,7 +1,7 @@
 // 予定を送る（1か月分）のテスト
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { monthRange, shareDays, shareTitle, shareText, timeText } from '../lib/schedule-views.js';
+import { monthRange, shareDays, shareDaysRange, shareWeekTitle, shareTitle, shareText, timeText } from '../lib/schedule-views.js';
 
 const ev = (id, date, who, name, departure = '', returnTime = '') => ({ id, date, who, name, departure, returnTime });
 const E = [
@@ -71,4 +71,19 @@ test('子ども（樹）だけを選べる', () => {
   assert.deepEqual(d.map((x) => x.events.map((e) => e.name)), [['サッカー']]);
   assert.equal(shareTitle(2026, 10, { who: 'child1' }), '2026年10月の予定（樹の予定）');
   assert.ok(shareText(d, 'x').includes('・樹｜サッカー　9:00→12:00'));
+});
+
+test('1週間分：予定のない日も7日すべて並ぶ', () => {
+  const d = shareDaysRange(E, '2026-10-12', '2026-10-18', { fillAll: true });
+  assert.equal(d.length, 7);
+  assert.equal(d[0].label, '10/12（月）');
+  assert.deepEqual(d[0].events, []);
+  assert.deepEqual(d[6].events.map((e) => e.name), ['野球', '美容院']);
+});
+test('1週間分＋人＋週末だけ', () => {
+  const d = shareDaysRange(E, '2026-10-12', '2026-10-18', { who: 'husband', weekendOnly: true, fillAll: true });
+  assert.deepEqual(d.map((x) => x.date), ['2026-10-17', '2026-10-18']);
+  assert.deepEqual(d[1].events.map((e) => e.name), ['野球']);
+  assert.equal(shareWeekTitle('2026-10-12', '2026-10-18', { who: 'husband', weekendOnly: true }), '10/12〜10/18の予定（義の予定・週末だけ）');
+  assert.equal(shareWeekTitle('2026-10-26', '2026-11-01'), '10/26〜11/1の予定');
 });
