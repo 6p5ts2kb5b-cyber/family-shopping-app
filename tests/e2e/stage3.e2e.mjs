@@ -82,7 +82,7 @@ const satText = await cards.nth(0).textContent();
 ok(satText.includes('「ランチ」と時間が重なっています') && satText.includes('「美容院」と時間が重なっています'), '同じ人の重なりは注意表示');
 ok(await cards.nth(0).locator('button.ev:has-text("野球大会") .ov').count() === 0 && await cards.nth(0).locator('button.ev:has-text("洗車") .ov').count() === 0, '夫と妻の重なり・時刻未定は注意なし');
 ok(await cards.nth(0).locator('.tl .bar').count() === 4 && await cards.nth(0).locator('.tl .dot').count() === 0, '帯グラフ：出発〜帰宅がある4件を帯で表示（未定は描かない）');
-ok((await cards.nth(0).locator('.tl .lane b').allTextContents()).join() === '夫,妻,家族', '帯グラフは夫・妻・家族の順');
+ok((await cards.nth(0).locator('.tl .lane b').allTextContents()).join() === '義,祐,家族', '帯グラフは義・祐・家族の順');
 ok((await A.getAttribute('#periodNav .wk >> nth=0', 'aria-pressed')) === 'true', '今週末が選択中');
 await A.click('#periodNav .wk >> nth=1');
 ok((await A.textContent('#scheduleBody')).includes('キャンプ') && (await A.getAttribute('#periodNav .wk >> nth=1', 'aria-pressed')) === 'true', '来週末に切り替え');

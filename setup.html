@@ -98,7 +98,7 @@ service cloud.firestore {
       allow read, delete: if family();
       allow create, update: if family() && validItem(request.resource.data);
     }
-    // 家族の予定（who: 家族全員 / 妻 / 夫。'me' は旧データ・現行画面との互換用）
+    // 家族の予定（who: 家族全員 / 妻 / 夫 / 子ども3人（child1〜3）。'me' は旧データ・現行画面との互換用）
     match /familySchedules/{scheduleId} {
       allow read, delete: if family();
       allow create, update: if family()
@@ -109,7 +109,7 @@ service cloud.firestore {
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 80
-        && request.resource.data.who in ['family', 'wife', 'husband', 'me']
+        && request.resource.data.who in ['family', 'wife', 'husband', 'me', 'child1', 'child2', 'child3']
         && request.resource.data.departure is string
         && request.resource.data.returnTime is string
         && (request.resource.data.departure == '' || request.resource.data.departure.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$'))

@@ -390,8 +390,11 @@ details.fold>summary::-webkit-details-marker{display:none}
       <div>
         <p class="lbl" style="margin:0 0 4px" id="whoLabel">誰の予定</p>
         <div class="who" id="quickWho" role="group" aria-labelledby="whoLabel">
-          <button type="button" data-v="husband" aria-pressed="false">夫</button>
-          <button type="button" data-v="wife" aria-pressed="false">妻</button>
+          <button type="button" data-v="husband" aria-pressed="false">義</button>
+          <button type="button" data-v="wife" aria-pressed="false">祐</button>
+          <button type="button" data-v="child1" aria-pressed="false">樹</button>
+          <button type="button" data-v="child2" aria-pressed="false">篤</button>
+          <button type="button" data-v="child3" aria-pressed="false">結</button>
           <button type="button" data-v="family" aria-pressed="false">家族</button>
         </div>
       </div>
@@ -452,7 +455,7 @@ details.fold>summary::-webkit-details-marker{display:none}
   <div class="row" style="justify-content:space-between"><h2 id="shareTitle">予定を送る</h2><button type="button" class="link" id="shareClose">閉じる</button></div>
   <div class="mnav"><button type="button" id="sharePrev" aria-label="前の月">‹</button><b id="shareMonth" class="num"></b><button type="button" id="shareNext" aria-label="次の月">›</button></div>
   <div class="opts four" id="shareWho" role="group" aria-label="誰の予定">
-    <button type="button" data-v="all">すべて</button><button type="button" data-v="husband">夫</button><button type="button" data-v="wife">妻</button><button type="button" data-v="family">家族</button>
+    <button type="button" data-v="all">すべて</button><button type="button" data-v="husband">義</button><button type="button" data-v="wife">祐</button><button type="button" data-v="child1">樹</button><button type="button" data-v="child2">篤</button><button type="button" data-v="child3">結</button><button type="button" data-v="family">家族</button>
   </div>
   <div class="opts two" id="shareSpan" role="group" aria-label="日にち">
     <button type="button" data-v="all">毎日</button><button type="button" data-v="weekend">週末だけ</button>
@@ -473,7 +476,7 @@ import {getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged} f
 import {getDocs,getFirestore,initializeFirestore,persistentLocalCache,persistentMultipleTabManager,terminate,clearIndexedDbPersistence,collection,doc,onSnapshot,runTransaction,deleteDoc,setDoc,updateDoc,writeBatch,increment,query,where} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import {firebaseConfig} from "./firebase-config.js?v=20261011-fix2";
 import {parseQuickSchedule} from "./lib/quick-schedule.js";
-import {normWho,sortDay,toYmd,addDays,weekendOf,weekOf,findOverlaps,clampDay,homeWeekendPreview,initialView,rangeFor,monthRange,shareDays,shareTitle,shareText,timeText} from "./lib/schedule-views.js";
+import {MEMBERS,WHO,normWho,sortDay,toYmd,addDays,weekendOf,weekOf,findOverlaps,clampDay,homeWeekendPreview,initialView,rangeFor,monthRange,shareDays,shareTitle,shareText,timeText} from "./lib/schedule-views.js";
 
 const app=initializeApp(firebaseConfig),auth=getAuth(app),provider=new GoogleAuthProvider();
 // 端末内に保存（オフラインでも見られる・操作できる。電波が戻ると自動で送る）。使えない環境では通常の方式で動く
@@ -485,7 +488,8 @@ const clean=s=>String(s).normalize('NFKC').trim().replace(/\s+/g,' ');
 const key=s=>clean(s).toLocaleLowerCase('ja-JP');
 const encode=s=>Array.from(new TextEncoder().encode(key(s)),x=>x.toString(16).padStart(2,'0')).join('');
 const el=(tag,props={},...kids)=>{const n=Object.assign(document.createElement(tag),props);n.append(...kids);return n};
-const WHO={husband:'夫',wife:'妻',family:'家族'};
+// メンバーごとの色（lib/schedule-views.js の MEMBERS から作る）
+document.head.append(el('style',{textContent:MEMBERS.map(m=>`.ev.${m.key}::before,.bar.${m.key},.dot.${m.key}{background:${m.bar}}.tag.${m.key}{background:${m.bg};color:${m.fg}}.lane b.${m.key},.wrow .lines b.${m.key},.who button[data-v=${m.key}]{color:${m.fg}}.who button[aria-pressed=true][data-v=${m.key}]{background:${m.bg};border-color:${m.fg}}`).join('\n')}));
 const DOW='日月火水木金土';
 const fmtDay=ymd=>{const [y,m,d]=ymd.split('-').map(Number);const t=new Date(y,m-1,d);return `${m}月${d}日（${DOW[t.getDay()]}）`};
 const fmtTime=t=>t?t.replace(/^0(\d)/,'$1'):'';
@@ -534,7 +538,7 @@ function trackPending(col,snap){
   updateSync();
 }
 addEventListener('online',()=>{updateSync();if(canWrite)toast('オンラインに戻りました。未送信の変更を送ります')});addEventListener('offline',updateSync);
-function safeError(e){if(e?.code==='already-listed')return 'すでに買うものに入っています。';if(e?.code==='schedule-exists')return 'この予定はもう一方の端末で戻されています（上書きしませんでした）。';if(e?.code==='permission-denied')return 'この操作の権限がありません。（名簿の変更は管理者だけです）';if(e?.code==='auth/popup-blocked')return 'ログイン画面がブロックされました。ポップアップを許可してください。';if(e?.code==='auth/unauthorized-domain')return 'このサイトのドメインがFirebaseで承認されていません。';if(e?.code==='not-found')return 'この商品は、もう一方の端末で削除されたようです。';if(e?.code==='unavailable')return '通信できません。接続を確認してください。';return 'エラーが発生しました：'+(e?.code||'通信または設定を確認してください')}
+function safeError(e){if(e?.code==='rules-outdated')return '樹・篤・結の予定を保存するには、Firebaseのルールの更新が必要です（設定ページの手順で1回だけ）。';if(e?.code==='already-listed')return 'すでに買うものに入っています。';if(e?.code==='schedule-exists')return 'この予定はもう一方の端末で戻されています（上書きしませんでした）。';if(e?.code==='permission-denied')return 'この操作の権限がありません。（名簿の変更は管理者だけです）';if(e?.code==='auth/popup-blocked')return 'ログイン画面がブロックされました。ポップアップを許可してください。';if(e?.code==='auth/unauthorized-domain')return 'このサイトのドメインがFirebaseで承認されていません。';if(e?.code==='not-found')return 'この商品は、もう一方の端末で削除されたようです。';if(e?.code==='unavailable')return '通信できません。接続を確認してください。';return 'エラーが発生しました：'+(e?.code||'通信または設定を確認してください')}
 
 // ---------- タブ ----------
 const TITLES={home:'今日',schedule:'予定',family:'家族'};
@@ -572,7 +576,7 @@ function timeline(list){
   const start=Math.min(6,Math.floor(Math.min(...timed.map(e=>toH(e.departure))))),end=24;
   const pct=h=>((Math.max(start,Math.min(end,h))-start)/(end-start)*100).toFixed(2)+'%';
   const box=el('div',{className:'tl',ariaHidden:'true'});
-  for(const who of ['husband','wife','family']){
+  for(const who of MEMBERS.map(m=>m.key)){
     const mine=timed.filter(e=>normWho(e.who)===who);if(!mine.length)continue;
     const track=el('div',{className:'track'});
     for(const e of mine){
@@ -687,7 +691,7 @@ for(const b of document.querySelectorAll('.seg4 button'))b.addEventListener('cli
 
 // ---------- 予定を画像で送る（1か月分） ----------
 const share={y:0,m:0,who:'all',weekend:false,events:[],blob:null,url:'',text:'',title:''};
-const SHARE_COLORS={husband:['#E1EAF6','#24497C'],wife:['#FBE7DA','#8F3A10'],family:['#E3EEE7','#1F5C45']};
+const SHARE_COLORS=Object.fromEntries(MEMBERS.map(m=>[m.key,[m.bg,m.fg]]));
 const FONT='"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",sans-serif';
 function fitText(ctx,text,maxW){if(ctx.measureText(text).width<=maxW)return text;let s=text;while(s.length>1&&ctx.measureText(s+'…').width>maxW)s=s.slice(0,-1);return s+'…'}
 function rr(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
@@ -869,7 +873,7 @@ $('quickText').addEventListener('input',()=>{
   const warn=[];
   if(r.warnings.some(w=>w.type==='return-before-departure'))warn.push('帰宅が出発より前になっています（夜勤なら問題ありません）。');
   if(r.warnings.some(w=>w.type==='invalid-date'||w.type==='invalid-time'))warn.push('読めない日付・時刻がありました。');
-  if(r.warnings.some(w=>w.type==='multiple-who'))warn.push('夫と妻の両方が書かれています。どちらか選んでください。');
+  if(r.warnings.some(w=>w.type==='multiple-who'))warn.push('誰の予定かが2人以上書かれています。1人選んでください（全員なら「家族」）。');
   paintQuick();
   if(warn.length)$('quickWarn').textContent=warn.join(' ')+' '+$('quickWarn').textContent;
 });
@@ -915,7 +919,9 @@ $('quickSave').addEventListener('click',async()=>{
   $('quickSave').disabled=true;
   const id=editingSchedule?.id||crypto.randomUUID?.()||String(Date.now())+'-'+Math.random().toString(36).slice(2);
   const wasEdit=!!editingSchedule;
-  if(await write(()=>setDoc(doc(db,'familySchedules',id),record))){
+  // 子どもの予定は新しいルールが必要。古いルールのままだと拒否されるので、分かる言葉で知らせる
+  const save=()=>setDoc(doc(db,'familySchedules',id),record).catch(e=>{throw e?.code==='permission-denied'&&record.who.startsWith('child')?{code:'rules-outdated'}:e});
+  if(await write(save)){
     if(!wasEdit){
       if(record.date===today()){scheduleView='today';dayFocus=null}
       else if(record.date===toYmd(addDays(new Date(),1))){scheduleView='tomorrow';dayFocus=null}

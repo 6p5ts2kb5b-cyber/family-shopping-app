@@ -76,7 +76,8 @@ export function onSnapshot(ref,a,b,c){
   return()=>{const i=listeners.indexOf(run);if(i>=0)listeners.splice(i,1)};
 }
 export async function getDocs(ref){check();const d=load()[ref.col]||{};const docs=Object.entries(d).filter(([,v])=>matches(v,ref.filters||[])).map(([id,v])=>({id,data:()=>v}));return {docs,size:docs.length}}
-export function setDoc(ref,data,opt){return submit([{kind:'set',col:ref.col,id:ref.id,data,merge:!!opt?.merge}])}
+// fakeOldRules＝子どもを受け付けない古いルールのまま（サーバーが拒否するのを再現）
+export function setDoc(ref,data,opt){if(ref.col==='familySchedules'&&localStorage.getItem('fakeOldRules')&&String(data?.who).startsWith('child'))return Promise.reject({code:'permission-denied'});return submit([{kind:'set',col:ref.col,id:ref.id,data,merge:!!opt?.merge}])}
 export function updateDoc(ref,data){
   if(navigator.onLine&&!load()[ref.col]?.[ref.id])return Promise.reject({code:'not-found'});
   return submit([{kind:'update',col:ref.col,id:ref.id,data}]);

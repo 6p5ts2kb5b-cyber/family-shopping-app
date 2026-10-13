@@ -48,7 +48,7 @@ test('夫だけ＋週末だけ', () => {
 
 test('見出し', () => {
   assert.equal(shareTitle(2026, 10), '2026年10月の予定');
-  assert.equal(shareTitle(2026, 10, { who: 'husband', weekendOnly: true }), '2026年10月の予定（夫の予定・週末だけ）');
+  assert.equal(shareTitle(2026, 10, { who: 'husband', weekendOnly: true }), '2026年10月の予定（義の予定・週末だけ）');
 });
 
 test('時刻の書き方', () => {
@@ -61,7 +61,14 @@ test('時刻の書き方', () => {
 test('文章版', () => {
   const s = shareText(shareDays(E, 2026, 10, { who: 'husband', weekendOnly: true }), '10月の予定');
   assert.ok(s.startsWith('【10月の予定】'));
-  assert.ok(s.includes('10/18（日）\n・夫｜野球　6:30→15:00'));
+  assert.ok(s.includes('10/18（日）\n・義｜野球　6:30→15:00'));
   assert.ok(s.includes('10/3（土）\n・予定なし'));
   assert.equal(shareText([], 'x'), '【x】\n予定はありません');
+});
+
+test('子ども（樹）だけを選べる', () => {
+  const d = shareDays([...E, ev('k', '2026-10-17', 'child1', 'サッカー', '09:00', '12:00')], 2026, 10, { who: 'child1' });
+  assert.deepEqual(d.map((x) => x.events.map((e) => e.name)), [['サッカー']]);
+  assert.equal(shareTitle(2026, 10, { who: 'child1' }), '2026年10月の予定（樹の予定）');
+  assert.ok(shareText(d, 'x').includes('・樹｜サッカー　9:00→12:00'));
 });

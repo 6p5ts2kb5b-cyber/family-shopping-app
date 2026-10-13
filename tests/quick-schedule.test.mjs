@@ -121,3 +121,19 @@ test('空の入力', () => {
   const r = P('   ');
   assert.deepEqual(r.missing, ['date', 'name', 'who', 'departure', 'returnTime']);
 });
+
+test('家族の名前（義・祐・樹・篤・結）で誰の予定かを読む', () => {
+  assert.equal(P('義 11/3 野球大会 6:00〜17:00').who, 'husband');
+  assert.equal(P('明日 パート 8:40〜15:00 祐').who, 'wife');
+  const r = P('樹 明日 サッカー 9:00');
+  assert.equal(r.who, 'child1'); assert.equal(r.name, 'サッカー');
+  assert.equal(P('明日 篤 スイミング').who, 'child2');
+  assert.equal(P('明日 ピアノ 結').who, 'child3');
+  assert.equal(readyToSave({ ...P('明日 ピアノ 結') }), true);
+});
+test('名前の漢字を含む予定名は誰の予定と決めつけない', () => {
+  const r = P('10/17 結衣ちゃん運動会');
+  assert.equal(r.who, ''); assert.equal(r.name, '結衣ちゃん運動会');
+  assert.equal(P('明日 結婚式').name, '結婚式');
+  assert.equal(P('明日 樹 篤 プール').who, '');
+});

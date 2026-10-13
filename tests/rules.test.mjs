@@ -80,10 +80,11 @@ test('メール未確認・名簿外・未ログインは何もできない', as
   }
 });
 
-test('予定：夫・妻・家族と旧データの「me」を受け付け、それ以外は拒否', async () => {
+test('予定：夫・妻・子ども3人・家族と旧データの「me」を受け付け、それ以外は拒否', async () => {
   const db = wife();
-  for (const who of ['husband', 'wife', 'family', 'me']) await assertSucceeds(setDoc(doc(db, `familySchedules/${who}`), sched({ who })));
+  for (const who of ['husband', 'wife', 'family', 'me', 'child1', 'child2', 'child3']) await assertSucceeds(setDoc(doc(db, `familySchedules/${who}`), sched({ who })));
   await assertFails(setDoc(doc(db, 'familySchedules/x'), sched({ who: 'son' })));
+  await assertFails(setDoc(doc(db, 'familySchedules/y'), sched({ who: 'child4' })));
 });
 
 test('予定：形式チェック', async () => {
