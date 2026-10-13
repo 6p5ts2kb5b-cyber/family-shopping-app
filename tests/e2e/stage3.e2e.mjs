@@ -134,14 +134,17 @@ ok(maxRead > 0 && maxRead < 30, `表示期間の予定だけを読む（一度�
 await A.reload(); await A.waitForTimeout(500); await A.click('.tabs button[data-tab=schedule]');
 ok((await A.getAttribute('.seg4 button[data-view=week]', 'aria-selected')) === 'true', '前回の表示（週間）を覚えている');
 
-// ---------- ホームの週末欄の設定 ----------
-await A.click('.tabs button[data-tab=family]');
-await A.click('#wkMode button[data-v=always]');
+// ---------- ホームの週末欄（常に土日を表示：ChatGPT 1767305 / 795aa07 の仕様） ----------
 await A.click('.tabs button[data-tab=home]');
-ok(await A.isVisible('#homeWeekend') && (await A.textContent('#homeWeekend')).length > 0, '「常に表示」でホームに週末欄');
-await A.click('.tabs button[data-tab=family]'); await A.click('#wkMode button[data-v=off]'); await A.click('.tabs button[data-tab=home]');
-ok(await A.isHidden('#homeWeekend'), '「表示しない」で消える');
-await A.click('.tabs button[data-tab=family]'); await A.click('#wkMode button[data-v=auto]');
+ok(await A.isVisible('#homeWeekend') && (await A.textContent('#hWk')).startsWith('今週末の予定'), 'ホームに今週末の欄が常に出る');
+const wkText = await A.textContent('#homeWeekendList');
+ok(wkText.includes('土曜日') && wkText.includes('日曜日'), '土曜日・日曜日の両方が並ぶ');
+ok(await A.locator('#homeWeekendList button.link:has-text("予定を入力")').count() === 2, '土日それぞれに「＋ 予定を入力」');
+ok(wkText.includes('野球大会') && wkText.includes('ほか'), '予定が多い日は3件＋「ほかN件を見る」');
+await A.click('#homeWeekendList button.link >> nth=1');
+ok(await A.isVisible('#scheduleScreen') && await A.inputValue('#quickDate') === W0.sun, '日曜の「＋ 予定を入力」で日付入りの入力欄へ');
+await A.click('#quickCancel').catch(() => {});
+await A.fill('#quickText', ''); 
 
 // ---------- 夫婦2台の同時操作 ----------
 // 1) 予定の削除→相手が同じ予定を保存し直した→元に戻すは上書きしない
