@@ -192,7 +192,12 @@ details.fold>summary::-webkit-details-marker{display:none}
 .quick .big:focus{border-color:var(--green)}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .lbl{display:grid;gap:4px;font-size:13px;font-weight:700;color:var(--muted)}
-.lbl input{height:48px;border:1px solid var(--line2);border-radius:12px;padding:0 10px;font-size:16px;background:var(--card);width:100%;min-width:0}
+.lbl input{box-sizing:border-box;display:block;height:48px;border:1px solid var(--line2);border-radius:12px;padding:0 12px;font-size:17px;color:var(--ink);background:var(--card);width:100%;min-width:0;max-width:100%;-webkit-appearance:none;appearance:none}
+.lbl input::-webkit-date-and-time-value{text-align:left;margin:0}
+.lbl input::-webkit-datetime-edit{padding:0}
+.lbl.wide{grid-column:1/-1}
+.lbl{min-width:0;grid-template-columns:minmax(0,1fr)}
+.lbl{font-size:14px}
 .lbl.miss input{border-color:#D99A3A;background:#FFFBF2}
 .who{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .who button{min-height:48px;border-radius:12px;border:1px solid var(--line2);background:var(--card);font-weight:700;font-size:16px}
@@ -377,8 +382,8 @@ details.fold>summary::-webkit-details-marker{display:none}
       <p class="hint">日付・予定・時間を自由に書くと、下の欄に自動で入ります。読めなかった欄は手で直せます。</p>
       <div id="quickAsk" class="ask" hidden></div>
       <div class="grid2">
-        <label class="lbl" id="lDate">日付<input type="date" id="quickDate"></label>
-        <label class="lbl" id="lName">予定内容<input type="text" id="quickName" maxlength="80"></label>
+        <label class="lbl wide" id="lName">予定内容<input type="text" id="quickName" maxlength="80" placeholder="例：野球大会"></label>
+        <label class="lbl wide" id="lDate">日付<input type="date" id="quickDate"></label>
         <label class="lbl">家を出る時間<input type="time" id="quickDeparture"></label>
         <label class="lbl">帰宅予定<input type="time" id="quickReturn"></label>
       </div>
