@@ -107,7 +107,7 @@ await A.fill('#quickReturn','18:00');await A.click('#quickSave');await A.waitFor
 const leg=(await db()).familySchedules.legacy;
 ok(leg&&leg.returnTime==='18:00'&&leg.who==='husband'&&Object.keys((await db()).familySchedules).length===Object.keys(await A.evaluate(()=>JSON.parse(localStorage.getItem('fakeDB')).familySchedules)).length,'同じ予定を更新（新しい予定は増えない）');
 ok((await A.textContent('#hQuick'))==='文章で予定を追加'&&!(await A.isDisabled('#quickText')),'保存後は追加モードに戻る');
-await B.click('.tabs button[data-tab=home]');ok((await B.textContent('#todaySchedule')).includes('→18:00'),'予定の変更が相手に反映');
+await B.click('.tabs button[data-tab=home]');ok((await B.textContent('#todaySchedule')).includes('〜18:00'),'予定の変更が相手に反映');
 await A.click('#scheduleBody button.ev:has-text("野球部")').catch(async()=>{await A.click('.seg4 button[data-view=today]');await A.click('#scheduleBody button.ev:has-text("野球部")')});
 await A.click('#quickDelete');await A.waitForTimeout(300);
 ok(!(await db()).familySchedules.legacy,'予定を削除');

@@ -65,10 +65,20 @@ main{padding-bottom:190px}
 .sched{padding:6px 16px 6px}
 .ev{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
 .ev:first-child{border-top:0}
-.ev .t{flex:none;width:56px;display:flex;flex-direction:column;line-height:1.25}
-.ev .t b{font-size:17px}
+.ev{position:relative;padding-left:14px!important}
+.ev::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:4px;border-radius:2px;background:var(--f)}
+.ev.husband::before{background:var(--h)}.ev.wife::before{background:#D0692F}
+.ev .t{flex:none;width:66px;display:flex;flex-direction:column;line-height:1.3;white-space:nowrap}
+.ev .t b{font-size:18px}
 .ev .t span{font-size:13px;color:var(--muted)}
-.ev .name{flex:1;min-width:0;font-size:17px;font-weight:700;overflow-wrap:anywhere}
+.ev .t .nt{font-size:14px;font-weight:700;color:var(--muted)}
+.ev .body{flex:1;min-width:0;display:flex;align-items:center;gap:8px}
+.ev .body .tag{order:-1}
+.wkday+.ev{border-top:0}
+#hWk{flex-direction:column;align-items:flex-start;gap:0;line-height:1.3}
+#hWk .hrange{margin-left:0;font-size:13px}
+#goWeekend{white-space:nowrap;flex:none}
+.ev .name{min-width:0;font-size:17px;font-weight:700;overflow-wrap:anywhere;line-height:1.35}
 .tag{flex:none;padding:3px 9px;border-radius:8px;font-size:13px;font-weight:700}
 .tag.husband{background:var(--h-soft);color:var(--h)}
 .tag.wife{background:var(--w-soft);color:var(--w)}
@@ -151,6 +161,13 @@ button.ev:first-child{border-top:0}
 .opts button{min-height:44px;min-width:0;border-radius:12px;border:1px solid var(--line2);background:var(--card);font-weight:700;font-size:14px;color:#3F4D45;padding:4px 2px;line-height:1.3;white-space:normal}
 .opts button[aria-pressed=true]{border:2px solid var(--green);color:var(--green)}
 .wkprev .ev{padding:8px 0}
+.wkday{display:flex;justify-content:space-between;align-items:center;min-height:44px;margin-top:6px;padding-top:6px;border-top:1px solid var(--line)}
+.wkday:first-child{border-top:0;margin-top:0}
+.wkday strong{font-size:16px}
+.wkday .sat{color:var(--h)}.wkday .sun{color:#B3261E}
+.wkday .link{font-size:14px}
+.wkprev .empty,.home-empty{padding:4px 0 10px 14px;text-align:left;font-size:15px}
+.hrange{font-size:14px;font-weight:500;color:var(--muted);margin-left:4px}
 
 /* よく買うもの */
 .chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:2px 0 6px;overflow:visible}
@@ -285,7 +302,6 @@ details.fold>summary::-webkit-details-marker{display:none}
 
 <main id="content" hidden>
   <p class="offline" id="offlineNote" role="status" hidden><b>オフラインです。</b>追加・チェック・削除はこの端末に保存し、電波が戻ると自動で送ります。</p>
-  <p class="hint" style="margin:0 0 14px">夫婦で共有する買い物と予定です。<a href="./shared.html">以前の共有版</a>も引き続き使えます。</p>
   <!-- 今日 -->
   <div id="homeScreen" class="screen">
    <div class="col col-plan">
@@ -535,10 +551,12 @@ function eventRow(e,overlapWith){
   const who=normWho(e.who);
   const name=el('span',{className:'name'},e.name||'予定',...(e.pending?[el('span',{className:'pend',textContent:'未送信'})]:[]));
   if(overlapWith)name.append(el('span',{className:'ov',textContent:'「'+overlapWith+'」と時間が重なっています'}));
-  return el('button',{type:'button',className:'ev',ariaLabel:fmtDay(e.date)+' '+WHO[who]+' '+(e.name||'予定')+'を編集',onclick:()=>startEditSchedule(e)},
-    el('div',{className:'t num'},el('b',{textContent:fmtTime(e.departure)||'未定'}),el('span',{textContent:e.returnTime?'→'+fmtTime(e.returnTime):'帰宅 未定'})),
-    el('span',{className:'tag '+who,textContent:WHO[who]}),
-    name);
+  const time=e.departure?[el('b',{textContent:fmtTime(e.departure)}),el('span',{textContent:e.returnTime?'〜'+fmtTime(e.returnTime):'帰り未定'})]
+    :e.returnTime?[el('span',{className:'nt',textContent:'出発未定'}),el('span',{textContent:'〜'+fmtTime(e.returnTime)})]
+    :[el('span',{className:'nt',textContent:'時間未定'})];
+  return el('button',{type:'button',className:'ev '+who,ariaLabel:fmtDay(e.date)+' '+WHO[who]+' '+(e.name||'予定')+'を編集',onclick:()=>startEditSchedule(e)},
+    el('div',{className:'t num'},...time),
+    el('div',{className:'body'},name,el('span',{className:'tag '+who,textContent:WHO[who]})));
 }
 const eventsOn=ymd=>schedules.filter(x=>x.date===ymd);
 // 出発〜帰宅の帯グラフ（時刻が入っている予定だけ。帰宅未定は点だけで推測しない）
@@ -596,21 +614,22 @@ const mdRange=(a,b)=>{const [,m1,d1]=a.split('-').map(Number),[,m2,d2]=b.split('
 function drawSchedules(){
   $('todayLabel').textContent=fmtDay(today()).replace('（','　').replace('）','曜日');
   const tl=eventsOn(today()),ov=findOverlaps(tl);
-  $('todaySchedule').replaceChildren(...(tl.length?sortDay(tl).map(e=>eventRow(e,ov.get(e.id))):[el('p',{className:'empty',textContent:'今日の予定はありません'})]));
+  $('todaySchedule').replaceChildren(...(tl.length?sortDay(tl).map(e=>eventRow(e,ov.get(e.id))):[el('p',{className:'empty home-empty',textContent:'今日の予定はありません'})]));
   drawHomeWeekend();
   if(tab==='schedule')drawScheduleList();
 }
 function drawHomeWeekend(){
   const w=weekendOf(new Date(),0),days=[w.sat,w.sun];
   $('homeWeekend').hidden=false;
-  $('hWk').textContent='今週末の予定　'+mdRange(days[0],days[1]);
+  $('hWk').replaceChildren('今週末の予定',el('span',{className:'hrange num',textContent:mdRange(days[0],days[1])}));
   const out=[];
   for(let i=0;i<days.length;i++){
     const d=days[i],dayEvents=sortDay(schedules.filter(e=>e.date===d));
-    const head=el('div',{className:'dayhead'},el('strong',{textContent:(i?'日曜日':'土曜日')+' '+fmtDay(d)}),
-      el('button',{type:'button',className:'link',textContent:'＋ 予定を入力',onclick:()=>startAddForDate(d)}));
+    const [,mm,dd]=d.split('-').map(Number);
+    const head=el('div',{className:'wkday'},el('strong',{className:'num'},`${mm}/${dd}`,el('span',{className:i?'sun':'sat',textContent:i?'（日）':'（土）'})),
+      el('button',{type:'button',className:'link',textContent:'＋ 追加',ariaLabel:`${mm}月${dd}日（${i?'日':'土'}）に予定を追加`,onclick:()=>startAddForDate(d)}));
     out.push(head);
-    if(!dayEvents.length)out.push(el('p',{className:'empty',textContent:'予定なし。右の「＋ 予定を入力」から登録できます。'}));
+    if(!dayEvents.length)out.push(el('p',{className:'empty',textContent:'予定なし'}));
     else for(const e of dayEvents.slice(0,3))out.push(eventRow(e));
     if(dayEvents.length>3)out.push(el('button',{type:'button',className:'more',textContent:'ほか'+(dayEvents.length-3)+'件を見る',onclick:openWeekendFromHome}));
   }

@@ -138,11 +138,11 @@ ok((await A.getAttribute('.seg4 button[data-view=week]', 'aria-selected')) === '
 await A.click('.tabs button[data-tab=home]');
 ok(await A.isVisible('#homeWeekend') && (await A.textContent('#hWk')).startsWith('今週末の予定'), 'ホームに今週末の欄が常に出る');
 const wkText = await A.textContent('#homeWeekendList');
-ok(wkText.includes('土曜日') && wkText.includes('日曜日'), '土曜日・日曜日の両方が並ぶ');
-ok(await A.locator('#homeWeekendList button.link:has-text("予定を入力")').count() === 2, '土日それぞれに「＋ 予定を入力」');
+ok(wkText.includes('（土）') && wkText.includes('（日）'), '土曜・日曜の両方が並ぶ');
+ok(await A.locator('#homeWeekendList button.link:has-text("＋ 追加")').count() === 2, '土日それぞれに「＋ 追加」');
 ok(wkText.includes('野球大会') && wkText.includes('ほか'), '予定が多い日は3件＋「ほかN件を見る」');
 await A.click('#homeWeekendList button.link >> nth=1');
-ok(await A.isVisible('#scheduleScreen') && await A.inputValue('#quickDate') === W0.sun, '日曜の「＋ 予定を入力」で日付入りの入力欄へ');
+ok(await A.isVisible('#scheduleScreen') && await A.inputValue('#quickDate') === W0.sun, '日曜の「＋ 追加」で日付入りの入力欄へ');
 await A.click('#quickCancel').catch(() => {});
 await A.fill('#quickText', ''); 
 
