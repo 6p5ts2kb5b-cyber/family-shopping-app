@@ -65,6 +65,117 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['addedAt']);
       allow delete: if owner();
     }
+    // ---------- 子どもへの伝言板 ----------
+    // 子ども用タブレットは匿名ログイン。管理者がQRで承認した端末（kidDevices に登録済み）だけが伝言を読める。
+    // 匿名ユーザーは owner()（UIDが違う）も member()（メールが無い）も満たさないため、上の買い物・予定・名簿には一切触れない。
+    function anonUser() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+    function kidDevice() {
+      return anonUser()
+        && exists(/databases/$(database)/documents/kidDevices/$(request.auth.uid));
+    }
+    function kidReader() {
+      return family() || kidDevice();
+    }
+    function validKidText(s, max) {
+      return s is string && s.size() > 0 && s.size() <= max;
+    }
+    function validKidTargets(t) {
+      return t is list && t.size() >= 1 && t.size() <= 3
+        && t.hasOnly(['child1', 'child2', 'child3'])
+        && t.toSet().size() == t.size();
+    }
+    function validYmd(s) {
+      return s is string && s.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+    // 伝言（配信用）：読むのは家族と登録済みタブレット、書くのは家族だけ。「できた！」は保存しない
+    match /kidNotices/{noticeId} {
+      allow read: if kidReader();
+      allow delete: if family();
+      allow create, update: if family()
+        && request.resource.data.keys().hasAll(['text', 'targets', 'period', 'repeat', 'onDate', 'active', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['text', 'targets', 'period', 'repeat', 'onDate', 'active', 'updatedAt'])
+        && validKidText(request.resource.data.text, 120)
+        && validKidTargets(request.resource.data.targets)
+        && request.resource.data.period in ['morning', 'evening']
+        && request.resource.data.repeat in ['daily', 'weekdays', 'once']
+        && ((request.resource.data.repeat == 'once' && validYmd(request.resource.data.onDate))
+          || (request.resource.data.repeat != 'once' && request.resource.data.onDate == ''))
+        && request.resource.data.active is bool
+        && request.resource.data.updatedAt == request.time;
+    }
+    // 定型文：家族だけ（タブレットは読めない）。配信済みの伝言とは別のデータ
+    match /kidTemplates/{templateId} {
+      allow read, delete: if family();
+      allow create, update: if family()
+        && request.resource.data.keys().hasAll(['text', 'order'])
+        && request.resource.data.keys().hasOnly(['text', 'order'])
+        && validKidText(request.resource.data.text, 120)
+        && request.resource.data.order is int
+        && request.resource.data.order >= 0 && request.resource.data.order <= 9999;
+    }
+    // 伝言板の設定（お休みモード・夕方に切り替える時刻）
+    match /kidSettings/{settingId} {
+      allow read: if settingId == 'board' && kidReader();
+      allow create, update: if settingId == 'board' && family()
+        && request.resource.data.keys().hasAll(['pause', 'eveningFrom'])
+        && request.resource.data.keys().hasOnly(['pause', 'eveningFrom'])
+        && (request.resource.data.pause == '' || request.resource.data.pause == 'on' || validYmd(request.resource.data.pause))
+        && request.resource.data.eveningFrom is string
+        && request.resource.data.eveningFrom.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+    }
+    // 家族の表示名（公開リポジトリに名前を書かないため、ここに保存）
+    // children：家族と登録済みタブレットが読める ／ parents：家族だけ
+    match /familySettings/{settingId} {
+      allow read: if (settingId == 'children' && kidReader()) || (settingId == 'parents' && family());
+      allow create, update: if family()
+        && ((settingId == 'children'
+              && request.resource.data.keys().hasAll(['child1', 'child2', 'child3'])
+              && request.resource.data.keys().hasOnly(['child1', 'child2', 'child3'])
+              && validKidText(request.resource.data.child1, 12)
+              && validKidText(request.resource.data.child2, 12)
+              && validKidText(request.resource.data.child3, 12))
+          || (settingId == 'parents'
+              && request.resource.data.keys().hasAll(['husband', 'wife'])
+              && request.resource.data.keys().hasOnly(['husband', 'wife'])
+              && validKidText(request.resource.data.husband, 12)
+              && validKidText(request.resource.data.wife, 12)));
+    }
+    // 登録済みタブレット：登録（QR承認）・解除は管理者だけ。タブレットは自分の分だけ読める
+    match /kidDevices/{deviceUid} {
+      allow read: if family() || (anonUser() && request.auth.uid == deviceUid);
+      // 登録：10分以内の申請があり、QRのトークンが一致し、同じ書き込みで申請を消す（1回きり）
+      allow create: if owner()
+        && request.resource.data.keys().hasAll(['label', 'addedAt', 'pairToken'])
+        && request.resource.data.keys().hasOnly(['label', 'addedAt', 'pairToken'])
+        && validKidText(request.resource.data.label, 20)
+        && request.resource.data.addedAt == request.time
+        && request.resource.data.pairToken is string
+        && request.resource.data.pairToken.matches('^[A-Za-z0-9_-]{22,64}$')
+        && exists(/databases/$(database)/documents/kidPairRequests/$(deviceUid))
+        && request.time < get(/databases/$(database)/documents/kidPairRequests/$(deviceUid)).data.createdAt + duration.value(10, 'm')
+        && hashing.sha256(request.resource.data.pairToken).toHexString().lower()
+             == get(/databases/$(database)/documents/kidPairRequests/$(deviceUid)).data.tokenHash
+        && !existsAfter(/databases/$(database)/documents/kidPairRequests/$(deviceUid));
+      // 端末名の変更だけ（登録情報の書き換え・二重承認は不可）
+      allow update: if owner()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['label'])
+        && validKidText(request.resource.data.label, 20);
+      allow delete: if owner();
+    }
+    // QR登録の申請：タブレットが自分のuidの分だけ作る（トークン本体は保存せずハッシュだけ）
+    match /kidPairRequests/{deviceUid} {
+      allow create, update: if anonUser() && request.auth.uid == deviceUid
+        && request.resource.data.keys().hasAll(['tokenHash', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['tokenHash', 'createdAt'])
+        && request.resource.data.tokenHash is string
+        && request.resource.data.tokenHash.matches('^[0-9a-f]{64}$')
+        && request.resource.data.createdAt == request.time;
+      allow get: if owner() || (anonUser() && request.auth.uid == deviceUid);
+      allow delete: if owner() || (anonUser() && request.auth.uid == deviceUid);
+    }
     match /{document=**} {
       allow read, write: if false;
     }
