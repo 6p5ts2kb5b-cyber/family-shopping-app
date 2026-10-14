@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 21 }
       - name: Schedule logic tests
-        run: node --test tests/quick-schedule.test.mjs tests/schedule-views.test.mjs tests/share.test.mjs
+        run: node --test tests/quick-schedule.test.mjs tests/schedule-views.test.mjs tests/share.test.mjs tests/kid-notices.test.mjs tests/kid-board.test.mjs
       - run: npm install --no-audit --no-fund
       - name: Run rules tests
         run: |
