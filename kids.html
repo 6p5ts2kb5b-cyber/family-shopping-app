@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F4B942">
+<meta name="robots" content="noindex">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="でんごんばん">
+<link rel="manifest" href="./kids.webmanifest">
+<link rel="apple-touch-icon" href="./icons/kids-180.png">
+<link rel="icon" href="./icons/kids-192.png">
+<title>でんごんばん</title>
+<style>
+:root{
+  --bg:#FFF8E7;--card:#FFFFFF;--ink:#2B2A26;--muted:#6E6A5E;--line:#EDE6D3;--green:#2E7D5B;--green-soft:#E3F2EA;--sun:#F4B942;
+  --c1:#7B57B5;--c1s:#ECE4F7;--c2:#1F8A94;--c2s:#DDF0F1;--c3:#C94F80;--c3s:#F9E1EB;
+  font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","BIZ UDPGothic","Noto Sans JP",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{min-height:100vh;padding:max(12px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
+button{font:inherit;color:inherit;cursor:pointer}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.date{font-size:clamp(24px,4vw,34px);font-weight:800;margin:0}
+.conn{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--muted);background:#fff;border-radius:999px;padding:6px 12px}
+.conn i{width:10px;height:10px;border-radius:50%;background:var(--green)}
+.conn[data-tone=off] i{background:#C47F17}.conn[data-tone=err] i{background:#B3261E}
+/* あさ・ゆうがた */
+.period{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 16px}
+.period button{min-height:72px;border-radius:22px;border:3px solid transparent;background:#fff;font-size:clamp(24px,4vw,32px);font-weight:800;color:var(--muted)}
+.period button[aria-pressed=true][data-p=morning]{border-color:var(--sun);background:#FFF1C9;color:#7A5300}
+.period button[aria-pressed=true][data-p=evening]{border-color:#5560A8;background:#E6E8F7;color:#2F3672}
+/* 3人の列 */
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+@media (max-width:680px){.cols{grid-template-columns:1fr}}
+.kid{background:var(--card);border-radius:24px;padding:14px;border-top:10px solid var(--kc);box-shadow:0 2px 6px rgba(60,50,20,.08)}
+.kid[data-child=child1]{--kc:var(--c1);--ks:var(--c1s)}.kid[data-child=child2]{--kc:var(--c2);--ks:var(--c2s)}.kid[data-child=child3]{--kc:var(--c3);--ks:var(--c3s)}
+.kid h2{margin:0;font-size:clamp(28px,4.2vw,40px);color:var(--kc);display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:0 8px;line-height:1.25}
+.kid h2 .name{overflow-wrap:anywhere}
+.count{font-size:18px;color:var(--muted);font-weight:700;white-space:nowrap}
+.bar{height:12px;background:var(--line);border-radius:6px;margin:8px 0 12px;overflow:hidden}
+.bar span{display:block;height:100%;background:var(--kc);border-radius:6px;transition:width .3s}
+.all{display:none;margin:0 0 12px;padding:12px;border-radius:16px;background:var(--ks);color:var(--kc);font-size:clamp(24px,3.4vw,30px);font-weight:900;text-align:center}
+.kid.alldone .all{display:block}
+.list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.note{display:grid;gap:10px;padding:14px;border-radius:18px;background:#FBF8F0;border:2px solid var(--line)}
+.note p{margin:0;font-size:clamp(22px,2.8vw,28px);font-weight:700;line-height:1.45;overflow-wrap:anywhere}
+.note.done{background:var(--green-soft);border-color:#9CCDB3}
+.note.done p{color:#4F6B5C}
+.donebtn{min-height:68px;border:0;border-radius:18px;background:var(--kc);color:#fff;font-size:clamp(24px,3vw,30px);font-weight:900;touch-action:manipulation}
+.note.done .donebtn{background:#fff;color:var(--green);border:3px solid var(--green)}
+.none{margin:6px 2px;font-size:22px;color:var(--muted)}
+/* お休み・登録・読み込み */
+.big{background:#fff;border-radius:28px;padding:28px 20px;text-align:center;max-width:720px;margin:24px auto}
+.big h2{margin:0 0 8px;font-size:clamp(30px,5vw,44px)}
+.big p{margin:8px 0;font-size:20px;color:var(--muted);line-height:1.6}
+#qr{display:block;margin:16px auto;width:min(300px,70vw);height:auto;image-rendering:pixelated;background:#fff}
+.emojis{font-size:44px;letter-spacing:10px;margin:8px 0}
+.retry{min-height:56px;padding:0 24px;border:0;border-radius:16px;background:var(--green);color:#fff;font-size:20px;font-weight:800;margin-top:10px}
+.small{font-size:15px!important}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="top">
+  <p class="date" id="date"></p>
+  <span class="conn" id="conn" data-tone="off"><i></i><span id="connText">じゅんびちゅう</span></span>
+</div>
+
+<!-- 読み込み中・エラー -->
+<section class="big" id="loading"><h2>よみこみちゅう…</h2></section>
+<section class="big" id="error" hidden>
+  <h2>つながりません</h2>
+  <p id="errorText">おうちの ひとに しらせてね。</p>
+  <button type="button" class="retry" id="retry">もういちど</button>
+</section>
+
+<!-- 初回登録（QR） -->
+<section class="big" id="pair" hidden>
+  <h2>このタブレットを とうろく</h2>
+  <p>おうちの ひとが スマホの カメラで よみとってね。</p>
+  <canvas id="qr" width="300" height="300" aria-label="とうろく用のQRコード"></canvas>
+  <p>かくにんの え</p>
+  <p class="emojis" id="emojis" aria-label="確認の絵"></p>
+  <p class="small" id="pairInfo"></p>
+  <p class="small">保護者の方へ：管理者のスマホでQRを読み取り、「わが家のメモ」で同じ絵が出ていることを確かめてから登録してください。</p>
+</section>
+
+<!-- 伝言 -->
+<main id="board" hidden>
+  <div class="period" role="group" aria-label="あさ・ゆうがた">
+    <button type="button" data-p="morning" aria-pressed="false">☀️ あさ</button>
+    <button type="button" data-p="evening" aria-pressed="false">🌙 ゆうがた</button>
+  </div>
+  <section class="big" id="paused" hidden><h2>🌈 きょうは おやすみ</h2><p>でんごんは おやすみです。</p></section>
+  <div class="cols" id="cols"></div>
+</main>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import {getAuth,signInAnonymously,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import {initializeFirestore,getFirestore,persistentLocalCache,collection,doc,onSnapshot,setDoc,serverTimestamp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import {firebaseConfig} from "./firebase-config.js?v=20261011-fix2";
+import {CHILD_IDS,boardFor,periodAt,isDone,setDone,pruneDone,toYmd,DEFAULT_EVENING_FROM} from "./lib/kid-notices.js";
+import {newToken,sha256Hex,pairUrl,checkEmojis,PAIR_REFRESH_MS} from "./lib/kid-pairing.js";
+import qrcode from "./lib/vendor/qrcode.mjs";
+
+// 親の app.html とログイン状態・端末保存を分けるため、名前付きのアプリで初期化する
+const app=initializeApp(firebaseConfig,'kids'),auth=getAuth(app);
+let db;
+try{db=initializeFirestore(app,{localCache:persistentLocalCache()})}catch(e){db=getFirestore(app)}
+
+const $=id=>document.getElementById(id);
+const el=(tag,props={},...kids)=>{const n=Object.assign(document.createElement(tag),props);n.append(...kids);return n};
+const store=(()=>{try{const k='__kids_t';localStorage.setItem(k,'1');localStorage.removeItem(k);return localStorage}catch{return null}})();
+const DOWS=['にち','げつ','か','すい','もく','きん','ど'];
+const FALLBACK={child1:'1ばんめ',child2:'2ばんめ',child3:'3ばんめ'};
+
+const state={uid:'',registered:null,notices:[],board:{pause:'',eveningFrom:DEFAULT_EVENING_FROM},names:{...FALLBACK},
+  manual:null,manualAuto:null,today:'',lastSync:null,subs:[],pairTimer:null,token:''};
+
+function show(which){for(const id of ['loading','error','pair','board'])$(id).hidden=id!==which}
+function setConn(tone,text){$('conn').dataset.tone=tone;$('connText').textContent=text}
+function fail(text){show('error');$('errorText').textContent=text;setConn('err','つながりません')}
+$('retry').addEventListener('click',()=>location.reload());
+
+// ---------- 日付・あさ／ゆうがた ----------
+const now=()=>new Date();
+function autoPeriod(){return periodAt(now(),state.board.eveningFrom)}
+function currentPeriod(){
+  const auto=autoPeriod();
+  if(state.manual&&state.manualAuto!==auto)state.manual=null; // 次の切り替え時刻で自動に戻る
+  return state.manual||auto;
+}
+for(const b of document.querySelectorAll('.period button'))b.addEventListener('click',()=>{state.manual=b.dataset.p;state.manualAuto=autoPeriod();render()});
+
+function drawDate(){
+  const d=now();
+  $('date').textContent=`${d.getMonth()+1}がつ${d.getDate()}にち（${DOWS[d.getDay()]}）`;
+}
+
+// ---------- 伝言の表示 ----------
+function render(){
+  drawDate();
+  const today=toYmd(now());
+  if(state.today!==today){state.today=today;if(store)pruneDone(store,today)}
+  const period=currentPeriod();
+  for(const b of document.querySelectorAll('.period button'))b.setAttribute('aria-pressed',b.dataset.p===period);
+  const board=boardFor(state.notices,today,period,state.board.pause);
+  const paused=state.board.pause==='on'||state.board.pause===today;
+  $('paused').hidden=!paused;$('cols').hidden=paused;
+  const cols=CHILD_IDS.map(c=>{
+    const list=board[c];
+    const done=list.filter(n=>isDone(store,today,c,period,n)).length;
+    const sec=el('section',{className:'kid'+(list.length&&done===list.length?' alldone':'')});
+    sec.dataset.child=c;
+    sec.append(
+      el('h2',{},el('span',{className:'name',textContent:state.names[c]||FALLBACK[c]}),el('span',{className:'count',textContent:list.length?`${done} / ${list.length} できた`:''})),
+      el('div',{className:'bar',ariaHidden:'true'},el('span',{style:`width:${list.length?Math.round(done/list.length*100):0}%`})),
+      el('p',{className:'all',textContent:'🎉 ぜんぶできた！'}));
+    const ul=el('ul',{className:'list'});
+    if(!list.length)ul.append(el('li',{className:'none',textContent:'でんごんは ないよ'}));
+    for(const n of list){
+      const isD=isDone(store,today,c,period,n);
+      const btn=el('button',{type:'button',className:'donebtn',textContent:isD?'✓ できた':'できた！',ariaLabel:(isD?'とりけす：':'できた：')+n.text});
+      btn.setAttribute('aria-pressed',isD);
+      btn.addEventListener('click',()=>{setDone(store,today,c,period,n,!isD);render()});
+      ul.append(el('li',{className:'note'+(isD?' done':'')},el('p',{textContent:n.text}),btn));
+    }
+    sec.append(ul);
+    return sec;
+  });
+  $('cols').replaceChildren(...cols);
+}
+
+// ---------- Firebase ----------
+function stopBoard(){state.subs.forEach(u=>u());state.subs=[]}
+function syncState(snap){
+  if(!navigator.onLine||snap.metadata?.fromCache)setConn('off',state.lastSync?`オフライン（${state.lastSync} の でんごん）`:'オフライン');
+  else{const d=now();state.lastSync=`${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;setConn('ok','つながっています')}
+}
+function startBoard(){
+  stopBoard();stopPair();
+  show('board');render();
+  const onErr=e=>{console.warn('kids board',e?.code);if(e?.code==='permission-denied')return; // 解除されたときは kidDevices の監視が登録画面に切り替える
+    if(!state.notices.length)fail('でんごんを よみこめませんでした。おうちの ひとに しらせてね。');else setConn('err','つながりません')};
+  state.subs.push(onSnapshot(collection(db,'kidNotices'),{includeMetadataChanges:true},snap=>{state.notices=snap.docs.map(d=>({id:d.id,...d.data()}));syncState(snap);if(state.registered)show('board');render()},onErr));
+  state.subs.push(onSnapshot(doc(db,'kidSettings','board'),snap=>{const v=snap.exists()?snap.data():{};state.board={pause:v.pause||'',eveningFrom:v.eveningFrom||DEFAULT_EVENING_FROM};render()},onErr));
+  state.subs.push(onSnapshot(doc(db,'familySettings','children'),snap=>{state.names={...FALLBACK,...(snap.exists()?snap.data():{})};render()},onErr));
+}
+
+// ---------- 初回登録（QR） ----------
+function stopPair(){clearTimeout(state.pairTimer);state.pairTimer=null}
+async function startPair(){
+  stopBoard();stopPair();
+  if(!navigator.onLine){fail('インターネットに つながっていません。');return}
+  show('pair');setConn('ok','とうろく まち');
+  try{
+    const token=newToken();state.token=token;
+    await setDoc(doc(db,'kidPairRequests',state.uid),{tokenHash:await sha256Hex(token),createdAt:serverTimestamp()});
+    if(state.token!==token)return;
+    const url=pairUrl(new URL('./app.html',location.href).href,state.uid,token);
+    drawQr(url);
+    $('emojis').textContent=(await checkEmojis(token)).join(' ');
+    const until=new Date(Date.now()+PAIR_REFRESH_MS);
+    $('pairInfo').textContent=`このQRは ${until.getHours()}:${String(until.getMinutes()).padStart(2,'0')} に あたらしく なります`;
+    state.pairTimer=setTimeout(()=>{if(state.registered===false)startPair()},PAIR_REFRESH_MS);
+  }catch(e){
+    console.warn('pair',e?.code);
+    fail(navigator.onLine?'とうろくの じゅんびが できませんでした。おうちの ひとに しらせてね。':'インターネットに つながっていません。');
+  }
+}
+function drawQr(text){
+  const q=qrcode(0,'M');q.addData(text);q.make();
+  const n=q.getModuleCount(),quiet=4,cell=Math.max(4,Math.floor(600/(n+quiet*2)));
+  const c=$('qr');c.width=c.height=(n+quiet*2)*cell;
+  const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle='#000';
+  for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(q.isDark(r,k))ctx.fillRect((k+quiet)*cell,(r+quiet)*cell,cell,cell);
+  c.dataset.url=text;
+}
+
+// 自分の登録（kidDevices/{uid}）を見て、登録・解除に合わせて画面を切り替える
+function watchDevice(){
+  onSnapshot(doc(db,'kidDevices',state.uid),snap=>{
+    const reg=snap.exists();
+    if(reg===state.registered)return;
+    state.registered=reg;
+    if(reg)startBoard();else startPair();
+  },e=>{console.warn('device',e?.code);fail(navigator.onLine?'つながりません。おうちの ひとに しらせてね。':'インターネットに つながっていません。')});
+}
+
+onAuthStateChanged(auth,async u=>{
+  if(!u){
+    try{await signInAnonymously(auth)}
+    catch(e){console.warn('anon',e?.code);fail(e?.code==='auth/admin-restricted-operation'||e?.code==='auth/operation-not-allowed'
+      ?'じゅんびちゅうです（保護者の方へ：Firebaseで「匿名」ログインを有効にしてください）。'
+      :'インターネットに つながっていません。');}
+    return;
+  }
+  if(!u.isAnonymous){fail('このページは子ども用です。保護者のアカウントでは使えません。');return}
+  if(state.uid===u.uid)return;
+  state.uid=u.uid;watchDevice();
+});
+
+// 日付・時刻が変わったら表示を更新（1分ごと）
+setInterval(()=>{if(!$('board').hidden)render();else drawDate()},60*1000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!$('board').hidden)render()});
+addEventListener('online',()=>{if(!$('error').hidden){location.reload();return}setConn('ok','つながっています')});
+addEventListener('offline',()=>setConn('off',state.lastSync?`オフライン（${state.lastSync} の でんごん）`:'オフライン'));
+drawDate();
+</script>
+</body>
+</html>

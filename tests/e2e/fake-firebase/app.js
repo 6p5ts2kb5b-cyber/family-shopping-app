@@ -1,1 +1,1 @@
-export function initializeApp(c,n){return {c,n}}
+export function initializeApp(c,n){return {c,name:n||'[DEFAULT]'}}
