@@ -39,6 +39,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: App screen tests (fake Firebase)
         run: |
+          set +e  # 1つの画面テストが失敗しても、残りを実行して結果をまとめて出す
           python3 -m http.server 8790 >/dev/null 2>&1 &
           sleep 1
           node tests/e2e/app.e2e.mjs > e2e.txt 2>&1; c1=$?
@@ -53,4 +54,5 @@ jobs:
           cat e2e.txt
           echo "::notice title=e2e summary::exit=$code pass=$(grep -c '^PASS' e2e.txt) fail=$(grep -c '^FAIL' e2e.txt)"
           grep '^FAIL' e2e.txt | head -10 | while read -r l; do echo "::error title=e2e failed::$l"; done
+          grep -E 'Error:|TimeoutError|Timeout [0-9]+ms' e2e.txt | head -5 | while read -r l; do echo "::error title=e2e crash::$l"; done
           exit $code
