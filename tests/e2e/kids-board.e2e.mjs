@@ -9,6 +9,8 @@ const BASE = 'http://localhost:8790/';
 const SHOTS = process.env.SHOTS || '';
 const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process.exitCode = 1; };
 const b = await chromium.launch();
+const qrUrl = async (page, not = null) => { await page.waitForFunction((n) => { const c = document.getElementById('qr'); return c && !c.hidden && c.dataset.url && c.dataset.url !== n; }, not, { timeout: 10000 }).catch(() => {}); return page.getAttribute('#qr', 'data-url'); };
+const until = (page, sel) => page.waitForSelector(sel, { state: 'visible', timeout: 10000 }).catch(() => {});
 const pad = (n) => String(n).padStart(2, '0');
 const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const THU = new Date(2026, 9, 15, 7, 30), FRI = new Date(2026, 9, 16, 7, 30), SAT = new Date(2026, 9, 17, 7, 30);
@@ -50,7 +52,7 @@ const colText = (p, c) => p.textContent(`.kid[data-child=${c}]`);
 
   // ---- 登録前：QR ----
   ok(await kid.isVisible('#pair') && await kid.isHidden('#board'), '未登録：QRの登録画面が出る');
-  const url = await kid.getAttribute('#qr', 'data-url');
+  const url = await qrUrl(kid);
   const m = /^http:\/\/localhost:8790\/app\.html#pair=(tabletTest01)\.([A-Za-z0-9_-]{22})$/.exec(url || '');
   ok(!!m, `QRの中身は app.html#pair=匿名uid.使い捨てトークン（${url}）`);
   const emojis = (await kid.textContent('#emojis')).trim().split(/\s+/);
@@ -70,7 +72,7 @@ const colText = (p, c) => p.textContent(`.kid[data-child=${c}]`);
   ok(!denied.includes(':ok'), `未登録の匿名端末は伝言も買い物・予定も読めない（${denied}）`);
   if (SHOTS) await kid.screenshot({ path: `${SHOTS}/kids-pair.png` });
   const reqBefore = JSON.stringify((await db(kid)).kidPairRequests);
-  await kid.reload(); await kid.waitForTimeout(600);
+  await kid.reload(); await qrUrl(kid);
   ok(await kid.getAttribute('#qr', 'data-url') === url && JSON.stringify((await db(kid)).kidPairRequests) === reqBefore, '4分以内に再読み込みしても同じQR（申請を書き直さない＝無料枠を使わない）');
   await kid.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.startsWith('kidsPair:')) localStorage.removeItem(k); });
   await kid.reload(); await kid.waitForTimeout(600);
@@ -100,6 +102,7 @@ const colText = (p, c) => p.textContent(`.kid[data-child=${c}]`);
   await kid.waitForTimeout(500);
 
   // ---- 伝言の表示 ----
+  await until(kid, '#board .kid');
   ok(await kid.isVisible('#board') && await kid.isHidden('#pair'), '承認されると自動で伝言画面に切り替わる（端末側で登録を確認）');
   ok((await kid.textContent('#date')).includes('10がつ15にち（もく）'), '日付と曜日');
   ok(await kid.getAttribute('.period button[data-p=morning]', 'aria-pressed') === 'true', '7:30 は自動で「あさ」');
@@ -185,9 +188,9 @@ const colText = (p, c) => p.textContent(`.kid[data-child=${c}]`);
     const S = await import('https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js');
     await S.deleteDoc(S.doc(S.getFirestore(A.initializeApp({})), 'kidDevices', 'tabletTest01'));
   });
-  await kid.waitForTimeout(600);
+  await until(kid, '#pair');
   ok(await kid.isVisible('#pair') && await kid.isHidden('#board'), '管理者が解除すると登録画面（新しいQR）に戻る');
-  const url2 = await kid.getAttribute('#qr', 'data-url');
+  const url2 = await qrUrl(kid, url);
   ok(url2 && url2 !== url, '解除後は新しいQR（前のトークンは使えない）');
   ok(await approve('tabletTest01', m[2]) === 'permission-denied', '解除後に古いQRで再登録はできない');
   ok(errs.length === 0, `JSエラーなし ${errs.join(' | ')}`);

@@ -8,6 +8,8 @@ const BASE = 'http://localhost:8790/';
 const SHOTS = process.env.SHOTS || '';
 const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process.exitCode = 1; };
 const b = await chromium.launch();
+const qrUrl = async (page, not = null) => { await page.waitForFunction((n) => { const c = document.getElementById('qr'); return c && !c.hidden && c.dataset.url && c.dataset.url !== n; }, not, { timeout: 10000 }).catch(() => {}); return page.getAttribute('#qr', 'data-url'); };
+const until = (page, sel) => page.waitForSelector(sel, { state: 'visible', timeout: 10000 }).catch(() => {});
 const pad = (n) => String(n).padStart(2, '0');
 const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const NOW = new Date(2026, 9, 15, 20, 30); // 木曜の夜
@@ -160,10 +162,10 @@ async function login(p, uid) {
   await kid.goto(BASE + 'kids.html');
   await kid.evaluate(() => localStorage.setItem('nextAnonUid', 'tabletParent1'));
   await kid.reload(); await kid.waitForTimeout(600);
-  const qr = await kid.getAttribute('#qr', 'data-url');
+  const qr = await qrUrl(kid);
   const kidEmojis = (await kid.textContent('#emojis')).trim();
   ok(/#pair=tabletParent1\./.test(qr || ''), 'タブレットにQR');
-  await p.goto(qr); await p.waitForTimeout(800);
+  await p.goto(qr); await until(p, '#pairChoices button');
   ok(!p.url().includes('#pair'), 'QRで開いたら、トークンはアドレス欄から消す');
   ok(await p.isVisible('#pairSheet') && await p.isVisible('#pairBody'), '管理者のスマホに登録の確認画面');
   const choices = await p.$$eval('#pairChoices button', (x) => x.map((e) => e.textContent));
@@ -173,7 +175,7 @@ async function login(p, uid) {
   ok(await p.isVisible('#pairConfirm'), '正しい絵を選ぶと登録ボタンが出る');
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/parent-pair.png` });
   await p.fill('#pairLabel', 'テストのタブレット');
-  await p.click('#pairOk'); await p.waitForTimeout(600);
+  await p.click('#pairOk'); await p.waitForSelector('#pairSheet', { state: 'hidden', timeout: 10000 }).catch(() => {}); await until(kid, '#board'); await p.waitForTimeout(300);
   const d3 = await DB(p);
   ok(d3.kidDevices?.tabletParent1?.label === 'テストのタブレット' && !d3.kidPairRequests?.tabletParent1, '「登録する」で登録され、申請は消える（1回きり）');
   ok(await kid.isVisible('#board') && (await kid.textContent('.kid[data-child=child1] h2')).includes('テ一'), 'タブレットが自動で伝言画面になり、呼び名が出る');
@@ -186,12 +188,11 @@ async function login(p, uid) {
   // 解除
   await p.click('.tabs button[data-tab=family]');
   await p.click('#devList button:has-text("解除")'); await p.waitForTimeout(600);
-  ok(!(await DB(p)).kidDevices?.tabletParent1 && await kid.isVisible('#pair'), '解除するとタブレットは登録画面に戻る');
+  await until(kid, '#pair'); ok(!(await DB(p)).kidDevices?.tabletParent1 && await kid.isVisible('#pair'), '解除するとタブレットは登録画面に戻る');
   // 違う絵を選ぶと登録しない
-  await kid.waitForTimeout(800);
-  const qr2 = await kid.getAttribute('#qr', 'data-url');
+  const qr2 = await qrUrl(kid, qr);
   const kidEmojis2 = (await kid.textContent('#emojis')).trim();
-  await p.goto(qr2); await p.waitForTimeout(800);
+  await p.goto(qr2); await until(p, '#pairChoices button');
   const wrong = (await p.$$eval('#pairChoices button', (x) => x.map((e) => e.textContent))).find((c) => c !== kidEmojis2);
   await p.click(`#pairChoices button:text-is("${wrong}")`); await p.waitForTimeout(300);
   ok(await p.isHidden('#pairSheet') && !(await DB(p)).kidDevices?.tabletParent1, '違う絵を選ぶと登録しない');
@@ -211,7 +212,7 @@ async function login(p, uid) {
   await kid.goto(BASE + 'kids.html');
   await kid.evaluate((d) => { localStorage.clear(); localStorage.setItem('ownerUid', 'ownerUid1'); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('nextAnonUid', 'tabletWife1'); }, seed());
   await kid.reload(); await kid.waitForTimeout(600);
-  const qr = await kid.getAttribute('#qr', 'data-url');
+  const qr = await qrUrl(kid);
   const p = await ctx.newPage();
   await p.goto(qr); await p.waitForTimeout(500);
   ok(await p.isVisible('#login') && (await p.textContent('#status')).includes('タブレットの登録'), '未ログインでQRを開くと、ログイン後に登録へ進むと案内');
