@@ -158,9 +158,8 @@ async function login(p, uid) {
   // ---- QR でタブレットを登録 ----
   const kid = await ctx.newPage(); const kerrs = []; kid.on('pageerror', (e) => kerrs.push(e.message));
   await kid.clock.setFixedTime(NOW);
-  await kid.evaluate(() => 0);
   await kid.goto(BASE + 'kids.html');
-  await kid.evaluate(() => localStorage.setItem('nextAnonUid', 'tabletParent1'));
+  await kid.evaluate(() => { localStorage.removeItem('fakeUser:kids'); for (const k of Object.keys(localStorage)) if (k.startsWith('kidsPair:')) localStorage.removeItem(k); localStorage.setItem('nextAnonUid', 'tabletParent1'); });
   await kid.reload(); await kid.waitForTimeout(600);
   const qr = await qrUrl(kid);
   const kidEmojis = (await kid.textContent('#emojis')).trim();
