@@ -2,6 +2,8 @@ name: Firestore rules test
 on:
   push:
     paths: ['app.html', 'app.webmanifest', 'kids.html', 'kids.webmanifest', 'icons/**', 'lib/**', 'setup.html', 'firestore.rules', 'tests/**', 'package.json', 'firebase.json', '.github/workflows/rules-test.yml']
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
