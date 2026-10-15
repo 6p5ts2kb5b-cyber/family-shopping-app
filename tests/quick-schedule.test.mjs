@@ -2,7 +2,7 @@
 // 実行：node --test tests/quick-schedule.test.mjs   （追加のインストール不要）
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseQuickSchedule, readyToSave } from '../lib/quick-schedule.js';
+import { parseQuickSchedule, readyToSave, setWhoNames } from '../lib/quick-schedule.js';
 
 const NOW = new Date(2026, 9, 12, 9, 0); // 2026-10-12
 const P = (t) => parseQuickSchedule(t, NOW);
@@ -122,18 +122,31 @@ test('空の入力', () => {
   assert.deepEqual(r.missing, ['date', 'name', 'who', 'departure', 'returnTime']);
 });
 
-test('家族の名前（義・祐・樹・篤・結）で誰の予定かを読む', () => {
-  assert.equal(P('義 11/3 野球大会 6:00〜17:00').who, 'husband');
-  assert.equal(P('明日 パート 8:40〜15:00 祐').who, 'wife');
-  const r = P('樹 明日 サッカー 9:00');
-  assert.equal(r.who, 'child1'); assert.equal(r.name, 'サッカー');
-  assert.equal(P('明日 篤 スイミング').who, 'child2');
-  assert.equal(P('明日 ピアノ 結').who, 'child3');
-  assert.equal(readyToSave({ ...P('明日 ピアノ 結') }), true);
+test('家族設定の表示名（テスト用の名前）で誰の予定かを読む', () => {
+  setWhoNames({ husband: '一郎', wife: '花子', child1: '空', child2: '海', child3: '陸' });
+  try {
+    assert.equal(P('一郎 11/3 野球大会 6:00〜17:00').who, 'husband');
+    assert.equal(P('明日 パート 8:40〜15:00 花子').who, 'wife');
+    const r = P('空 明日 サッカー 9:00');
+    assert.equal(r.who, 'child1'); assert.equal(r.name, 'サッカー');
+    assert.equal(P('明日 海 スイミング').who, 'child2');
+    assert.equal(P('明日 ピアノ 陸').who, 'child3');
+    assert.equal(readyToSave({ ...P('明日 ピアノ 陸') }), true);
+    // 名前の漢字を含む予定名は決めつけない／2人書いたら決めない
+    const k = P('10/17 空港へ迎え');
+    assert.equal(k.who, ''); assert.equal(k.name, '空港へ迎え');
+    assert.equal(P('明日 海水浴').name, '海水浴');
+    assert.equal(P('明日 空 海 プール').who, '');
+    // 夫・妻・パパなどの言葉は今までどおり
+    assert.equal(P('夫 明日 出張').who, 'husband');
+  } finally { setWhoNames({}); }
+  // 名前を設定していなければ読まない
+  assert.equal(P('空 明日 サッカー').who, '');
 });
-test('名前の漢字を含む予定名は誰の予定と決めつけない', () => {
-  const r = P('10/17 結衣ちゃん運動会');
-  assert.equal(r.who, ''); assert.equal(r.name, '結衣ちゃん運動会');
-  assert.equal(P('明日 結婚式').name, '結婚式');
-  assert.equal(P('明日 樹 篤 プール').who, '');
+test('表示名に使えない値（記号・長すぎ・既存の言葉・重複）は無視', () => {
+  setWhoNames({ husband: 'パ.パ', wife: 'ママ', child1: 'あ'.repeat(13), child2: '同じ', child3: '同じ' });
+  try {
+    assert.equal(P('明日 同じ 会議').who, 'child2');
+    assert.equal(P('明日 ママ 会議').who, 'wife');
+  } finally { setWhoNames({}); }
 });

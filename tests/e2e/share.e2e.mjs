@@ -70,13 +70,13 @@ for (const [label, opts, kind] of [['iPhone SE', devices['iPhone SE'], 'phone'],
     ok(sh && sh.type === 'image/png' && sh.size > 5000 && sh.name.includes('husband') && sh.name.includes('weekend'), `${label}：「画像を送る」で共有シートに画像（${sh?.name}）`);
     await p.click('#shareTextBtn'); await p.waitForTimeout(200);
     const st = await p.evaluate(() => window.__shared);
-    ok(st.text?.includes('義の予定・週末だけ') && st.text.includes('テスト野球'), `${label}：「文章で送る」で共有シートに文章`);
+    ok(st.text?.includes('夫の予定・週末だけ') && st.text.includes('テスト野球'), `${label}：「文章で送る」で共有シートに文章`);
   } else {
     const [dl] = await Promise.all([p.waitForEvent('download'), p.click('#shareSave')]);
     ok(dl.suggestedFilename().endsWith('.png') && dl.suggestedFilename().includes('husband'), `${label}：「画像を保存」でPNGを保存（${dl.suggestedFilename()}）`);
     await p.click('#shareTextBtn'); await p.waitForTimeout(200);
     const clip = await p.evaluate(() => navigator.clipboard.readText());
-    ok(clip.startsWith(`【${Y}年${M}月の予定（義の予定・週末だけ）】`) && clip.includes('・予定なし'), `${label}：「文章で送る」で文章をコピー`);
+    ok(clip.startsWith(`【${Y}年${M}月の予定（夫の予定・週末だけ）】`) && clip.includes('・予定なし'), `${label}：「文章で送る」で文章をコピー`);
     await p.click('#shareWho button[data-v=all]'); await p.click('#shareSpan button[data-v=all]'); await p.waitForTimeout(300);
     if (SHOTS) {
       const b64 = await p.evaluate(async () => { const r = await fetch(document.getElementById('sharePreview').src); const buf = new Uint8Array(await r.arrayBuffer()); let s = ''; for (const x of buf) s += String.fromCharCode(x); return btoa(s); });

@@ -21,6 +21,8 @@ function allowed(appName,kind,col,id){
   const fam=!u.isAnonymous&&(isOwner(u)||Object.keys(d.familyMembers||{}).includes(String(u.email).toLowerCase()));
   const own=isOwner(u),self=u.isAnonymous&&u.uid===id,dev=u.isAnonymous&&!!d.kidDevices?.[u.uid];
   const R=kind==='read';
+  // fakeNoKidRules＝本番のルールがまだ古い（伝言板のルールが無い）状態
+  if(localStorage.getItem('fakeNoKidRules')&&(col.startsWith('kid')||col==='familySettings'))return false;
   switch(col){
     case 'shoppingItems':case 'shoppingFavorites':case 'familySchedules':return fam;
     case 'familyMembers':return R?fam:own;

@@ -52,15 +52,15 @@ test('今日だけ／明日だけ：前日の夜に入れた「明日だけ」�
 test('3人それぞれ・2人だけ・朝夕・平日だけの振り分け', () => {
   const at = (s) => ({ updatedAt: { seconds: s, nanoseconds: 0 } });
   const list = [
-    N('全員', at(1)), N('樹だけ', { targets: ['child1'], ...at(2) }), N('2人', { targets: ['child2', 'child3'], ...at(3) }),
+    N('全員', at(1)), N('1人目だけ', { targets: ['child1'], ...at(2) }), N('2人', { targets: ['child2', 'child3'], ...at(3) }),
     N('夕方', { period: 'evening' }), N('平日', { repeat: 'weekdays' }), N('停止中', { active: false }),
   ];
   const fri = boardFor(list, '2026-10-16', 'morning');
-  assert.deepEqual(fri.child1.map((n) => n.id), ['全員', '樹だけ', '平日']);
+  assert.deepEqual(fri.child1.map((n) => n.id), ['全員', '1人目だけ', '平日']);
   assert.deepEqual(fri.child2.map((n) => n.id), ['全員', '2人', '平日']);
   assert.deepEqual(fri.child3.map((n) => n.id), ['全員', '2人', '平日']);
   const sat = boardFor(list, '2026-10-17', 'morning');
-  assert.deepEqual(sat.child1.map((n) => n.id), ['全員', '樹だけ']);
+  assert.deepEqual(sat.child1.map((n) => n.id), ['全員', '1人目だけ']);
   assert.deepEqual(boardFor(list, '2026-10-16', 'evening').child2.map((n) => n.id), ['夕方']);
 });
 
