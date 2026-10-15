@@ -44,13 +44,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 .bar span{display:block;height:100%;background:var(--kc);border-radius:6px;transition:width .3s}
 .all{display:none;margin:0 0 6px;padding:6px;border-radius:10px;background:var(--ks);color:var(--kc);font-size:clamp(19px,2.6vw,23px);font-weight:900;text-align:center}
 .kid.alldone .all{display:block}
-.list{list-style:none;margin:0;padding:0;display:grid;gap:5px}
-.note{display:grid;gap:5px;padding:6px;border-radius:10px;background:#FBF8F0;border:2px solid var(--line)}
-.note p{margin:0;font-size:clamp(18px,2.1vw,21px);font-weight:700;line-height:1.3;overflow-wrap:anywhere}
-.note.done{background:var(--green-soft);border-color:#9CCDB3}
-.note.done p{color:#4F6B5C}
-.donebtn{min-height:48px;border:0;border-radius:10px;background:var(--kc);color:#fff;font-size:clamp(18px,2.3vw,22px);font-weight:900;touch-action:manipulation}
-.note.done .donebtn{background:#fff;color:var(--green);border:3px solid var(--green)}
+.list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.note{min-width:0}
+.donebtn{display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;padding:8px 6px;border:2px solid var(--kc);border-radius:10px;background:#fff;color:var(--kc);font-size:clamp(16px,1.9vw,20px);line-height:1.3;font-weight:800;overflow-wrap:anywhere;white-space:normal;text-align:center;touch-action:manipulation}
+.donebtn[aria-pressed=true]{background:var(--kc);color:#fff}
+.donebtn:focus-visible{outline:3px solid #8DBBA5;outline-offset:2px}
 .none{margin:3px 2px;font-size:16px;color:var(--muted)}
 /* お休み・登録・読み込み */
 .big{background:#fff;border-radius:28px;padding:28px 20px;text-align:center;max-width:720px;margin:24px auto}
@@ -164,10 +162,10 @@ function render(){
     if(!list.length)ul.append(el('li',{className:'none',textContent:'でんごんは ないよ'}));
     for(const n of list){
       const isD=isDone(store,today,c,period,n);
-      const btn=el('button',{type:'button',className:'donebtn',textContent:isD?'✓ できた':'できた！',ariaLabel:(isD?'とりけす：':'できた：')+n.text});
+      const btn=el('button',{type:'button',className:'donebtn',textContent:(isD?'✓ ':'')+n.text,ariaLabel:(isD?'完了を取り消す：':'完了にする：')+n.text});
       btn.setAttribute('aria-pressed',isD);
       btn.addEventListener('click',()=>{setDone(store,today,c,period,n,!isD);render()});
-      ul.append(el('li',{className:'note'+(isD?' done':'')},el('p',{textContent:n.text}),btn));
+      ul.append(el('li',{className:'note'},btn));
     }
     sec.append(ul);
     return sec;
