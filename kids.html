@@ -118,7 +118,7 @@ const store=(()=>{try{const k='__kids_t';localStorage.setItem(k,'1');localStorag
 const DOWS=['にち','げつ','か','すい','もく','きん','ど'];
 const FALLBACK={child1:'1ばんめ',child2:'2ばんめ',child3:'3ばんめ'};
 
-const state={uid:'',registered:null,notices:[],board:{pause:'',eveningFrom:DEFAULT_EVENING_FROM},names:{...FALLBACK},
+const state={uid:'',registered:null,serverAuthorized:false,notices:[],board:{pause:'',eveningFrom:DEFAULT_EVENING_FROM},names:{...FALLBACK},
   manual:null,manualAuto:null,today:'',lastSync:null,subs:[],pairTimer:null,token:''};
 
 function show(which){for(const id of ['loading','error','pair','board'])$(id).hidden=id!==which}
@@ -183,6 +183,7 @@ function syncState(snap){
 }
 function startBoard(){
   stopBoard();stopPair();
+  if(!state.serverAuthorized){show('loading');setConn('off','とうろくを かくにんちゅう');return}
   show('board');render();
   const onErr=e=>{console.warn('kids board',e?.code);if(e?.code==='permission-denied')return; // 解除されたときは kidDevices の監視が登録画面に切り替える
     if(!state.notices.length)fail('でんごんを よみこめませんでした。おうちの ひとに しらせてね。');else setConn('err','つながりません')};
@@ -195,7 +196,9 @@ function startBoard(){
 async function revoked(){
   stopBoard();show('loading');
   try{if(store)for(const k of Object.keys(store))if(k.startsWith('kidsDone:'))store.removeItem(k)}catch{}
+  state.notices=[];state.names={...FALLBACK};state.registered=false;state.serverAuthorized=false;
   try{await terminate(db);await clearIndexedDbPersistence(db)}catch(e){console.warn('clear',e?.code)}
+  // 永続キャッシュの消去に失敗しても、再起動後にサーバーで承認を確認するまでは伝言を開かない。
   location.reload();
 }
 
@@ -243,15 +246,32 @@ function drawQr(text){
 
 // 自分の登録（kidDevices/{uid}）を見て、登録・解除に合わせて画面を切り替える
 function watchDevice(){
-  onSnapshot(doc(db,'kidDevices',state.uid),snap=>{
-    const reg=snap.exists();
-    if(reg===state.registered)return;
-    const wasRegistered=state.registered===true;
+  onSnapshot(doc(db,'kidDevices',state.uid),{includeMetadataChanges:true},snap=>{
+    // キャッシュ内の登録状態だけでは伝言を表示しない。起動時・復帰時はサーバー確認を必須にする。
+    if(snap.metadata.fromCache){
+      state.serverAuthorized=false;
+      stopBoard();
+      show('loading');
+      setConn('off','とうろくを かくにんちゅう（インターネットが ひつようです）');
+      return;
+    }
+    const reg=snap.exists(),wasRegistered=state.registered===true;
+    state.serverAuthorized=reg;
     state.registered=reg;
-    if(reg){try{store?.removeItem('kidsPair:'+state.uid)}catch{};startBoard();return}
+    if(reg){
+      if(!wasRegistered || $('board').hidden){
+        try{store?.removeItem('kidsPair:'+state.uid)}catch{}
+        startBoard();
+      }
+      return;
+    }
     if(wasRegistered){revoked();return}
     startPair();
-  },e=>{console.warn('device',e?.code);fail(navigator.onLine?'つながりません。おうちの ひとに しらせてね。':'インターネットに つながっていません。')});
+  },e=>{
+    console.warn('device',e?.code);
+    state.serverAuthorized=false;stopBoard();
+    fail('とうろくを かくにんできません。おうちの ひとに しらせてね。');
+  });
 }
 
 onAuthStateChanged(auth,async u=>{
