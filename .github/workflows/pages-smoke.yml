@@ -2,7 +2,7 @@ name: Live site check
 on:
   push:
     branches: [main]
-    paths: ['app.html', 'app.webmanifest', 'icons/**', 'lib/**', 'tests/pages/**', '.github/workflows/pages-smoke.yml']
+    paths: ['app.html', 'app.webmanifest', 'kids.html', 'kids.webmanifest', 'icons/**', 'lib/**', 'tests/pages/**', '.github/workflows/pages-smoke.yml']
   workflow_dispatch:
 permissions:
   contents: read
