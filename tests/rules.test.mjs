@@ -240,6 +240,9 @@ test('伝言板：不正な伝言・定型文・設定は拒否', async () => {
   await assertFails(setDoc(doc(db, 'kidNotices/f'), notice({ targets: 'child1' })));
   await assertFails(setDoc(doc(db, 'kidNotices/g'), notice({ period: 'noon' })));
   await assertFails(setDoc(doc(db, 'kidNotices/h'), notice({ repeat: 'weekly' })));
+  await assertSucceeds(setDoc(doc(db, 'kidNotices/we'), notice({ repeat: 'weekends' })));           // 休日のみ
+  await assertFails(setDoc(doc(db, 'kidNotices/we2'), notice({ repeat: 'weekends', onDate: '2026-10-17' })));
+  await assertFails(setDoc(doc(db, 'kidNotices/we3'), notice({ repeat: 'holidays' })));
   await assertFails(setDoc(doc(db, 'kidNotices/i'), notice({ repeat: 'once', onDate: '' })));
   await assertFails(setDoc(doc(db, 'kidNotices/j'), notice({ repeat: 'once', onDate: '2026/10/16' })));
   await assertFails(setDoc(doc(db, 'kidNotices/k'), notice({ repeat: 'daily', onDate: '2026-10-16' })));

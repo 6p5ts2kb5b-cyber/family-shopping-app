@@ -16,7 +16,7 @@
 ## 想定構成
 - 親画面は本体 `app.html` の「伝言」タブに追加。タブレット登録・解除は「家族」タブの管理者専用画面。
 - タブレット用 `kids.html` は閲覧+端末内チェックだけ。名前付きFirebaseアプリ `initializeApp(firebaseConfig, 'kids')` で親のログイン状態と分離する。Googleログイン画面や6桁番号入力は設けない。
-- Firestore `kidNotices`：各伝言 doc は `targets` (child1〜child3 の配列), `period` ('morning'|'evening'), `repeat` ('daily'|'weekdays'|'once'), `onDate` (once のとき YYYY-MM-DD), `text` (1-120文字), `active` (bool), `updatedAt` 等を検討。
+- Firestore `kidNotices`：各伝言 doc は `targets` (child1〜child3 の配列), `period` ('morning'|'evening'), `repeat` ('daily'|'weekdays'|'weekends'|'once'；weekends＝休日のみ＝土日), `onDate` (once のとき YYYY-MM-DD), `text` (1-120文字), `active` (bool), `updatedAt` 等を検討。
 - `kidTemplates` は親のみ読み書き（配信データとの区分）。
 - 完了チェック専用のFirestoreコレクションは作らない。
 

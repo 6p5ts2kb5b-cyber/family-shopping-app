@@ -239,10 +239,11 @@ for (const [label, opts, cols] of VIEWS) {
   ok(xs.size === cols, `${label}：${cols === 3 ? '3人が横3列' : '縦に並ぶ'}（列 ${xs.size}）`);
   ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${label}：横にはみ出さない`);
   const minH = await p.$$eval('.donebtn', (x) => Math.min(...x.map((e) => e.getBoundingClientRect().height)));
-  const fs0 = await p.$eval('.note p', (e) => parseFloat(getComputedStyle(e).fontSize));
-  ok(minH >= 64 && fs0 >= 22, `${label}：大きなボタン（${Math.round(minH)}px）と文字（${fs0}px）`);
+  const fs0 = await p.$eval('.donebtn', (e) => parseFloat(getComputedStyle(e).fontSize));
+  // 伝言そのものが押せるボタン（コンパクト版）：押しやすさの目安 48px 以上、文字 17px 以上
+  ok(minH >= 48 && fs0 >= 17, `${label}：押しやすいボタン（${Math.round(minH)}px）と読みやすい文字（${fs0}px）`);
   const pb = await p.$eval('.period button', (e) => e.getBoundingClientRect().height);
-  ok(pb >= 64, `${label}：あさ／ゆうがたの切り替えが大きい（${Math.round(pb)}px）`);
+  ok(pb >= 48, `${label}：あさ／ゆうがたの切り替えが押しやすい（${Math.round(pb)}px）`);
   if (SHOTS && /iPad 縦|iPhone 13/.test(label)) await p.screenshot({ path: `${SHOTS}/kids-${label.replace(/\s/g, '')}.png`, fullPage: true });
   await ctx.close();
 }
