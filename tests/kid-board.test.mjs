@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { periodAt, isPaused, onceDate, repeatChoice, draftFromChoice, boardFor, staleOnceIds, isDone, setDone, pruneDone, completionKey } from '../lib/kid-notices.js';
+import { periodAt, isPaused, onceDate, repeatChoice, draftFromChoice, boardFor, staleOnceIds, isDone, setDone, pruneDone, completionKey, isValidNoticeDraft } from '../lib/kid-notices.js';
 import { newToken, sha256Hex, pairUrl, parsePair, checkEmojis, emojiChoices, TOKEN_RE } from '../lib/kid-pairing.js';
 
 const N = (id, o = {}) => ({ id, text: id, targets: ['child1', 'child2', 'child3'], period: 'morning', repeat: 'daily', onDate: '', active: true, updatedAt: { seconds: 100, nanoseconds: 0 }, ...o });
@@ -127,4 +127,25 @@ test('QR：確認の絵はトークンごとに決まり、両方の端末で同
   const ch = emojiChoices(a);
   assert.equal(ch.length, 4); assert.equal(ch.filter((s) => s.join('') === a.join('')).length, 1);
   assert.equal(new Set(ch.map((s) => s.join(''))).size, 4);
+});
+
+test('休日のみ（weekends）＝土・日だけ。平日だけ（weekdays）は月〜金のまま', () => {
+  const we = N('休日', { repeat: 'weekends' }), wd = N('平日', { repeat: 'weekdays' });
+  const days = { '2026-10-16': '金', '2026-10-17': '土', '2026-10-18': '日', '2026-10-19': '月' };
+  const got = Object.keys(days).map((d) => boardFor([we, wd], d, 'morning').child1.map((n) => n.id).join());
+  assert.deepEqual(got, ['平日', '休日', '休日', '平日']);
+  assert.equal(boardFor([we], '2026-02-30', 'morning').child1.length, 0);      // ありえない日付は出さない
+  assert.equal(boardFor([we], '2026-10-17', 'morning', '2026-10-17').child1.length, 0); // お休みモードが優先
+  assert.equal(boardFor([we], '2026-10-17', 'evening').child1.length, 0);      // 時間帯は別
+});
+test('休日のみ：保存できる形・親の画面の選択と戻し', () => {
+  const night = new Date(2026, 9, 15, 21, 0);
+  assert.deepEqual(draftFromChoice('weekends', night), { repeat: 'weekends', onDate: '' });
+  assert.equal(repeatChoice(N('x', { repeat: 'weekends' }), night), 'weekends');
+  assert.equal(isValidNoticeDraft({ ...N('x', { repeat: 'weekends' }) }), true);
+  assert.equal(isValidNoticeDraft({ ...N('x', { repeat: 'weekends', onDate: '2026-10-17' }) }), false);
+  assert.equal(isValidNoticeDraft({ ...N('x', { repeat: 'holidays' }) }), false);
+  // 既存の種類はそのまま
+  for (const r of ['daily', 'weekdays']) assert.equal(isValidNoticeDraft(N('x', { repeat: r })), true);
+  assert.equal(isValidNoticeDraft(N('x', { repeat: 'once', onDate: '2026-10-16' })), true);
 });
