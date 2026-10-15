@@ -15,7 +15,7 @@ await seed.evaluate(([T])=>{localStorage.setItem('ownerUid','husbandUID123');loc
 const A=await open('husbandUID123');const B=await open('wifeUID456789');
 ok(await A.isVisible('#homeScreen')&&await B.isVisible('#homeScreen'),'夫・妻とも新画面に入れる');
 ok((await A.textContent('#sync')).includes('同期済み'),'同期済み表示');
-ok((await A.textContent('#todaySchedule')).includes('野球部')&&(await A.textContent('#todaySchedule .tag'))==='義','旧me予定を「義」で今日に表示');
+ok((await A.textContent('#todaySchedule')).includes('野球部')&&(await A.textContent('#todaySchedule .tag'))==='夫','旧me予定を「夫」で今日に表示（呼び名が未設定なら既定の呼び名）');
 ok((await A.textContent('#todo')).includes('牛乳'),'既存の買い物データが表示');
 // tabs
 await A.click('.tabs button[data-tab=schedule]');ok(await A.isVisible('#scheduleScreen')&&await A.isHidden('#homeScreen')&&await A.isHidden('#add'),'予定タブへ切替（追加欄は隠れる）');
@@ -51,7 +51,7 @@ await A.click('#quickAsk button >> nth=0');ok((await A.inputValue('#quickDate'))
 // tomorrow quick save shows in B
 await A.fill('#quickText','明日 病院 9:00〜11:00 妻');await A.click('#quickSave');await A.waitForTimeout(300);
 await B.click('.tabs button[data-tab=schedule]');await B.click('.seg4 button[data-view=tomorrow]');
-ok((await B.textContent('#scheduleBody')).includes('病院')&&(await B.textContent('#scheduleBody .tag'))==='祐','夫が保存した明日の予定が妻の画面に反映');
+ok((await B.textContent('#scheduleBody')).includes('病院')&&(await B.textContent('#scheduleBody .tag'))==='妻','夫が保存した明日の予定が妻の画面に反映');
 // shopping: add, stepper, check, delete+undo, favorite
 await A.click('.tabs button[data-tab=home]');
 await A.fill('#product','豆腐');await A.press('#product','Enter');await A.waitForTimeout(300);

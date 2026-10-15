@@ -285,6 +285,43 @@ details.fold>summary::-webkit-details-marker{display:none}
 .toast{position:fixed;left:16px;right:16px;bottom:calc(150px + env(safe-area-inset-bottom));z-index:20;max-width:608px;margin:auto;background:#24302A;color:#fff;border-radius:16px;padding:6px 6px 6px 16px;display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.2);font-size:15px}
 .toast span{flex:1;padding:8px 0}
 .toast button{min-height:44px;border:0;border-radius:12px;background:#3B4A42;color:#BFE3CF;font-weight:700;padding:0 14px}
+/* 伝言タブ */
+.ntop{display:grid;gap:8px}
+.kidcard{margin-top:12px;padding:10px 14px 8px;border-top:6px solid var(--kc)}
+.kidcard[data-child=child1]{--kc:#7B57B5}.kidcard[data-child=child2]{--kc:#1F8A94}.kidcard[data-child=child3]{--kc:#C94F80}
+.kidcard h3{margin:0 0 4px;font-size:18px;color:var(--kc)}
+.nrow{display:flex;gap:10px;align-items:center;width:100%;min-height:52px;border:0;border-top:1px solid var(--line);background:none;text-align:left;padding:8px 0;font:inherit;color:inherit}
+.nrow:first-of-type{border-top:0}
+.nrow .t{flex:1;min-width:0;font-size:16px;font-weight:700;overflow-wrap:anywhere}
+.nrow .r{flex:none;font-size:12px;font-weight:700;color:var(--muted);background:var(--track);border-radius:8px;padding:3px 8px}
+.nrow.off .t{color:var(--muted);text-decoration:line-through}
+.pausebar{margin-top:12px;padding:12px 14px;border-radius:14px;background:#FFF1C9;color:#7A5300;font-weight:700}
+.addnote{width:100%;margin-top:12px}
+.tpl{display:flex;align-items:center;gap:6px;border-top:1px solid var(--line);padding:6px 0}
+.tpl:first-child{border-top:0}
+.tpl span{flex:1;min-width:0;overflow-wrap:anywhere}
+.tpl button{flex:none;min-width:40px;min-height:40px;border:0;border-radius:10px;background:var(--track);color:var(--green);font-weight:700}
+.tpl button.x{color:#B3261E}
+.tplchips{display:flex;flex-wrap:wrap;gap:6px;max-height:136px;overflow-y:auto;padding:2px}
+.tplchips:empty{display:none}
+.tplchips button{min-height:40px;border-radius:12px;border:1px solid var(--line2);background:var(--card);color:var(--green);font-weight:700;font-size:14px;padding:4px 10px;text-align:left}
+.noteSheet{max-height:92vh;overflow-y:auto;gap:12px}
+.noteSheet textarea{width:100%;min-height:84px;border:1px solid var(--line2);border-radius:14px;padding:10px 12px;font:inherit;font-size:17px;resize:vertical}
+.counter{font-size:12px;color:var(--muted);text-align:right;margin:-6px 2px 0}
+.opts.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.devrow{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line);padding:8px 0}
+.devrow:first-child{border-top:0}
+.devrow span{flex:1;min-width:0;overflow-wrap:anywhere}
+#pairChoices button{font-size:30px;letter-spacing:4px;min-height:64px}
+.names{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.names label{display:grid;gap:4px;font-size:13px;font-weight:700;color:var(--muted)}
+.names input{height:44px;border:1px solid var(--line2);border-radius:12px;padding:0 10px;font-size:16px;min-width:0}
+.alert{background:var(--warn-soft);color:var(--warn);border-radius:12px;padding:10px 12px;font-size:14px;font-weight:700}
+@media (min-width:960px){
+  #notesScreen:not([hidden]){display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:24px;align-items:start}
+  #notesScreen .col-form{position:sticky;top:16px}
+  #notesScreen .col-form>.section:first-child{margin-top:0}
+}
 </style>
 </head>
 <body>
@@ -390,17 +427,55 @@ details.fold>summary::-webkit-details-marker{display:none}
       <div>
         <p class="lbl" style="margin:0 0 4px" id="whoLabel">誰の予定</p>
         <div class="who" id="quickWho" role="group" aria-labelledby="whoLabel">
-          <button type="button" data-v="husband" aria-pressed="false">義</button>
-          <button type="button" data-v="wife" aria-pressed="false">祐</button>
-          <button type="button" data-v="child1" aria-pressed="false">樹</button>
-          <button type="button" data-v="child2" aria-pressed="false">篤</button>
-          <button type="button" data-v="child3" aria-pressed="false">結</button>
+          <button type="button" data-v="husband" aria-pressed="false">夫</button>
+          <button type="button" data-v="wife" aria-pressed="false">妻</button>
+          <button type="button" data-v="child1" aria-pressed="false">子ども1</button>
+          <button type="button" data-v="child2" aria-pressed="false">子ども2</button>
+          <button type="button" data-v="child3" aria-pressed="false">子ども3</button>
           <button type="button" data-v="family" aria-pressed="false">家族</button>
         </div>
       </div>
       <p id="quickWarn" class="hint" aria-live="polite"></p>
       <button type="button" id="quickSave" class="btn primary" disabled>予定を保存</button>
       <div class="row" id="editActions" hidden><button type="button" class="btn sub" id="quickCancel" style="flex:1">やめる</button><button type="button" class="dangerbtn" id="quickDelete" style="flex:1">この予定を削除</button></div>
+    </section>
+   </div>
+  </div>
+
+  <!-- 伝言（子ども用タブレットに出す伝言） -->
+  <div id="notesScreen" class="screen" hidden>
+   <div class="col col-view">
+    <p class="alert" id="notesRules" hidden>伝言板を使うには、Firebaseのルールの更新が必要です（setup.html の手順で1回だけ）。</p>
+    <div class="ntop">
+      <div class="seg" role="group" aria-label="日にち"><button type="button" data-nday="today" aria-selected="true">今日</button><button type="button" data-nday="tomorrow" aria-selected="false">明日</button></div>
+      <div class="seg" role="group" aria-label="時間帯"><button type="button" data-nper="morning" aria-selected="true">☀️ 朝</button><button type="button" data-nper="evening" aria-selected="false">🌙 夕方</button></div>
+    </div>
+    <p class="pausebar" id="notesPaused" hidden></p>
+    <div id="notesBoard" aria-live="polite"></div>
+    <button type="button" class="btn primary addnote" id="noteAdd">＋ 伝言を追加</button>
+    <p class="hint" style="margin-top:8px">「できた！」はタブレットの中だけに記録され、このスマホには届きません。</p>
+   </div>
+   <div class="col col-form">
+    <section class="card fam section" aria-labelledby="hTpl">
+      <h2 id="hTpl">よく使う伝言（定型文）</h2>
+      <p class="hint">伝言を追加するときにタップして使えます。定型文を変えても、登録済みの伝言は変わりません。</p>
+      <div id="tplList"></div>
+      <button type="button" class="btn sub" id="tplSeed" hidden>例を入れる（水筒・宿題など8つ）</button>
+      <form id="tplForm" class="row"><label class="sr" for="tplText">定型文を追加</label><input class="field" id="tplText" maxlength="120" autocomplete="off" placeholder="定型文を追加" required><button class="btn sub" style="min-height:48px">追加</button></form>
+    </section>
+    <section class="card fam section" aria-labelledby="hPause">
+      <h2 id="hPause">お休みモード</h2>
+      <p class="hint" id="pauseState"></p>
+      <div class="opts three" id="pauseBtns">
+        <button type="button" data-pause="today">今日だけお休み</button>
+        <button type="button" data-pause="on">解除するまでお休み</button>
+        <button type="button" data-pause="">お休みしない</button>
+      </div>
+    </section>
+    <section class="card fam section" aria-labelledby="hEve">
+      <h2 id="hEve">朝と夕方の切り替え</h2>
+      <p class="hint">タブレットは、この時刻より前は「あさ」、あとは「ゆうがた」を表示します（手でも切り替えられます）。</p>
+      <form id="eveForm" class="row"><label class="sr" for="eveFrom">夕方に切り替える時刻</label><input class="field" id="eveFrom" type="time" required><button class="btn sub" style="min-height:48px">保存</button></form>
     </section>
    </div>
   </div>
@@ -417,6 +492,25 @@ details.fold>summary::-webkit-details-marker{display:none}
       <p class="hint">ここに載っているGoogleアカウントだけが使えます。追加・削除できるのは管理者だけです。<b>夫婦2人用なので、配偶者1人だけを追加してください。</b></p>
       <div id="roster"></div>
       <form id="rosterForm" class="row"><label class="sr" for="memberEmail">配偶者のGmailアドレス</label><input class="field" id="memberEmail" type="email" inputmode="email" autocomplete="off" maxlength="120" placeholder="配偶者のGmailアドレス" required><button class="btn sub" style="min-height:48px">追加</button></form>
+    </section>
+    <section class="card fam section" id="namesPanel" aria-labelledby="hNames">
+      <h2 id="hNames">家族の呼び名</h2>
+      <p class="alert" id="namesMissing" hidden>呼び名がまだ設定されていません。予定・伝言・子ども用タブレットに表示する名前を入れてください。</p>
+      <p class="hint">名前はこの家族のFirebaseにだけ保存されます（公開されるプログラムには書きません）。</p>
+      <form id="namesForm" class="names">
+        <label>夫<input id="nm_husband" maxlength="12" autocomplete="off"></label>
+        <label>妻<input id="nm_wife" maxlength="12" autocomplete="off"></label>
+        <label>子ども1<input id="nm_child1" maxlength="12" autocomplete="off"></label>
+        <label>子ども2<input id="nm_child2" maxlength="12" autocomplete="off"></label>
+        <label>子ども3<input id="nm_child3" maxlength="12" autocomplete="off"></label>
+        <button class="btn sub" style="align-self:end;min-height:44px">保存</button>
+      </form>
+    </section>
+    <section class="card fam section" id="devicesPanel" aria-labelledby="hDev" hidden>
+      <h2 id="hDev">子ども用タブレット（管理者）</h2>
+      <p class="hint">登録のしかた：①タブレットで下のページを開き、ホーム画面に追加 ②タブレットに出たQRを、このスマホのカメラで読み取る ③同じ絵が出ていることを確かめて「登録する」</p>
+      <div class="row"><input class="field" id="kidsUrl" readonly aria-label="子ども用のページ"><button type="button" class="btn sub" id="kidsUrlCopy" style="min-height:48px">コピー</button></div>
+      <div id="devList"></div>
     </section>
     <section class="card fam section">
       <a class="plain" href="./check.html">接続チェック ›</a>
@@ -435,11 +529,52 @@ details.fold>summary::-webkit-details-marker{display:none}
   <nav class="tabs" aria-label="メイン">
     <button type="button" data-tab="home" aria-current="page"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>今日</button>
     <button type="button" data-tab="schedule"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>予定</button>
+    <button type="button" data-tab="notes"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg>伝言</button>
     <button type="button" data-tab="family"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>家族</button>
   </nav>
 </div>
 
 <div class="backdrop" id="sheetBg" hidden></div>
+<div class="backdrop" id="noteBg" hidden></div>
+<section class="sheet noteSheet" id="noteSheet" role="dialog" aria-modal="true" aria-labelledby="noteTitle" hidden>
+  <div class="grab" aria-hidden="true"></div>
+  <div class="row" style="justify-content:space-between"><h2 id="noteTitle">伝言を追加</h2><button type="button" class="link" id="noteClose">閉じる</button></div>
+  <div class="tplchips" id="noteTpls" aria-label="よく使う伝言"></div>
+  <label class="sr" for="noteText">伝言</label>
+  <textarea id="noteText" maxlength="120" placeholder="例：水筒を持ってね"></textarea>
+  <p class="counter num" id="noteCount">0 / 120</p>
+  <div><p class="lbl" style="margin:0 0 4px" id="noteWhoL">だれに（複数えらべます）</p>
+    <div class="opts four" id="noteWho" role="group" aria-labelledby="noteWhoL">
+      <button type="button" data-v="child1">子ども1</button><button type="button" data-v="child2">子ども2</button><button type="button" data-v="child3">子ども3</button><button type="button" data-v="all">3人とも</button>
+    </div></div>
+  <div><p class="lbl" style="margin:0 0 4px" id="notePerL">時間帯</p>
+    <div class="opts two" id="notePer" role="group" aria-labelledby="notePerL"><button type="button" data-v="morning">☀️ 朝</button><button type="button" data-v="evening">🌙 夕方</button></div></div>
+  <div><p class="lbl" style="margin:0 0 4px" id="noteRepL">くりかえし</p>
+    <div class="opts four" id="noteRep" role="group" aria-labelledby="noteRepL"><button type="button" data-v="daily">毎日</button><button type="button" data-v="weekdays">平日だけ</button><button type="button" data-v="today">今日だけ</button><button type="button" data-v="tomorrow">明日だけ</button><button type="button" data-v="date" hidden></button></div></div>
+  <label class="row" style="gap:8px;font-size:15px"><input type="checkbox" id="noteActive" style="width:22px;height:22px"> タブレットに表示する</label>
+  <label class="row" style="gap:8px;font-size:15px" id="noteSaveTplL"><input type="checkbox" id="noteSaveTpl" style="width:22px;height:22px"> よく使う伝言（定型文）にも保存</label>
+  <p class="hint" id="noteWarn" aria-live="polite"></p>
+  <button type="button" class="btn primary" id="noteSave">保存</button>
+  <button type="button" class="dangerbtn" id="noteDelete" hidden>この伝言を削除</button>
+</section>
+<div class="backdrop" id="pairBg" hidden></div>
+<section class="sheet noteSheet" id="pairSheet" role="dialog" aria-modal="true" aria-labelledby="pairTitle" hidden>
+  <div class="grab" aria-hidden="true"></div>
+  <div class="row" style="justify-content:space-between"><h2 id="pairTitle">子ども用タブレットを登録</h2><button type="button" class="link" id="pairClose">やめる</button></div>
+  <p id="pairMsg" class="hint" aria-live="polite"></p>
+  <div id="pairBody" hidden>
+    <p class="alert" style="margin:0 0 8px">タブレットが目の前にあるときだけ登録してください。チャットやメールで届いたQR・リンクでは登録しないでください。</p>
+    <p style="margin:0 0 6px;font-weight:700">タブレットの画面に出ている絵を選んでください</p>
+    <div class="opts two" id="pairChoices" role="group" aria-label="確認の絵"></div>
+    <button type="button" class="link" id="pairNone">どれも違う</button>
+    <div id="pairConfirm" hidden>
+    <label class="lbl" for="pairLabel">タブレットの名前</label>
+    <input class="field" id="pairLabel" maxlength="20" autocomplete="off" value="家のタブレット">
+    <p class="hint" style="margin:8px 0">絵が違うときは登録しないでください。登録すると、このタブレットで伝言だけを見られるようになります（買い物・予定は見られません）。</p>
+    <button type="button" class="btn primary" id="pairOk" style="width:100%">このタブレットを登録する</button>
+    </div>
+  </div>
+</section>
 <section class="sheet" id="editSheet" role="dialog" aria-modal="true" aria-labelledby="editTitle" hidden>
   <div class="grab" aria-hidden="true"></div>
   <div class="row" style="justify-content:space-between"><h2 id="editTitle">商品を編集</h2><button type="button" class="link" id="editClose">閉じる</button></div>
@@ -458,7 +593,7 @@ details.fold>summary::-webkit-details-marker{display:none}
   </div>
   <div class="mnav"><button type="button" id="sharePrev" aria-label="前へ">‹</button><b id="shareMonth" class="num"></b><button type="button" id="shareNext" aria-label="次へ">›</button></div>
   <div class="opts four" id="shareWho" role="group" aria-label="誰の予定">
-    <button type="button" data-v="all">すべて</button><button type="button" data-v="husband">義</button><button type="button" data-v="wife">祐</button><button type="button" data-v="child1">樹</button><button type="button" data-v="child2">篤</button><button type="button" data-v="child3">結</button><button type="button" data-v="family">家族</button>
+    <button type="button" data-v="all">すべて</button><button type="button" data-v="husband">夫</button><button type="button" data-v="wife">妻</button><button type="button" data-v="child1">子ども1</button><button type="button" data-v="child2">子ども2</button><button type="button" data-v="child3">子ども3</button><button type="button" data-v="family">家族</button>
   </div>
   <div class="opts two" id="shareSpan" role="group" aria-label="日にち">
     <button type="button" data-v="all">毎日</button><button type="button" data-v="weekend">週末だけ</button>
@@ -476,10 +611,12 @@ details.fold>summary::-webkit-details-marker{display:none}
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import {getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import {getDocs,getFirestore,initializeFirestore,persistentLocalCache,persistentMultipleTabManager,terminate,clearIndexedDbPersistence,collection,doc,onSnapshot,runTransaction,deleteDoc,setDoc,updateDoc,writeBatch,increment,query,where} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import {getDoc,serverTimestamp,getDocs,getFirestore,initializeFirestore,persistentLocalCache,persistentMultipleTabManager,terminate,clearIndexedDbPersistence,collection,doc,onSnapshot,runTransaction,deleteDoc,setDoc,updateDoc,writeBatch,increment,query,where} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import {firebaseConfig} from "./firebase-config.js?v=20261011-fix2";
-import {parseQuickSchedule} from "./lib/quick-schedule.js";
-import {MEMBERS,WHO,normWho,sortDay,toYmd,addDays,weekendOf,weekOf,findOverlaps,clampDay,homeWeekendPreview,initialView,rangeFor,monthRange,shareDays,shareDaysRange,shareWeekTitle,shareTitle,shareText,timeText} from "./lib/schedule-views.js";
+import {parseQuickSchedule,setWhoNames} from "./lib/quick-schedule.js";
+import {CHILD_IDS,boardFor,isPaused,periodAt,onceDate,repeatChoice,draftFromChoice,staleOnceIds,isValidNoticeDraft,DEFAULT_EVENING_FROM} from "./lib/kid-notices.js";
+import {parsePair,checkEmojis,emojiChoices,PAIR_TTL_MS} from "./lib/kid-pairing.js";
+import {MEMBERS,WHO,setMemberLabels,normWho,sortDay,toYmd,addDays,weekendOf,weekOf,findOverlaps,clampDay,homeWeekendPreview,initialView,rangeFor,monthRange,shareDays,shareDaysRange,shareWeekTitle,shareTitle,shareText,timeText} from "./lib/schedule-views.js";
 
 const app=initializeApp(firebaseConfig),auth=getAuth(app),provider=new GoogleAuthProvider();
 // 端末内に保存（オフラインでも見られる・操作できる。電波が戻ると自動で送る）。使えない環境では通常の方式で動く
@@ -502,6 +639,10 @@ let user=null,canWrite=false,items=[],favs=[],members=[],schedules=[],unsubs=[],
 // 端末だけの小さな設定（使えない環境でも動くように try で囲む）
 const store={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v){try{localStorage.setItem(k,v)}catch{}}};
 let tab='home',scheduleView=initialView(store.get('wm.view'));
+// QRで開いたとき（app.html#pair=…）：ログインの前に取り出し、アドレス欄・履歴から消す
+let pendingPair=parsePair(location.hash);
+try{if(pendingPair)sessionStorage.setItem('wm.pair',JSON.stringify(pendingPair));else pendingPair=JSON.parse(sessionStorage.getItem('wm.pair')||'null')}catch{}
+if(location.hash.startsWith('#pair='))history.replaceState(null,'',location.pathname+location.search);
 let weekendOffset=0,weekOffset=0,dayFocus=null,prefillDate='';
 const expanded=new Set();
 // ホームには土曜・日曜の予定を常に表示する
@@ -541,10 +682,10 @@ function trackPending(col,snap){
   updateSync();
 }
 addEventListener('online',()=>{updateSync();if(canWrite)toast('オンラインに戻りました。未送信の変更を送ります')});addEventListener('offline',updateSync);
-function safeError(e){if(e?.code==='rules-outdated')return '樹・篤・結の予定を保存するには、Firebaseのルールの更新が必要です（設定ページの手順で1回だけ）。';if(e?.code==='already-listed')return 'すでに買うものに入っています。';if(e?.code==='schedule-exists')return 'この予定はもう一方の端末で戻されています（上書きしませんでした）。';if(e?.code==='permission-denied')return 'この操作の権限がありません。（名簿の変更は管理者だけです）';if(e?.code==='auth/popup-blocked')return 'ログイン画面がブロックされました。ポップアップを許可してください。';if(e?.code==='auth/unauthorized-domain')return 'このサイトのドメインがFirebaseで承認されていません。';if(e?.code==='not-found')return 'この商品は、もう一方の端末で削除されたようです。';if(e?.code==='unavailable')return '通信できません。接続を確認してください。';return 'エラーが発生しました：'+(e?.code||'通信または設定を確認してください')}
+function safeError(e){if(e?.code==='rules-outdated')return '子どもの予定を保存するには、Firebaseのルールの更新が必要です（設定ページの手順で1回だけ）。';if(e?.code==='already-listed')return 'すでに買うものに入っています。';if(e?.code==='schedule-exists')return 'この予定はもう一方の端末で戻されています（上書きしませんでした）。';if(e?.code==='permission-denied')return 'この操作の権限がありません。（名簿の変更は管理者だけです）';if(e?.code==='auth/popup-blocked')return 'ログイン画面がブロックされました。ポップアップを許可してください。';if(e?.code==='auth/unauthorized-domain')return 'このサイトのドメインがFirebaseで承認されていません。';if(e?.code==='not-found')return 'この商品は、もう一方の端末で削除されたようです。';if(e?.code==='unavailable')return '通信できません。接続を確認してください。';return 'エラーが発生しました：'+(e?.code||'通信または設定を確認してください')}
 
 // ---------- タブ ----------
-const TITLES={home:'今日',schedule:'予定',family:'家族'};
+const TITLES={home:'今日',schedule:'予定',notes:'伝言',family:'家族'};
 function switchTab(t){
   tab=t;
   for(const k of Object.keys(TITLES))$(k+'Screen').hidden=k!==t;
@@ -552,6 +693,7 @@ function switchTab(t){
   $('add').hidden=t!=='home';
   $('screenTitle').textContent=TITLES[t];
   if(t==='schedule')drawScheduleList();
+  if(t==='notes')drawNotes();
   scrollTo({top:0});
   if(t==='home')requestAnimationFrame(updateChipHints);
 }
@@ -1106,7 +1248,257 @@ async function write(fn){
 const txOr=(txFn,offlineFn)=>()=>navigator.onLine
   ?runTransaction(db,txFn).catch(e=>{if(e?.code==='unavailable')return offlineFn();throw e})
   :offlineFn();
-function stop(){for(const k in pendingByCol)delete pendingByCol[k];unsubs.forEach(f=>f());unsubs=[];readyItems=readyFavs=canWrite=false;items=[];favs=[];members=[];schedules=[];$('content').hidden=true;$('dock').hidden=true;$('signin').hidden=false;updateSync()}
+
+// ==================== 家族の呼び名（Firebaseの家族設定から） ====================
+let names={children:null,parents:null};
+function applyNames(){
+  const all={...(names.parents||{}),...(names.children||{})};
+  setMemberLabels(all);setWhoNames(all);
+  for(const b of document.querySelectorAll('#quickWho button,#shareWho button,#noteWho button'))if(WHO[b.dataset.v])b.textContent=WHO[b.dataset.v];
+  $('namesMissing').hidden=!(namesLoaded.children&&namesLoaded.parents)||!!(names.children&&names.parents);
+  for(const k of ['husband','wife','child1','child2','child3']){const i=$('nm_'+k);if(document.activeElement!==i)i.value=all[k]||''}
+  if(canWrite){draw();drawSchedules();paintQuick();if(tab==='notes')drawNotes()}
+}
+const namesLoaded={children:false,parents:false};
+$('namesForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const v=k=>$('nm_'+k).value.normalize('NFKC').trim().slice(0,12);
+  const P={husband:v('husband'),wife:v('wife')},C={child1:v('child1'),child2:v('child2'),child3:v('child3')};
+  if(Object.values({...P,...C}).some(x=>!x)){toast('5人分の呼び名を入れてください');return}
+  const b=writeBatch(db);b.set(doc(db,'familySettings','parents'),P);b.set(doc(db,'familySettings','children'),C);
+  if(await write(()=>b.commit()))toast('呼び名を保存しました');
+});
+
+// ==================== 伝言（子ども用タブレットに出す） ====================
+let notices=[],templates=[],kidBoard={pause:'',eveningFrom:DEFAULT_EVENING_FROM},kidRulesOk=true,cleaned=false;
+const nview={day:'today',period:periodAt(new Date(),DEFAULT_EVENING_FROM)};
+const nDate=()=>onceDate(nview.day,new Date());
+const REP_LABEL={daily:'毎日',weekdays:'平日',today:'今日だけ',tomorrow:'明日だけ'};
+const repText=n=>{const c=repeatChoice(n,new Date());if(c==='date'){const [,m,d]=n.onDate.split('-').map(Number);return `${m}/${d}だけ`}return REP_LABEL[c]};
+for(const b of document.querySelectorAll('[data-nday]'))b.addEventListener('click',()=>{nview.day=b.dataset.nday;drawNotes()});
+for(const b of document.querySelectorAll('[data-nper]'))b.addEventListener('click',()=>{nview.period=b.dataset.nper;drawNotes()});
+function drawNotes(){
+  for(const b of document.querySelectorAll('[data-nday]'))b.setAttribute('aria-selected',b.dataset.nday===nview.day);
+  for(const b of document.querySelectorAll('[data-nper]'))b.setAttribute('aria-selected',b.dataset.nper===nview.period);
+  $('notesRules').hidden=kidRulesOk;
+  const date=nDate();
+  const paused=isPaused(kidBoard.pause,date);
+  $('notesPaused').hidden=!paused;
+  $('notesPaused').textContent=kidBoard.pause==='on'?'お休みモード中（解除するまで）：タブレットには伝言を出しません':'この日はお休みです：タブレットには伝言を出しません';
+  // 止めた伝言も親には見せる（薄く表示）
+  const shown=boardFor(notices.map(n=>({...n,active:true})),date,nview.period,'');
+  $('notesBoard').replaceChildren(...CHILD_IDS.map(c=>{
+    const card=el('section',{className:'card kidcard'});card.dataset.child=c;
+    card.append(el('h3',{textContent:WHO[c]}));
+    const list=shown[c].map(n=>notices.find(x=>x.id===n.id)).filter(Boolean);
+    if(!list.length)card.append(el('p',{className:'empty',style:'padding:6px 0;text-align:left',textContent:'伝言なし'}));
+    for(const n of list)card.append(el('button',{type:'button',className:'nrow'+(n.active?'':' off'),ariaLabel:WHO[c]+'への伝言「'+n.text+'」を編集',onclick:()=>openNote(n)},
+      el('span',{className:'t',textContent:n.text}),el('span',{className:'r',textContent:n.active?repText(n):'止めています'})));
+    return card;
+  }));
+  const p=kidBoard.pause;
+  $('pauseState').textContent=p==='on'?'いまは「解除するまでお休み」です。':p===today()?'今日はお休みです（明日は自動で再開）。':'お休みしていません。';
+  for(const b of document.querySelectorAll('#pauseBtns button'))b.setAttribute('aria-pressed',(b.dataset.pause==='today'?p===today():b.dataset.pause===''?!isPaused(p,today()):p==='on'));
+  if(document.activeElement!==$('eveFrom'))$('eveFrom').value=kidBoard.eveningFrom;
+  drawTemplates();
+}
+function drawTemplates(){
+  const list=[...templates].sort((a,b)=>a.order-b.order||(a.id<b.id?-1:1));
+  $('tplSeed').hidden=!!list.length||!kidRulesOk;
+  $('tplList').replaceChildren(...list.map((t,i)=>el('div',{className:'tpl'},el('span',{textContent:t.text}),
+    el('button',{type:'button',textContent:'▲',ariaLabel:'上へ',disabled:i===0,onclick:()=>moveTpl(list,i,-1)}),
+    el('button',{type:'button',textContent:'▼',ariaLabel:'下へ',disabled:i===list.length-1,onclick:()=>moveTpl(list,i,1)}),
+    el('button',{type:'button',textContent:'直す',ariaLabel:'「'+t.text+'」を直す',onclick:()=>editTpl(t)}),
+    el('button',{type:'button',className:'x',textContent:'×',ariaLabel:'「'+t.text+'」を削除',onclick:()=>delTpl(t)}))));
+  $('noteTpls').replaceChildren(...list.map(t=>el('button',{type:'button',textContent:t.text,onclick:()=>{$('noteText').value=t.text;noteInput()}})));
+}
+const newId=()=>crypto.randomUUID?.()||String(Date.now())+'-'+Math.random().toString(36).slice(2);
+async function moveTpl(list,i,dir){
+  const re=[...list];[re[i],re[i+dir]]=[re[i+dir],re[i]];
+  const b=writeBatch(db);re.forEach((t,k)=>{if(t.order!==k)b.set(doc(db,'kidTemplates',t.id),{text:t.text,order:k})});
+  await write(()=>b.commit());
+}
+async function editTpl(t){
+  const v=prompt('定型文を直す（登録済みの伝言は変わりません）',t.text);
+  if(v==null)return;const text=v.trim().slice(0,120);if(!text)return;
+  await write(()=>setDoc(doc(db,'kidTemplates',t.id),{text,order:t.order}));
+}
+async function delTpl(t){
+  if(!confirm('定型文「'+t.text+'」を削除しますか？（登録済みの伝言は消えません）'))return;
+  if(await write(()=>deleteDoc(doc(db,'kidTemplates',t.id))))toast('定型文を削除しました',async()=>{await write(()=>setDoc(doc(db,'kidTemplates',t.id),{text:t.text,order:t.order}))});
+}
+const nextOrder=()=>templates.reduce((m,t)=>Math.max(m,t.order+1),0);
+$('tplForm').addEventListener('submit',async e=>{
+  e.preventDefault();const text=$('tplText').value.trim().slice(0,120);if(!text)return;
+  if(templates.some(t=>t.text===text)){toast('同じ定型文があります');return}
+  if(await write(()=>setDoc(doc(db,'kidTemplates',newId()),{text,order:Math.min(9999,nextOrder())}))){$('tplText').value='';toast('定型文を追加しました')}
+});
+const TPL_EXAMPLES=['水筒を持ってね','ハンカチ・ティッシュを確認','宿題をしよう','音読をしよう','明日の準備をしよう','お片付けをしよう','お手伝いをお願い','テレビの時間を守ろう'];
+$('tplSeed').addEventListener('click',async()=>{
+  const b=writeBatch(db);TPL_EXAMPLES.forEach((text,i)=>b.set(doc(db,'kidTemplates',newId()),{text,order:i}));
+  if(await write(()=>b.commit()))toast('例を入れました。自由に直したり消したりできます');
+});
+for(const b of document.querySelectorAll('#pauseBtns button'))b.addEventListener('click',async()=>{
+  const v=b.dataset.pause==='today'?today():b.dataset.pause;
+  if(await write(()=>setDoc(doc(db,'kidSettings','board'),{pause:v,eveningFrom:kidBoard.eveningFrom})))toast(v==='on'?'解除するまでお休みにしました':v?'今日はお休みにしました（明日は自動で再開）':'お休みを解除しました');
+});
+$('eveForm').addEventListener('submit',async e=>{
+  e.preventDefault();const v=$('eveFrom').value;
+  if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(v))return;
+  if(await write(()=>setDoc(doc(db,'kidSettings','board'),{pause:kidBoard.pause,eveningFrom:v})))toast(`${v} から「ゆうがた」にします`);
+});
+
+// ---- 伝言の追加・編集シート ----
+let editingNote=null;
+const draft={text:'',targets:[],period:'morning',choice:'daily',active:true};
+function openNote(n){
+  editingNote=n||null;
+  if(n){Object.assign(draft,{text:n.text,targets:[...n.targets],period:n.period,choice:repeatChoice(n,new Date()),active:n.active})}
+  else Object.assign(draft,{text:'',targets:[...CHILD_IDS],period:nview.period,choice:nview.day==='tomorrow'?'tomorrow':'daily',active:true});
+  $('noteTitle').textContent=n?'伝言を直す':'伝言を追加';
+  $('noteText').value=draft.text;$('noteActive').checked=draft.active;$('noteSaveTpl').checked=false;
+  $('noteSaveTplL').hidden=!!n;$('noteDelete').hidden=!n;
+  const dateBtn=document.querySelector('#noteRep [data-v=date]');
+  dateBtn.hidden=draft.choice!=='date';if(n&&draft.choice==='date')dateBtn.textContent=repText(n);
+  paintNote();
+  $('noteBg').hidden=false;$('noteSheet').hidden=false;$('noteText').focus();
+}
+function closeNote(){editingNote=null;$('noteBg').hidden=true;$('noteSheet').hidden=true}
+$('noteAdd').addEventListener('click',()=>openNote(null));
+$('noteClose').addEventListener('click',closeNote);$('noteBg').addEventListener('click',closeNote);
+function noteInput(){draft.text=$('noteText').value;paintNote()}
+$('noteText').addEventListener('input',noteInput);
+$('noteActive').addEventListener('change',()=>{draft.active=$('noteActive').checked;paintNote()});
+for(const b of document.querySelectorAll('#noteWho button'))b.addEventListener('click',()=>{
+  const v=b.dataset.v;
+  if(v==='all')draft.targets=draft.targets.length===3?[]:[...CHILD_IDS];
+  else draft.targets=draft.targets.includes(v)?draft.targets.filter(x=>x!==v):CHILD_IDS.filter(c=>c===v||draft.targets.includes(c));
+  paintNote();
+});
+for(const b of document.querySelectorAll('#notePer button'))b.addEventListener('click',()=>{draft.period=b.dataset.v;paintNote()});
+for(const b of document.querySelectorAll('#noteRep button'))b.addEventListener('click',()=>{draft.choice=b.dataset.v;paintNote()});
+function noteRecord(){
+  const text=draft.text.trim().slice(0,120);
+  const rep=draft.choice==='date'?{repeat:'once',onDate:editingNote.onDate}:draftFromChoice(draft.choice,new Date());
+  return {text,targets:CHILD_IDS.filter(c=>draft.targets.includes(c)),period:draft.period,...rep,active:draft.active};
+}
+function paintNote(){
+  $('noteCount').textContent=`${[...draft.text].length} / 120`;
+  for(const b of document.querySelectorAll('#noteWho button'))b.setAttribute('aria-pressed',b.dataset.v==='all'?draft.targets.length===3:draft.targets.includes(b.dataset.v));
+  for(const b of document.querySelectorAll('#notePer button'))b.setAttribute('aria-pressed',b.dataset.v===draft.period);
+  for(const b of document.querySelectorAll('#noteRep button'))b.setAttribute('aria-pressed',b.dataset.v===draft.choice);
+  const r=noteRecord(),ok=isValidNoticeDraft(r);
+  $('noteSave').disabled=!ok;
+  $('noteWarn').textContent=!r.text?'伝言を入れてください。':!r.targets.length?'だれに伝えるか選んでください。':'';
+}
+$('noteSave').addEventListener('click',async()=>{
+  const r=noteRecord();if(!isValidNoticeDraft(r))return;
+  const id=editingNote?.id||newId(),wasEdit=!!editingNote,saveTpl=$('noteSaveTpl').checked;
+  $('noteSave').disabled=true;
+  if(await write(()=>setDoc(doc(db,'kidNotices',id),{...r,updatedAt:serverTimestamp()}))){
+    if(saveTpl&&!templates.some(t=>t.text===r.text))write(()=>setDoc(doc(db,'kidTemplates',newId()),{text:r.text,order:Math.min(9999,nextOrder())}));
+    closeNote();
+    // 保存した伝言が見える日・時間帯に合わせる
+    if(r.repeat==='once'&&(r.onDate===today()||r.onDate===onceDate('tomorrow',new Date())))nview.day=r.onDate===today()?'today':'tomorrow';
+    nview.period=r.period;drawNotes();
+    toast(wasEdit?'伝言を直しました':'伝言を保存しました。タブレットにすぐ出ます');
+  }else paintNote();
+});
+$('noteDelete').addEventListener('click',async()=>{
+  const n=editingNote;if(!n||!confirm('この伝言を削除しますか？'))return;
+  const {id,pending,...data}=n;
+  if(await write(()=>deleteDoc(doc(db,'kidNotices',id)))){closeNote();drawNotes();
+    toast('伝言を削除しました',async()=>{await write(()=>setDoc(doc(db,'kidNotices',id),{text:data.text,targets:data.targets,period:data.period,repeat:data.repeat,onDate:data.onDate,active:data.active,updatedAt:serverTimestamp()}))})}
+});
+
+// ==================== 子ども用タブレットの登録（管理者だけ） ====================
+let devices=[],ownerChecked=false;
+// 管理者＝名簿に載っていない側（名簿には配偶者だけを載せる仕組み）。画面の表示だけの判定で、実際の許可はルールが決める
+const amOwner=()=>!!user&&!members.includes(String(user.email||'').toLowerCase());
+$('kidsUrl').value=new URL('./kids.html',location.href).href;
+$('kidsUrlCopy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('kidsUrl').value);toast('コピーしました。タブレットのブラウザに貼り付けて開いてください')}catch{$('kidsUrl').select()}});
+function drawDevices(){
+  $('devicesPanel').hidden=!amOwner();
+  $('devList').replaceChildren(...(devices.length?devices.map(d=>{
+    const t=d.addedAt?.seconds?new Date(d.addedAt.seconds*1000):null;
+    const isNew=t&&Date.now()-t.getTime()<24*60*60*1000;
+    return el('div',{className:'devrow'},el('span',{},el('b',{textContent:d.label}),isNew?el('span',{className:'pend',textContent:'新しく登録'}):'',el('br'),el('small',{className:'muted',textContent:t?`${t.getMonth()+1}/${t.getDate()} ${t.getHours()}:${String(t.getMinutes()).padStart(2,'0')} 登録`:''})),
+      el('button',{type:'button',className:'dangerbtn',textContent:'解除',onclick:()=>removeDevice(d)}));
+  }):[el('p',{className:'hint',textContent:'登録されたタブレットはありません。'})]));
+}
+async function removeDevice(d){
+  if(!confirm(`「${d.label}」の登録を解除しますか？解除すると、そのタブレットでは伝言が見られなくなります。`))return;
+  if(await write(()=>deleteDoc(doc(db,'kidDevices',d.id))))toast('登録を解除しました');
+}
+function closePair(){$('pairBg').hidden=true;$('pairSheet').hidden=true;pendingPair=null;try{sessionStorage.removeItem('wm.pair')}catch{}}
+$('pairClose').addEventListener('click',closePair);$('pairNone').addEventListener('click',()=>{closePair();toast('登録しませんでした')});$('pairBg').addEventListener('click',closePair);
+let pairShown=false;
+async function maybeStartPair(){
+  if(!pendingPair||pairShown||!canWrite||!membersLoaded)return;
+  pairShown=true;
+  switchTab('family');
+  $('pairBg').hidden=false;$('pairSheet').hidden=false;$('pairBody').hidden=true;
+  const fail=t=>{$('pairMsg').textContent=t;$('pairMsg').className='msg err'};
+  if(!amOwner()){fail('タブレットを登録できるのは管理者だけです。管理者のスマホで読み取ってください。');return}
+  if(!navigator.onLine){fail('インターネットに接続してから、もう一度QRを読み取ってください。');return}
+  $('pairMsg').className='hint';$('pairMsg').textContent='確認しています…';
+  try{
+    const snap=await getDoc(doc(db,'kidPairRequests',pendingPair.uid));
+    const c=snap.exists()?snap.data().createdAt:null;
+    if(!c||Date.now()-c.seconds*1000>PAIR_TTL_MS){fail('このQRは使用済みか、期限が切れています。タブレットに出ている新しいQRを読み取ってください。');return}
+  }catch(e){fail(e?.code==='permission-denied'?'このQRは確認できませんでした。Firebaseのルールが新しくなっているか確認してください。':safeError(e));return}
+  // 「同じ？」にはいと答えるだけにせず、タブレットに出ている絵を4つの中から選んでもらう
+  const right=(await checkEmojis(pendingPair.uid,pendingPair.token)).join(' ');
+  $('pairChoices').replaceChildren(...emojiChoices(right.split(' ')).map(set=>{const t=set.join(' ');
+    const btn=el('button',{type:'button',textContent:t,ariaLabel:'絵：'+t});
+    btn.addEventListener('click',()=>{
+      if(t!==right){closePair();toast('タブレットの絵と違うため、登録しませんでした');return}
+      for(const x of $('pairChoices').children)x.setAttribute('aria-pressed',x===btn);
+      $('pairConfirm').hidden=false;$('pairLabel').focus();
+    });
+    return btn}));
+  $('pairConfirm').hidden=true;
+  $('pairMsg').textContent='';$('pairBody').hidden=false;
+}
+$('pairOk').addEventListener('click',async()=>{
+  const p=pendingPair;if(!p)return;
+  const label=$('pairLabel').value.normalize('NFKC').trim().slice(0,20)||'家のタブレット';
+  if(!navigator.onLine){toast('インターネットに接続してください');return}
+  $('pairOk').disabled=true;
+  try{
+    const b=writeBatch(db);
+    b.set(doc(db,'kidDevices',p.uid),{label,addedAt:serverTimestamp(),pairToken:p.token});
+    b.delete(doc(db,'kidPairRequests',p.uid));   // 申請は同時に消す＝同じQRは二度と使えない
+    await b.commit();
+    closePair();toast('登録しました。タブレットの画面が伝言に切り替わったか確認してください');
+  }catch(e){
+    $('pairMsg').className='msg err';
+    $('pairMsg').textContent=e?.code==='permission-denied'?'登録できませんでした。QRの期限切れ・使用済み、または管理者以外のアカウントです。タブレットの新しいQRを読み取ってください。':safeError(e);
+    $('pairBody').hidden=true;
+  }finally{$('pairOk').disabled=false}
+});
+let membersLoaded=false;
+// アプリを開いたままQRを読んだとき（同じタブで #pair= だけが変わる）
+addEventListener('hashchange',()=>{
+  const pp=parsePair(location.hash);if(!pp)return;
+  history.replaceState(null,'',location.pathname+location.search);
+  pendingPair=pp;pairShown=false;try{sessionStorage.setItem('wm.pair',JSON.stringify(pp))}catch{}
+  maybeStartPair();
+});
+function subscribeKids(){
+  const deny=what=>e=>{console.warn(what,e?.code);if(e?.code==='permission-denied'){kidRulesOk=false;if(tab==='notes')drawNotes()}};
+  unsubs.push(onSnapshot(collection(db,'kidNotices'),{includeMetadataChanges:true},snap=>{
+    kidRulesOk=true;notices=snap.docs.map(d=>({id:d.id,...d.data(),pending:!!d.metadata?.hasPendingWrites}));
+    // 7日より前の「今日だけ・明日だけ」は片付ける（1回のログインで1度だけ・オンライン時）
+    if(!cleaned&&navigator.onLine&&!snap.metadata?.fromCache){cleaned=true;const old=staleOnceIds(notices,today());if(old.length){const b=writeBatch(db);old.forEach(id=>b.delete(doc(db,'kidNotices',id)));b.commit().catch(e=>console.warn('cleanup',e?.code))}}
+    if(tab==='notes')drawNotes();
+  },deny('notices')));
+  unsubs.push(onSnapshot(collection(db,'kidTemplates'),snap=>{templates=snap.docs.map(d=>({id:d.id,...d.data()}));if(tab==='notes')drawNotes();else drawTemplates()},deny('templates')));
+  unsubs.push(onSnapshot(doc(db,'kidSettings','board'),snap=>{const v=snap.exists()?snap.data():{};kidBoard={pause:v.pause||'',eveningFrom:v.eveningFrom||DEFAULT_EVENING_FROM};if(tab==='notes')drawNotes()},deny('board')));
+  for(const k of ['children','parents'])unsubs.push(onSnapshot(doc(db,'familySettings',k),snap=>{names[k]=snap.exists()?snap.data():null;namesLoaded[k]=true;applyNames()},e=>{console.warn('names',e?.code);namesLoaded[k]=false;applyNames()}));
+  unsubs.push(onSnapshot(collection(db,'kidDevices'),snap=>{devices=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.addedAt?.seconds||0)-(b.addedAt?.seconds||0));drawDevices()},e=>{console.warn('devices',e?.code);devices=[];drawDevices()}));
+}
+function stop(){notices=[];templates=[];devices=[];cleaned=false;pairShown=false;membersLoaded=false;names={children:null,parents:null};namesLoaded.children=namesLoaded.parents=false;for(const k in pendingByCol)delete pendingByCol[k];unsubs.forEach(f=>f());unsubs=[];readyItems=readyFavs=canWrite=false;items=[];favs=[];members=[];schedules=[];$('content').hidden=true;$('dock').hidden=true;$('signin').hidden=false;updateSync();applyNames()}
 $('login').addEventListener('click',async()=>{try{await signInWithPopup(auth,provider)}catch(e){message(safeError(e),true)}});
 // ログアウト時は、この端末に保存した家族のデータも消す（未送信の変更があれば確認）
 $('logout').addEventListener('click',async()=>{
@@ -1114,16 +1506,17 @@ $('logout').addEventListener('click',async()=>{
   try{await signOut(auth);await terminate(db);await clearIndexedDbPersistence(db)}catch(e){console.warn(e)}
   location.reload();
 });
-function renderReady(){if(!readyItems||!readyFavs)return;const first=!canWrite;canWrite=true;$('signin').hidden=true;$('content').hidden=false;$('dock').hidden=false;if(first){switchTab(tab);subscribeSchedules()}updateSync();draw();drawSchedules()}
+function renderReady(){if(!readyItems||!readyFavs)return;const first=!canWrite;canWrite=true;$('signin').hidden=true;$('content').hidden=false;$('dock').hidden=false;if(first){switchTab(tab);subscribeSchedules()}updateSync();draw();drawSchedules();maybeStartPair()}
 onAuthStateChanged(auth,u=>{
   stop();user=u;$('account').textContent=u?'ログイン中：'+(u.email||'アカウント'):'';
   $('login').hidden=!!u;updateSync();
-  if(!u){message('ログインすると、家族の買い物リストと予定を読み込みます。');return}
+  if(!u){message(pendingPair?'管理者のアカウントでログインすると、子ども用タブレットの登録に進みます。':'ログインすると、家族の買い物リストと予定を読み込みます。');return}
   message('アクセス権限を確認中…');
   const err=e=>{stop();$('login').hidden=false;setSync('err','接続できません');if(e?.code==='permission-denied'){message('このアカウント（'+(u.email||'不明')+'）はまだ家族の名簿にありません。管理者に「家族」タブの名簿へ追加してもらってから、再読み込みしてください。',true);return}message(safeError(e),true)};
   unsubs.push(onSnapshot(collection(db,'shoppingItems'),{includeMetadataChanges:true},snap=>{items=snap.docs.map(d=>({id:d.id,...d.data(),pending:!!d.metadata?.hasPendingWrites}));trackPending('items',snap);readyItems=true;renderReady()},err));
   unsubs.push(onSnapshot(collection(db,'shoppingFavorites'),{includeMetadataChanges:true},snap=>{favs=snap.docs.map(d=>({id:d.id,...d.data()}));trackPending('favs',snap);readyFavs=true;renderReady()},err));
-  unsubs.push(onSnapshot(collection(db,'familyMembers'),snap=>{members=snap.docs.map(d=>d.id);if(canWrite)draw()},e=>{console.warn('roster',e?.code);$('rosterPanel').hidden=true}));
+  unsubs.push(onSnapshot(collection(db,'familyMembers'),snap=>{members=snap.docs.map(d=>d.id);membersLoaded=true;if(canWrite)draw();drawDevices();maybeStartPair()},e=>{console.warn('roster',e?.code);$('rosterPanel').hidden=true;membersLoaded=true;drawDevices();maybeStartPair()}));
+  subscribeKids();
   unsubs.push(()=>{schedUnsubs.forEach(f=>f());schedUnsubs=[];schedSets={}});
 });
 $('todayLabel').textContent=fmtDay(today()).replace('（','　').replace('）','曜日');
