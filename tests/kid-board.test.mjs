@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { periodAt, isPaused, onceDate, repeatChoice, draftFromChoice, boardFor, staleOnceIds, isDone, setDone, pruneDone, completionKey } from '../lib/kid-notices.js';
-import { newToken, sha256Hex, pairUrl, parsePair, checkEmojis, TOKEN_RE } from '../lib/kid-pairing.js';
+import { newToken, sha256Hex, pairUrl, parsePair, checkEmojis, emojiChoices, TOKEN_RE } from '../lib/kid-pairing.js';
 
 const N = (id, o = {}) => ({ id, text: id, targets: ['child1', 'child2', 'child3'], period: 'morning', repeat: 'daily', onDate: '', active: true, updatedAt: { seconds: 100, nanoseconds: 0 }, ...o });
 const THU = new Date(2026, 9, 15, 7, 30); // 2026-10-15（木）
@@ -120,7 +120,11 @@ test('QR：URL は # の後ろに uid とトークン。形が違うものは受
 
 test('QR：確認の絵はトークンごとに決まり、両方の端末で同じ', async () => {
   const t = 'AbCdEfGhIjKlMnOpQrStUv12';
-  const a = await checkEmojis(t), b = await checkEmojis(t);
+  const a = await checkEmojis('uid123', t), b = await checkEmojis('uid123', t);
   assert.equal(a.length, 3); assert.deepEqual(a, b);
-  assert.notDeepEqual(await checkEmojis(t), await checkEmojis('ZZZZZZZZZZZZZZZZZZZZZZ'));
+  assert.notDeepEqual(a, await checkEmojis('uid123', 'ZZZZZZZZZZZZZZZZZZZZZZ'));
+  assert.notDeepEqual(a, await checkEmojis('uid999', t)); // 別の端末なら違う絵
+  const ch = emojiChoices(a);
+  assert.equal(ch.length, 4); assert.equal(ch.filter((s) => s.join('') === a.join('')).length, 1);
+  assert.equal(new Set(ch.map((s) => s.join(''))).size, 4);
 });

@@ -312,7 +312,7 @@ details.fold>summary::-webkit-details-marker{display:none}
 .devrow{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line);padding:8px 0}
 .devrow:first-child{border-top:0}
 .devrow span{flex:1;min-width:0;overflow-wrap:anywhere}
-.pairEmojis{font-size:40px;letter-spacing:8px;text-align:center;margin:4px 0}
+#pairChoices button{font-size:30px;letter-spacing:4px;min-height:64px}
 .names{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .names label{display:grid;gap:4px;font-size:13px;font-weight:700;color:var(--muted)}
 .names input{height:44px;border:1px solid var(--line2);border-radius:12px;padding:0 10px;font-size:16px;min-width:0}
@@ -563,12 +563,16 @@ details.fold>summary::-webkit-details-marker{display:none}
   <div class="row" style="justify-content:space-between"><h2 id="pairTitle">子ども用タブレットを登録</h2><button type="button" class="link" id="pairClose">やめる</button></div>
   <p id="pairMsg" class="hint" aria-live="polite"></p>
   <div id="pairBody" hidden>
-    <p style="margin:0 0 4px;font-weight:700">タブレットの画面に、同じ絵が出ていますか？</p>
-    <p class="pairEmojis" id="pairEmojis" aria-label="確認の絵"></p>
+    <p class="alert" style="margin:0 0 8px">タブレットが目の前にあるときだけ登録してください。チャットやメールで届いたQR・リンクでは登録しないでください。</p>
+    <p style="margin:0 0 6px;font-weight:700">タブレットの画面に出ている絵を選んでください</p>
+    <div class="opts two" id="pairChoices" role="group" aria-label="確認の絵"></div>
+    <button type="button" class="link" id="pairNone">どれも違う</button>
+    <div id="pairConfirm" hidden>
     <label class="lbl" for="pairLabel">タブレットの名前</label>
     <input class="field" id="pairLabel" maxlength="20" autocomplete="off" value="家のタブレット">
     <p class="hint" style="margin:8px 0">絵が違うときは登録しないでください。登録すると、このタブレットで伝言だけを見られるようになります（買い物・予定は見られません）。</p>
-    <button type="button" class="btn primary" id="pairOk" style="width:100%">同じ絵なので登録する</button>
+    <button type="button" class="btn primary" id="pairOk" style="width:100%">このタブレットを登録する</button>
+    </div>
   </div>
 </section>
 <section class="sheet" id="editSheet" role="dialog" aria-modal="true" aria-labelledby="editTitle" hidden>
@@ -611,7 +615,7 @@ import {getDoc,serverTimestamp,getDocs,getFirestore,initializeFirestore,persiste
 import {firebaseConfig} from "./firebase-config.js?v=20261011-fix2";
 import {parseQuickSchedule,setWhoNames} from "./lib/quick-schedule.js";
 import {CHILD_IDS,boardFor,isPaused,periodAt,onceDate,repeatChoice,draftFromChoice,staleOnceIds,isValidNoticeDraft,DEFAULT_EVENING_FROM} from "./lib/kid-notices.js";
-import {parsePair,checkEmojis,PAIR_TTL_MS} from "./lib/kid-pairing.js";
+import {parsePair,checkEmojis,emojiChoices,PAIR_TTL_MS} from "./lib/kid-pairing.js";
 import {MEMBERS,WHO,setMemberLabels,normWho,sortDay,toYmd,addDays,weekendOf,weekOf,findOverlaps,clampDay,homeWeekendPreview,initialView,rangeFor,monthRange,shareDays,shareDaysRange,shareWeekTitle,shareTitle,shareText,timeText} from "./lib/schedule-views.js";
 
 const app=initializeApp(firebaseConfig),auth=getAuth(app),provider=new GoogleAuthProvider();
@@ -1417,7 +1421,8 @@ function drawDevices(){
   $('devicesPanel').hidden=!amOwner();
   $('devList').replaceChildren(...(devices.length?devices.map(d=>{
     const t=d.addedAt?.seconds?new Date(d.addedAt.seconds*1000):null;
-    return el('div',{className:'devrow'},el('span',{},el('b',{textContent:d.label}),el('br'),el('small',{className:'muted',textContent:t?`${t.getMonth()+1}/${t.getDate()} 登録`:''})),
+    const isNew=t&&Date.now()-t.getTime()<24*60*60*1000;
+    return el('div',{className:'devrow'},el('span',{},el('b',{textContent:d.label}),isNew?el('span',{className:'pend',textContent:'新しく登録'}):'',el('br'),el('small',{className:'muted',textContent:t?`${t.getMonth()+1}/${t.getDate()} ${t.getHours()}:${String(t.getMinutes()).padStart(2,'0')} 登録`:''})),
       el('button',{type:'button',className:'dangerbtn',textContent:'解除',onclick:()=>removeDevice(d)}));
   }):[el('p',{className:'hint',textContent:'登録されたタブレットはありません。'})]));
 }
@@ -1426,7 +1431,7 @@ async function removeDevice(d){
   if(await write(()=>deleteDoc(doc(db,'kidDevices',d.id))))toast('登録を解除しました');
 }
 function closePair(){$('pairBg').hidden=true;$('pairSheet').hidden=true;pendingPair=null;try{sessionStorage.removeItem('wm.pair')}catch{}}
-$('pairClose').addEventListener('click',closePair);$('pairBg').addEventListener('click',closePair);
+$('pairClose').addEventListener('click',closePair);$('pairNone').addEventListener('click',()=>{closePair();toast('登録しませんでした')});$('pairBg').addEventListener('click',closePair);
 let pairShown=false;
 async function maybeStartPair(){
   if(!pendingPair||pairShown||!canWrite||!membersLoaded)return;
@@ -1442,7 +1447,17 @@ async function maybeStartPair(){
     const c=snap.exists()?snap.data().createdAt:null;
     if(!c||Date.now()-c.seconds*1000>PAIR_TTL_MS){fail('このQRは使用済みか、期限が切れています。タブレットに出ている新しいQRを読み取ってください。');return}
   }catch(e){fail(e?.code==='permission-denied'?'このQRは確認できませんでした。Firebaseのルールが新しくなっているか確認してください。':safeError(e));return}
-  $('pairEmojis').textContent=(await checkEmojis(pendingPair.token)).join(' ');
+  // 「同じ？」にはいと答えるだけにせず、タブレットに出ている絵を4つの中から選んでもらう
+  const right=(await checkEmojis(pendingPair.uid,pendingPair.token)).join(' ');
+  $('pairChoices').replaceChildren(...emojiChoices(right.split(' ')).map(set=>{const t=set.join(' ');
+    const btn=el('button',{type:'button',textContent:t,ariaLabel:'絵：'+t});
+    btn.addEventListener('click',()=>{
+      if(t!==right){closePair();toast('タブレットの絵と違うため、登録しませんでした');return}
+      for(const x of $('pairChoices').children)x.setAttribute('aria-pressed',x===btn);
+      $('pairConfirm').hidden=false;$('pairLabel').focus();
+    });
+    return btn}));
+  $('pairConfirm').hidden=true;
   $('pairMsg').textContent='';$('pairBody').hidden=false;
 }
 $('pairOk').addEventListener('click',async()=>{
@@ -1483,7 +1498,7 @@ function subscribeKids(){
   for(const k of ['children','parents'])unsubs.push(onSnapshot(doc(db,'familySettings',k),snap=>{names[k]=snap.exists()?snap.data():null;namesLoaded[k]=true;applyNames()},e=>{console.warn('names',e?.code);namesLoaded[k]=false;applyNames()}));
   unsubs.push(onSnapshot(collection(db,'kidDevices'),snap=>{devices=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.addedAt?.seconds||0)-(b.addedAt?.seconds||0));drawDevices()},e=>{console.warn('devices',e?.code);devices=[];drawDevices()}));
 }
-function stop(){notices=[];templates=[];devices=[];cleaned=false;membersLoaded=false;names={children:null,parents:null};namesLoaded.children=namesLoaded.parents=false;for(const k in pendingByCol)delete pendingByCol[k];unsubs.forEach(f=>f());unsubs=[];readyItems=readyFavs=canWrite=false;items=[];favs=[];members=[];schedules=[];$('content').hidden=true;$('dock').hidden=true;$('signin').hidden=false;updateSync();applyNames()}
+function stop(){notices=[];templates=[];devices=[];cleaned=false;pairShown=false;membersLoaded=false;names={children:null,parents:null};namesLoaded.children=namesLoaded.parents=false;for(const k in pendingByCol)delete pendingByCol[k];unsubs.forEach(f=>f());unsubs=[];readyItems=readyFavs=canWrite=false;items=[];favs=[];members=[];schedules=[];$('content').hidden=true;$('dock').hidden=true;$('signin').hidden=false;updateSync();applyNames()}
 $('login').addEventListener('click',async()=>{try{await signInWithPopup(auth,provider)}catch(e){message(safeError(e),true)}});
 // ログアウト時は、この端末に保存した家族のデータも消す（未送信の変更があれば確認）
 $('logout').addEventListener('click',async()=>{

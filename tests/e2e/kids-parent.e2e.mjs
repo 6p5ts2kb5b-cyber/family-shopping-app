@@ -166,8 +166,11 @@ async function login(p, uid) {
   await p.goto(qr); await p.waitForTimeout(800);
   ok(!p.url().includes('#pair'), 'QRで開いたら、トークンはアドレス欄から消す');
   ok(await p.isVisible('#pairSheet') && await p.isVisible('#pairBody'), '管理者のスマホに登録の確認画面');
-  ok((await p.textContent('#pairEmojis')).trim() === kidEmojis, `確認の絵がタブレットと同じ（${kidEmojis}）`);
-  ok(!(await DB(p)).kidDevices?.tabletParent1, 'QRを読んだだけでは登録されない（明示的な承認が必要）');
+  const choices = await p.$$eval('#pairChoices button', (x) => x.map((e) => e.textContent));
+  ok(choices.length === 4 && choices.filter((c) => c === kidEmojis).length === 1, `確認の絵：タブレットと同じ絵を4つから選ぶ（${kidEmojis}）`);
+  ok(await p.isHidden('#pairConfirm') && !(await DB(p)).kidDevices?.tabletParent1, 'QRを読んだだけでは登録されない（絵を選び、登録を押す必要がある）');
+  await p.click(`#pairChoices button:text-is("${kidEmojis}")`);
+  ok(await p.isVisible('#pairConfirm'), '正しい絵を選ぶと登録ボタンが出る');
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/parent-pair.png` });
   await p.fill('#pairLabel', 'テストのタブレット');
   await p.click('#pairOk'); await p.waitForTimeout(600);
@@ -184,8 +187,15 @@ async function login(p, uid) {
   await p.click('.tabs button[data-tab=family]');
   await p.click('#devList button:has-text("解除")'); await p.waitForTimeout(600);
   ok(!(await DB(p)).kidDevices?.tabletParent1 && await kid.isVisible('#pair'), '解除するとタブレットは登録画面に戻る');
-  // 期限切れ（11分後）
+  // 違う絵を選ぶと登録しない
+  await kid.waitForTimeout(800);
   const qr2 = await kid.getAttribute('#qr', 'data-url');
+  const kidEmojis2 = (await kid.textContent('#emojis')).trim();
+  await p.goto(qr2); await p.waitForTimeout(800);
+  const wrong = (await p.$$eval('#pairChoices button', (x) => x.map((e) => e.textContent))).find((c) => c !== kidEmojis2);
+  await p.click(`#pairChoices button:text-is("${wrong}")`); await p.waitForTimeout(300);
+  ok(await p.isHidden('#pairSheet') && !(await DB(p)).kidDevices?.tabletParent1, '違う絵を選ぶと登録しない');
+  // 期限切れ（11分後）
   await p.clock.setFixedTime(new Date(NOW.getTime() + 11 * 60 * 1000));
   await p.goto(qr2); await p.waitForTimeout(800);
   ok((await p.textContent('#pairMsg')).includes('期限') && await p.isHidden('#pairBody'), '10分を過ぎたQRは期限切れ');

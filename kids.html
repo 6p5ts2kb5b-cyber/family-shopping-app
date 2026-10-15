@@ -81,7 +81,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 <section class="big" id="pair" hidden>
   <h2>このタブレットを とうろく</h2>
   <p>おうちの ひとが スマホの カメラで よみとってね。</p>
-  <canvas id="qr" width="300" height="300" aria-label="とうろく用のQRコード"></canvas>
+  <canvas id="qr" width="300" height="300" aria-label="とうろく用のQRコード" hidden></canvas>
   <p>かくにんの え</p>
   <p class="emojis" id="emojis" aria-label="確認の絵"></p>
   <p class="small" id="pairInfo"></p>
@@ -101,7 +101,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import {getAuth,signInAnonymously,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import {initializeFirestore,getFirestore,persistentLocalCache,collection,doc,onSnapshot,setDoc,serverTimestamp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import {initializeFirestore,getFirestore,persistentLocalCache,collection,doc,onSnapshot,setDoc,serverTimestamp,terminate,clearIndexedDbPersistence} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import {firebaseConfig} from "./firebase-config.js?v=20261011-fix2";
 import {CHILD_IDS,boardFor,periodAt,isDone,setDone,pruneDone,toYmd,DEFAULT_EVENING_FROM} from "./lib/kid-notices.js";
 import {newToken,sha256Hex,pairUrl,checkEmojis,PAIR_REFRESH_MS} from "./lib/kid-pairing.js";
@@ -191,6 +191,14 @@ function startBoard(){
   state.subs.push(onSnapshot(doc(db,'familySettings','children'),snap=>{state.names={...FALLBACK,...(snap.exists()?snap.data():{})};render()},onErr));
 }
 
+// 登録を解除された：この端末に残っている伝言・名前・「できた！」の記録を消してから登録画面へ
+async function revoked(){
+  stopBoard();show('loading');
+  try{if(store)for(const k of Object.keys(store))if(k.startsWith('kidsDone:'))store.removeItem(k)}catch{}
+  try{await terminate(db);await clearIndexedDbPersistence(db)}catch(e){console.warn('clear',e?.code)}
+  location.reload();
+}
+
 // ---------- 初回登録（QR） ----------
 function stopPair(){clearTimeout(state.pairTimer);state.pairTimer=null}
 async function startPair(){
@@ -198,17 +206,29 @@ async function startPair(){
   if(!navigator.onLine){fail('インターネットに つながっていません。');return}
   show('pair');setConn('ok','とうろく まち');
   try{
-    const token=newToken();state.token=token;
-    await setDoc(doc(db,'kidPairRequests',state.uid),{tokenHash:await sha256Hex(token),createdAt:serverTimestamp()});
-    if(state.token!==token)return;
+    // 申請の作り直しはルールで4分に1回まで。再読み込みしたときは、まだ新しいQRをそのまま使う
+    const KEY='kidsPair:'+state.uid;
+    let saved=null;try{saved=JSON.parse(store?.getItem(KEY)||'null')}catch{}
+    let token,born;
+    if(saved&&Date.now()-saved.at<4*60*1000){token=saved.token;born=saved.at}
+    else{
+      token=newToken();born=Date.now();
+      await setDoc(doc(db,'kidPairRequests',state.uid),{tokenHash:await sha256Hex(token),createdAt:serverTimestamp()});
+      try{store?.setItem(KEY,JSON.stringify({token,at:born}))}catch{}
+    }
+    state.token=token;
     const url=pairUrl(new URL('./app.html',location.href).href,state.uid,token);
     drawQr(url);
-    $('emojis').textContent=(await checkEmojis(token)).join(' ');
-    const until=new Date(Date.now()+PAIR_REFRESH_MS);
+    $('emojis').textContent=(await checkEmojis(state.uid,token)).join(' ');
+    const until=new Date(born+PAIR_REFRESH_MS);
     $('pairInfo').textContent=`このQRは ${until.getHours()}:${String(until.getMinutes()).padStart(2,'0')} に あたらしく なります`;
-    state.pairTimer=setTimeout(()=>{if(state.registered===false)startPair()},PAIR_REFRESH_MS);
+    state.pairTimer=setTimeout(()=>{if(state.registered===false)startPair()},Math.max(1000,born+PAIR_REFRESH_MS-Date.now()));
   }catch(e){
     console.warn('pair',e?.code);
+    if(e?.code==='permission-denied'){ // 作り直しが早すぎた（端末の保存が消えた等）→ 少し待って自動でやり直す
+      $('pairInfo').textContent='すこし まってね（1ぷんごとに やりなおします）';
+      state.pairTimer=setTimeout(()=>{if(state.registered===false)startPair()},60*1000);return;
+    }
     fail(navigator.onLine?'とうろくの じゅんびが できませんでした。おうちの ひとに しらせてね。':'インターネットに つながっていません。');
   }
 }
@@ -218,7 +238,7 @@ function drawQr(text){
   const c=$('qr');c.width=c.height=(n+quiet*2)*cell;
   const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle='#000';
   for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(q.isDark(r,k))ctx.fillRect((k+quiet)*cell,(r+quiet)*cell,cell,cell);
-  c.dataset.url=text;
+  c.dataset.url=text;c.hidden=false;
 }
 
 // 自分の登録（kidDevices/{uid}）を見て、登録・解除に合わせて画面を切り替える
@@ -226,8 +246,11 @@ function watchDevice(){
   onSnapshot(doc(db,'kidDevices',state.uid),snap=>{
     const reg=snap.exists();
     if(reg===state.registered)return;
+    const wasRegistered=state.registered===true;
     state.registered=reg;
-    if(reg)startBoard();else startPair();
+    if(reg){try{store?.removeItem('kidsPair:'+state.uid)}catch{};startBoard();return}
+    if(wasRegistered){revoked();return}
+    startPair();
   },e=>{console.warn('device',e?.code);fail(navigator.onLine?'つながりません。おうちの ひとに しらせてね。':'インターネットに つながっていません。')});
 }
 

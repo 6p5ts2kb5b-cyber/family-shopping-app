@@ -31,7 +31,8 @@ function allowed(appName,kind,col,id){
     case 'kidSettings':return id==='board'&&(R?fam||dev:fam);
     case 'familySettings':return R?(id==='children'&&(fam||dev))||(id==='parents'&&fam):fam&&(id==='children'||id==='parents');
     case 'kidDevices':return R?fam||self:own;
-    case 'kidPairRequests':return R?(own||self)&&id!==undefined:kind==='delete'?own||self:self;
+    case 'kidPairRequests':{if(R)return (own||self)&&id!==undefined;if(kind==='delete')return own;
+      const ex=d.kidPairRequests?.[id];return self&&(!ex||Date.now()-ex.createdAt.seconds*1000>4*60*1000)}
     default:return false;
   }
 }

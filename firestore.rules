@@ -166,15 +166,17 @@ service cloud.firestore {
       allow delete: if owner();
     }
     // QR登録の申請：タブレットが自分のuidの分だけ作る（トークン本体は保存せずハッシュだけ）
+    // 作り直し（QRの更新）は4分に1回まで＝無料枠の書き込みを大量に使われないように。削除は管理者だけ
     match /kidPairRequests/{deviceUid} {
       allow create, update: if anonUser() && request.auth.uid == deviceUid
+        && (resource == null || request.time > resource.data.createdAt + duration.value(4, 'm'))
         && request.resource.data.keys().hasAll(['tokenHash', 'createdAt'])
         && request.resource.data.keys().hasOnly(['tokenHash', 'createdAt'])
         && request.resource.data.tokenHash is string
         && request.resource.data.tokenHash.matches('^[0-9a-f]{64}$')
         && request.resource.data.createdAt == request.time;
       allow get: if owner() || (anonUser() && request.auth.uid == deviceUid);
-      allow delete: if owner() || (anonUser() && request.auth.uid == deviceUid);
+      allow delete: if owner();
     }
     match /{document=**} {
       allow read, write: if false;

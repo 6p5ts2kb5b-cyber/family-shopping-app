@@ -259,7 +259,9 @@ test('伝言板：不正な伝言・定型文・設定は拒否', async () => {
 
 test('QR登録：申請は自分のuidの分だけ。他人の申請は読めない・書けない・消せない', async () => {
   await assertSucceeds(requestPair(TAB));
-  await assertSucceeds(requestPair(TAB)); // 作り直し（QRの更新）
+  await assertFails(requestPair(TAB));    // すぐの作り直しは不可（4分に1回まで）
+  await seed(`kidPairRequests/${TAB}`, { tokenHash: sha(TOKEN), createdAt: Timestamp.fromMillis(Date.now() - 5 * 60 * 1000) });
+  await assertSucceeds(requestPair(TAB)); // 5分たてば作り直せる（QRの更新）
   await assertSucceeds(getDoc(doc(tablet(TAB), `kidPairRequests/${TAB}`)));
   await assertFails(setDoc(doc(tablet(TAB2), `kidPairRequests/${TAB}`), { tokenHash: sha('x'.repeat(22)), createdAt: serverTimestamp() }));
   await assertFails(getDoc(doc(tablet(TAB2), `kidPairRequests/${TAB}`)));
@@ -273,7 +275,9 @@ test('QR登録：申請は自分のuidの分だけ。他人の申請は読めな
   await assertFails(setDoc(doc(tablet(TAB2), `kidPairRequests/${TAB2}`), { tokenHash: 'abc', createdAt: serverTimestamp() }));
   await assertFails(setDoc(doc(tablet(TAB2), `kidPairRequests/${TAB2}`), { tokenHash: sha(TOKEN), createdAt: Timestamp.now() }));
   await assertFails(setDoc(doc(tablet(TAB2), `kidPairRequests/${TAB2}`), { tokenHash: sha(TOKEN), createdAt: serverTimestamp(), token: TOKEN }));
-  await assertSucceeds(deleteDoc(doc(tablet(TAB), `kidPairRequests/${TAB}`)));
+  // 削除して作り直す抜け道も不可（削除は管理者だけ）
+  await assertFails(deleteDoc(doc(tablet(TAB), `kidPairRequests/${TAB}`)));
+  await assertSucceeds(deleteDoc(doc(owner(), `kidPairRequests/${TAB}`)));
 });
 
 test('QR登録：管理者が正しいトークンで承認すると登録され、端末が伝言を読める', async () => {

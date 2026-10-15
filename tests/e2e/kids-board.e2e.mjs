@@ -69,6 +69,14 @@ const colText = (p, c) => p.textContent(`.kid[data-child=${c}]`);
   });
   ok(!denied.includes(':ok'), `未登録の匿名端末は伝言も買い物・予定も読めない（${denied}）`);
   if (SHOTS) await kid.screenshot({ path: `${SHOTS}/kids-pair.png` });
+  const reqBefore = JSON.stringify((await db(kid)).kidPairRequests);
+  await kid.reload(); await kid.waitForTimeout(600);
+  ok(await kid.getAttribute('#qr', 'data-url') === url && JSON.stringify((await db(kid)).kidPairRequests) === reqBefore, '4分以内に再読み込みしても同じQR（申請を書き直さない＝無料枠を使わない）');
+  await kid.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.startsWith('kidsPair:')) localStorage.removeItem(k); });
+  await kid.reload(); await kid.waitForTimeout(600);
+  ok(await kid.isVisible('#pair') && (await kid.textContent('#pairInfo')).includes('まってね') && await kid.isHidden('#qr'), '端末の保存が消えて4分以内に作り直そうとしても、ルールで止まり「すこし まってね」');
+  await kid.evaluate((u) => localStorage.setItem('kidsPair:tabletTest01', JSON.stringify({ token: u.split('.').pop(), at: Date.now() })), url);
+  await kid.reload(); await kid.waitForTimeout(600);
 
   // QRを作り直すと前のトークンは使えない
   // ---- 管理者の承認（親画面は別テスト。ここではルールどおりの書き込みを直接行う） ----
