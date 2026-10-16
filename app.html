@@ -552,7 +552,7 @@ details.fold>summary::-webkit-details-marker{display:none}
   <div><p class="lbl" style="margin:0 0 4px" id="notePerL">時間帯</p>
     <div class="opts two" id="notePer" role="group" aria-labelledby="notePerL"><button type="button" data-v="morning">☀️ 朝</button><button type="button" data-v="evening">🌙 夕方</button></div></div>
   <div><p class="lbl" style="margin:0 0 4px" id="noteRepL">くりかえし</p>
-    <div class="opts three" id="noteRep" role="group" aria-labelledby="noteRepL"><button type="button" data-v="daily">毎日</button><button type="button" data-v="weekdays">平日だけ</button><button type="button" data-v="weekends">休日のみ</button><button type="button" data-v="today">今日だけ</button><button type="button" data-v="tomorrow">明日だけ</button><button type="button" data-v="date" hidden></button></div></div>
+    <div class="opts three" id="noteRep" role="group" aria-labelledby="noteRepL"><button type="button" data-v="daily">毎日</button><button type="button" data-v="weekdays">平日だけ</button><button type="button" data-v="weekends">土日両方</button><button type="button" data-v="saturdays">土曜だけ</button><button type="button" data-v="sundays">日曜だけ</button><button type="button" data-v="today">今日だけ</button><button type="button" data-v="tomorrow">明日だけ</button><button type="button" data-v="date" hidden></button></div></div>
   <label class="row" style="gap:8px;font-size:15px"><input type="checkbox" id="noteActive" style="width:22px;height:22px"> タブレットに表示する</label>
   <label class="row" style="gap:8px;font-size:15px" id="noteSaveTplL"><input type="checkbox" id="noteSaveTpl" style="width:22px;height:22px"> よく使う伝言（定型文）にも保存</label>
   <p class="hint" id="noteWarn" aria-live="polite"></p>
@@ -1314,7 +1314,7 @@ $('namesForm').addEventListener('submit',async e=>{
 let notices=[],templates=[],kidBoard={pause:'',eveningFrom:DEFAULT_EVENING_FROM},kidRulesOk=true,cleaned=false;
 const nview={day:'today',period:periodAt(new Date(),DEFAULT_EVENING_FROM)};
 const nDate=()=>onceDate(nview.day,new Date());
-const REP_LABEL={daily:'毎日',weekdays:'平日',weekends:'休日のみ',today:'今日だけ',tomorrow:'明日だけ'};
+const REP_LABEL={daily:'毎日',weekdays:'平日',weekends:'土日両方',saturdays:'土曜だけ',sundays:'日曜だけ',today:'今日だけ',tomorrow:'明日だけ'};
 const repText=n=>{const c=repeatChoice(n,new Date());if(c==='date'){const [,m,d]=n.onDate.split('-').map(Number);return `${m}/${d}だけ`}return REP_LABEL[c]};
 for(const b of document.querySelectorAll('[data-nday]'))b.addEventListener('click',()=>{nview.day=b.dataset.nday;drawNotes()});
 for(const b of document.querySelectorAll('[data-nper]'))b.addEventListener('click',()=>{nview.period=b.dataset.nper;drawNotes()});
