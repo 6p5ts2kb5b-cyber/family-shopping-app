@@ -165,7 +165,7 @@ service cloud.firestore {
         && validKidText(request.resource.data.text, 120)
         && validKidTargets(request.resource.data.targets)
         && request.resource.data.period in ['morning', 'evening']
-        && request.resource.data.repeat in ['daily', 'weekdays', 'weekends', 'once']
+        && request.resource.data.repeat in ['daily', 'weekdays', 'weekends', 'saturdays', 'sundays', 'once']
         && ((request.resource.data.repeat == 'once' && validYmd(request.resource.data.onDate))
           || (request.resource.data.repeat != 'once' && request.resource.data.onDate == ''))
         && request.resource.data.active is bool
