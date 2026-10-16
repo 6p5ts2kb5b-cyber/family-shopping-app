@@ -35,3 +35,17 @@ test('本文・子どもID・日時などの入力検証',()=>{
  assert.equal(isValidNoticeDraft({...n,repeat:'once',onDate:'2026-02-30'}),false);
  assert.equal(isValidNoticeDraft({...n,repeat:'once',onDate:'2026-10-16'}),true);
 });
+
+test('土曜だけ・日曜だけを別々に表示し、土日両方も維持',()=>{
+ const base={id:'w',text:'やること',targets:['child1'],period:'morning',onDate:'',active:true};
+ const applies=(repeat,date)=>noticeApplies({...base,repeat},date,'morning','child1');
+ assert.equal(applies('saturdays','2026-10-17'),true);
+ assert.equal(applies('saturdays','2026-10-18'),false);
+ assert.equal(applies('sundays','2026-10-17'),false);
+ assert.equal(applies('sundays','2026-10-18'),true);
+ assert.equal(applies('weekends','2026-10-17'),true);
+ assert.equal(applies('weekends','2026-10-18'),true);
+ assert.equal(applies('saturdays','2026-10-19'),false);
+ assert.equal(isValidNoticeDraft({...base,repeat:'saturdays'}),true);
+ assert.equal(isValidNoticeDraft({...base,repeat:'sundays'}),true);
+});
