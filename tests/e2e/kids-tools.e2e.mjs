@@ -63,12 +63,33 @@ await k.reload(); await until(k, '#board .kid'); await k.click('.tabs button[dat
 ok((await k.textContent('#clockTime')) === '5:00' && (await k.textContent('#tPause')) === 'さいかい', '再読み込みしても止めた時間のまま');
 await k.click('#tPause'); await k.clock.setFixedTime(at(13 * MIN + 1000)); await k.waitForTimeout(600);
 const msg = await k.textContent('#clockMsg');
-ok(msg.includes(`${order[0]} は おわり`) && msg.includes(`つぎは ${order[1]}`), `時間になると「おわり！つぎは ${order[1]}」`);
-ok((await k.$$eval('#orderRow .who', (x) => x.map((e) => e.textContent)))[0].startsWith('✓') && (await k.textContent('#tStart')).includes(order[1]), '終わった人に✓、次の人のスタートに切り替わる');
+ok(msg.includes(`${order[0]} は おわり`) && (await k.textContent('#clockWho')) === `つぎは ${order[1]}：テレビを えらぶ じかん`, `時間になると「おわり！」、つぎは ${order[1]} の準備時間`);
+ok((await k.textContent('#clockTime')) === '1:59' && await k.isVisible('#tSkip') && await k.isHidden('#tStart'), '準備時間は2分（のこり 1:59）・「すぐ はじめる」');
+ok((await k.$$eval('#orderRow .who', (x) => x.map((e) => e.textContent)))[0].startsWith('✓'), '終わった人に✓');
+await k.clock.setFixedTime(at(15 * MIN + 1000)); await k.waitForTimeout(600);
+ok((await k.textContent('#clockWho')) === `${order[1]} の ばん` && (await k.textContent('#clockTime')) === '9:59' && await k.isHidden('#tSkip'), '2分たつと次の人のタイマーが自動で始まる');
 
-// 次の人：途中でやめる（終わった扱いにしない）
-await k.click('#tStart'); await k.waitForTimeout(200); await k.click('#tStop'); await k.waitForTimeout(200);
+// 途中でやめる（終わった扱いにしない）
+await k.click('#tStop'); await k.waitForTimeout(200);
 ok((await k.textContent('#tStart')).includes(order[1]) && !(await k.$$eval('#orderRow .who', (x) => x[1].textContent)).startsWith('✓'), '「やめる」は終わった扱いにしない');
+
+// 「すぐ はじめる」で準備時間をとばす
+await k.click('#tStart'); await k.clock.setFixedTime(at(25 * MIN + 2000)); await k.waitForTimeout(600);
+ok((await k.textContent('#clockWho')).startsWith(`つぎは ${order[2]}`), `${order[1]} が終わると ${order[2]} の準備時間`);
+await k.click('#tSkip'); await k.waitForTimeout(300);
+ok((await k.textContent('#clockWho')) === `${order[2]} の ばん` && (await k.textContent('#clockTime')) === '10:00', '「すぐ はじめる」で準備をとばしてすぐ始まる');
+await k.click('#tStop'); await k.waitForTimeout(200);
+
+// カウントアップ／ダウンとアナログ表示
+const wedge = () => k.getAttribute('#dialWedge', 'd');
+ok((await wedge()).startsWith('M 100 10 A') && (await k.getAttribute('#dial', 'aria-label')).includes('のこり 10:00'), 'アナログ表示：はじめは全部が色で埋まる（へっていく）');
+await k.click('[data-count=up]');
+ok((await k.textContent('#clockTime')) === '0:00' && (await wedge()) === '', '「ふえていく」にすると 0:00 から');
+await k.click('#tStart'); await k.clock.setFixedTime(at(28 * MIN + 2000)); await k.waitForTimeout(600);
+ok((await k.textContent('#clockTime')) === '3:00' && (await k.textContent('#clockMsg')).includes('10ぷん まで') && /A 90 90 0 0 1 /.test(await wedge()), 'カウントアップ：3分たつと 3:00、アナログの色も3分ぶん');
+await k.click('[data-count=down]'); await k.waitForTimeout(300);
+ok((await k.textContent('#clockTime')) === '7:00' && /A 90 90 0 1 1 /.test(await wedge()), '途中で「へっていく」に戻すと のこり 7:00');
+await k.click('#tStop'); await k.waitForTimeout(200);
 
 // 翌日は順番がずれて、✓ も消える
 await k.clock.setFixedTime(new Date(2026, 9, 21, 18, 0)); await k.reload(); await until(k, '#board .kid'); await k.click('.tabs button[data-tool=timer]');
@@ -101,15 +122,21 @@ ok(await k.getAttribute('#voterRow button[data-who=mother]', 'aria-pressed') ===
 await choice('すし'); await choice('すし'); await choice('カレー'); // おかあさん・テ一・テ二
 await k.click('#voterRow button[data-who=child3]'); await choice('うどん'); await k.click('#voterRow button[data-who=child3]'); await choice('うどん'); // 入れて取り消し
 const counts = await k.$$eval('#choiceList button', (x) => x.map((e) => e.getAttribute('aria-label')));
-ok(counts.join() === 'カレー（2ひょう）,すし（2ひょう）,うどん（0ひょう）', `票数（${counts.join(' ')}）`);
+ok(counts.join() === 'カレー（2ひょう・1い）,すし（2ひょう・1い）,うどん（0ひょう）', `票数（${counts.join(' ')}）`);
 await k.click('#showResult'); await k.waitForTimeout(1200);
 const r1 = await k.textContent('#pollResult');
 ok(/きまり：(カレー|すし)！/.test(r1), `同点はルーレットで同点の中から決める（${r1}）`);
 await k.click('#voterRow button[data-who=child3]'); await choice('すし');
 await k.click('#showResult'); await k.waitForTimeout(200);
-ok((await k.textContent('#pollResult')) === 'けっか：すし！' && await k.isVisible('#choiceList .choice.win'), '票が多いものが「けっか」');
+ok((await k.textContent('#pollResult')) === 'けっか：すし！3ひょう' && await k.isVisible('#choiceList .choice.win'), '票が多いものが「けっか」（票数も大きく）');
+ok((await k.textContent('#pollTally')).includes('いれた人 5 / 5') && (await k.textContent('#pollTally')).includes('みんな いれたよ'), '何人入れたかを数字で（5 / 5）');
+const nums = await k.$$eval('#choiceList .num b', (x) => x.map((e) => e.textContent));
+const ranks = await k.$$eval('#choiceList .rank', (x) => x.map((e) => e.textContent));
+ok(nums.join() === '2,3,0' && ranks.join() === '2い,1い,−', `選択肢ごとに票数と順位（${nums.join('・')}／${ranks.join('・')}）`);
+const cells = await k.$$eval('#choiceList button:nth-child(2) .cells span[data-who]', (x) => x.length);
+ok(cells === 3, '票の数だけマスが色で埋まる（だれが入れたかも分かる）');
 await k.reload(); await until(k, '#board .kid'); await k.click('.tabs button[data-tool=vote]');
-ok(await k.isVisible('#pollLive') && (await k.$$eval('#choiceList button', (x) => x.map((e) => e.getAttribute('aria-label')))).join() === 'カレー（2ひょう）,すし（3ひょう）,うどん（0ひょう）', '再読み込みしても投票は残る');
+ok(await k.isVisible('#pollLive') && (await k.$$eval('#choiceList .num b', (x) => x.map((e) => e.textContent))).join() === '2,3,0', '再読み込みしても投票は残る');
 await k.click('#spinAll'); await k.waitForTimeout(800);
 ok(/きまり：(カレー|すし|うどん)！/.test(await k.textContent('#pollResult')), '「ルーレットで きめる」は全部の中から1つ');
 await k.click('#newPoll');
