@@ -47,7 +47,7 @@ for (const [label, opts] of [['iPhone SE', devices['iPhone SE']], ['iPhone 13', 
   // くりかえしの並びと、狭い画面で崩れないこと
   await p.click('#noteAdd');
   const reps = await p.$$eval('#noteRep button:not([hidden])', (x) => x.map((e) => e.textContent));
-  ok(reps.join() === '毎日,平日だけ,休日のみ,今日だけ,明日だけ', `${label}：くりかえしは 毎日・平日だけ・休日のみ・今日だけ・明日だけ の順（${reps.join('・')}）`);
+  ok(reps.join() === '毎日,平日だけ,土日両方,土曜だけ,日曜だけ,今日だけ,明日だけ', `${label}：くりかえしの並び（${reps.join('・')}）`);
   const fit = await p.$$eval('#noteRep button:not([hidden])', (x) => x.every((e) => { const r = e.getBoundingClientRect(); return r.height >= 44 && r.right <= innerWidth && e.scrollWidth <= e.clientWidth + 1; }));
   ok(fit && await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${label}：ボタンが押しやすく、はみ出さない`);
   if (label === 'iPhone SE') await p.screenshot({ path: process.env.SHOTS ? `${process.env.SHOTS}/weekends-sheet-se.png` : '/dev/null' }).catch(() => {});
@@ -66,7 +66,7 @@ for (const [label, opts] of [['iPhone SE', devices['iPhone SE']], ['iPhone 13', 
   await p.clock.setFixedTime(SAT); await p.reload(); await until(p, '#homeScreen');
   await p.click('.tabs button[data-tab=notes]'); await p.click('[data-nper=morning]'); await p.click('[data-nday=today]');
   ok((await board(p)).includes(`テスト新しい休日の伝言${label}`) && (await board(p)).includes('テスト休日のみ') && !(await board(p)).includes('テスト平日だけ'), `${label}：土曜の今日は「休日のみ」を出し、「平日だけ」は出さない`);
-  ok((await p.textContent(`#notesBoard .nrow:has-text("テスト新しい休日の伝言${label}") .r`)) === '休日のみ', `${label}：一覧の表示は「休日のみ」`);
+  ok((await p.textContent(`#notesBoard .nrow:has-text("テスト新しい休日の伝言${label}") .r`)) === '土日両方', `${label}：一覧の表示は「土日両方」`);
   await p.click(`#notesBoard .nrow:has-text("テスト新しい休日の伝言${label}")`);
   ok(await p.getAttribute('#noteRep button[data-v=weekends]', 'aria-pressed') === 'true' && (await p.$$eval('#noteRep button[aria-pressed=true]', (x) => x.length)) === 1, `${label}：編集を開くと「休日のみ」が選ばれた状態`);
   await p.click('#noteRep button[data-v=weekdays]'); await p.click('#noteSave'); await p.waitForTimeout(300);

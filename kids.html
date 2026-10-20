@@ -58,6 +58,49 @@ button{font:inherit;color:inherit;cursor:pointer}
 .emojis{font-size:44px;letter-spacing:10px;margin:8px 0}
 .retry{min-height:56px;padding:0 24px;border:0;border-radius:16px;background:var(--green);color:#fff;font-size:20px;font-weight:800;margin-top:10px}
 .small{font-size:15px!important}
+/* でんごん・タイマー・とうひょうの切り替え */
+.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:6px 0 8px}
+.tabs button{min-height:52px;border:3px solid transparent;border-radius:14px;background:#fff;font-size:clamp(18px,2.4vw,22px);font-weight:900;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:8px}
+.tabs button[aria-selected=true]{border-color:var(--green);background:var(--green-soft);color:var(--green)}
+.tabs svg{flex:none}
+.panel{background:#fff;border-radius:18px;padding:14px;box-shadow:0 2px 6px rgba(60,50,20,.08)}
+.tool{display:grid;gap:12px}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.chip{min-height:52px;padding:0 16px;border-radius:14px;border:3px solid var(--line);background:#fff;font-size:20px;font-weight:800;color:var(--ink)}
+.chip[aria-pressed=true]{border-color:var(--kc,var(--green));background:var(--ks,var(--green-soft));color:var(--kc,var(--green))}
+.chip[data-who=child1]{--kc:var(--c1);--ks:var(--c1s)}.chip[data-who=child2]{--kc:var(--c2);--ks:var(--c2s)}.chip[data-who=child3]{--kc:var(--c3);--ks:var(--c3s)}
+.chip[data-who=father]{--kc:#24497C;--ks:#E1EAF6}.chip[data-who=mother]{--kc:#8F3A10;--ks:#FBE7DA}
+.big-btn{min-height:64px;padding:0 24px;border:0;border-radius:18px;background:var(--green);color:#fff;font-size:24px;font-weight:900}
+.big-btn.sub{background:#fff;color:var(--green);border:3px solid var(--green)}
+.big-btn:disabled{opacity:.45}
+/* タイマー */
+.order{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:18px;font-weight:800}
+.order .who{padding:6px 12px;border-radius:12px;background:var(--ks);color:var(--kc)}
+.order .who.done{text-decoration:line-through;opacity:.6}
+.order .who[data-who=child1]{--kc:var(--c1);--ks:var(--c1s)}.order .who[data-who=child2]{--kc:var(--c2);--ks:var(--c2s)}.order .who[data-who=child3]{--kc:var(--c3);--ks:var(--c3s)}
+.clock{display:grid;justify-items:center;gap:6px;padding:18px;border-radius:24px;background:var(--ks,#F4F1E8);color:var(--kc,var(--ink))}
+.clock[data-who=child1]{--kc:var(--c1);--ks:var(--c1s)}.clock[data-who=child2]{--kc:var(--c2);--ks:var(--c2s)}.clock[data-who=child3]{--kc:var(--c3);--ks:var(--c3s)}
+.clock .who{font-size:clamp(26px,4vw,36px);font-weight:900}
+.clock .time{font-size:clamp(64px,12vw,120px);font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
+.clock .msg{font-size:22px;font-weight:800}
+.clock.end{animation:blink 1s steps(2) 3}
+@keyframes blink{50%{background:#FFE7A8}}
+@media (prefers-reduced-motion:reduce){.clock.end{animation:none}}
+.stepper{display:flex;align-items:center;gap:8px;font-size:20px;font-weight:800}
+.stepper button{width:52px;height:52px;border-radius:14px;border:3px solid var(--line);background:#fff;font-size:26px;font-weight:900;color:var(--green)}
+/* とうひょう */
+.poll-q{margin:0;font-size:clamp(24px,3.4vw,32px);font-weight:900}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.choice{min-height:84px;border:3px solid var(--line);border-radius:18px;background:#FBF8F0;padding:10px 14px;font-size:24px;font-weight:900;text-align:left;display:grid;gap:6px;color:var(--ink)}
+.choice.win{border-color:#E9A21B;background:#FFF1C9}
+.choice.spin{border-color:var(--green);background:var(--green-soft)}
+.dots{display:flex;flex-wrap:wrap;gap:4px;font-size:14px;font-weight:800}
+.dots span{padding:2px 8px;border-radius:999px;background:var(--ks);color:var(--kc)}
+.dots span[data-who=child1]{--kc:var(--c1);--ks:var(--c1s)}.dots span[data-who=child2]{--kc:var(--c2);--ks:var(--c2s)}.dots span[data-who=child3]{--kc:var(--c3);--ks:var(--c3s)}
+.dots span[data-who=father]{--kc:#24497C;--ks:#E1EAF6}.dots span[data-who=mother]{--kc:#8F3A10;--ks:#FBE7DA}
+.result{margin:0;font-size:clamp(26px,4vw,36px);font-weight:900;text-align:center;color:#7A5300}
+.field{min-height:52px;border:3px solid var(--line);border-radius:14px;padding:0 14px;font:inherit;font-size:20px;min-width:0}
+.hint{margin:0;font-size:16px;color:var(--muted)}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -88,12 +131,65 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 <!-- 伝言 -->
 <main id="board" hidden>
+  <div class="tabs" role="tablist" aria-label="きりかえ">
+    <button type="button" role="tab" data-tool="notes" aria-selected="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg>でんごん</button>
+    <button type="button" role="tab" data-tool="timer" aria-selected="false"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>タイマー</button>
+    <button type="button" role="tab" data-tool="vote" aria-selected="false"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l3 3 6-7"/><path d="M14 5h6M14 11h6M4 19h16"/></svg>とうひょう</button>
+  </div>
+  <div id="toolNotes">
   <div class="period" role="group" aria-label="あさ・ゆうがた">
     <button type="button" data-p="morning" aria-pressed="false">☀️ あさ</button>
     <button type="button" data-p="evening" aria-pressed="false">🌙 ゆうがた</button>
   </div>
   <section class="big" id="paused" hidden><h2>🌈 きょうは おやすみ</h2><p>でんごんは おやすみです。</p></section>
   <div class="cols" id="cols"></div>
+  </div>
+
+  <!-- タイマー（このタブレットの中だけ） -->
+  <section id="toolTimer" class="tool" hidden aria-label="タイマー">
+    <div class="panel row" style="justify-content:space-between">
+      <label class="row" style="font-size:20px;font-weight:800;gap:10px"><input type="checkbox" id="orderMode" style="width:28px;height:28px"> じゅんばんモード</label>
+      <div class="stepper" aria-label="1人の じかん"><span>1人</span><button type="button" id="minDown" aria-label="1ぷん へらす">−</button><b id="minLabel">10ぷん</b><button type="button" id="minUp" aria-label="1ぷん ふやす">＋</button></div>
+    </div>
+    <div class="panel order" id="orderRow" aria-live="polite"></div>
+    <div class="row" id="pickKid"></div>
+    <div class="clock" id="clock" aria-live="polite"><span class="who" id="clockWho">だれの ばん？</span><span class="time" id="clockTime">10:00</span><span class="msg" id="clockMsg"></span></div>
+    <div class="row" style="justify-content:center">
+      <button type="button" class="big-btn" id="tStart">スタート</button>
+      <button type="button" class="big-btn sub" id="tPause" hidden>いちじていし</button>
+      <button type="button" class="big-btn sub" id="tStop" hidden>やめる</button>
+    </div>
+    <p class="hint">タイマーは この タブレットの なかだけで うごきます。がめんを けすと おとが ならない ことが あります。</p>
+  </section>
+
+  <!-- とうひょう（このタブレットの中だけ） -->
+  <section id="toolVote" class="tool" hidden aria-label="とうひょう">
+    <form class="panel tool" id="pollForm">
+      <label for="pollQ" style="font-size:20px;font-weight:900">なにを きめる？</label>
+      <input class="field" id="pollQ" maxlength="40" placeholder="れい：きょうの ゆうはん" autocomplete="off">
+      <div class="tool" id="pollChoices"></div>
+      <div class="row">
+        <button type="button" class="big-btn sub" id="addChoice">＋ せんたくし</button>
+        <button type="submit" class="big-btn" id="startPoll">とうひょう はじめ</button>
+        <button type="button" class="big-btn sub" id="quickSpin">ルーレットだけ</button>
+      </div>
+      <p class="hint" id="pollWarn" aria-live="polite"></p>
+    </form>
+    <div id="pollLive" class="tool" hidden>
+      <div class="panel tool">
+        <p class="poll-q" id="pollTitle"></p>
+        <p class="hint">① だれが いれるか えらぶ　② すきな ものを タッチ（もういちど おすと とりけし）</p>
+        <div class="row" id="voterRow" role="group" aria-label="だれが いれる？"></div>
+      </div>
+      <div class="choices" id="choiceList"></div>
+      <p class="result" id="pollResult" aria-live="polite"></p>
+      <div class="row" style="justify-content:center">
+        <button type="button" class="big-btn" id="showResult">けっかを みる</button>
+        <button type="button" class="big-btn sub" id="spinAll">ルーレットで きめる</button>
+        <button type="button" class="big-btn sub" id="newPoll">あたらしく つくる</button>
+      </div>
+    </div>
+  </section>
 </main>
 
 <script type="module">
@@ -104,6 +200,7 @@ import {firebaseConfig} from "./firebase-config.js?v=20261011-fix2";
 import {CHILD_IDS,boardFor,periodAt,isDone,setDone,pruneDone,toYmd,DEFAULT_EVENING_FROM} from "./lib/kid-notices.js";
 import {newToken,sha256Hex,pairUrl,checkEmojis,PAIR_REFRESH_MS} from "./lib/kid-pairing.js";
 import qrcode from "./lib/vendor/qrcode.mjs";
+import {VOTERS,rotationOrder,nextInOrder,clampMinutes,startTimer,pauseTimer,resumeTimer,remainingMs,isRunning,formatClock,createPoll,castVote,tally,winners,pickRandom,MAX_CHOICES,TIMER_DEFAULT} from "./lib/kid-tools.js";
 
 // 親の app.html とログイン状態・端末保存を分けるため、名前付きのアプリで初期化する
 const app=initializeApp(firebaseConfig,'kids'),auth=getAuth(app);
@@ -171,6 +268,7 @@ function render(){
     return sec;
   });
   $('cols').replaceChildren(...cols);
+  renderTools();
 }
 
 // ---------- Firebase ----------
@@ -284,6 +382,134 @@ onAuthStateChanged(auth,async u=>{
   if(state.uid===u.uid)return;
   state.uid=u.uid;watchDevice();
 });
+
+// ==================== タイマー・とうひょう（このタブレットの中だけ。Firebaseには送らない） ====================
+const TOOLS_KEY='kidsTools';
+const PARENTS={father:'おとうさん',mother:'おかあさん'};
+const tools=(()=>{let v=null;try{v=JSON.parse(store?.getItem(TOOLS_KEY)||'null')}catch{}
+  return {minutes:clampMinutes(v?.minutes??TIMER_DEFAULT),orderMode:v?.orderMode!==false,timer:v?.timer||null,doneDate:v?.doneDate||'',doneIds:Array.isArray(v?.doneIds)?v.doneIds:[],poll:v?.poll||null,tab:'notes',pick:null,voter:null,ended:null,spinning:false,result:'',win:[],spin:null}})();
+const saveTools=()=>{try{store?.setItem(TOOLS_KEY,JSON.stringify({minutes:tools.minutes,orderMode:tools.orderMode,timer:tools.timer,doneDate:tools.doneDate,doneIds:tools.doneIds,poll:tools.poll}))}catch{}};
+const nameOf=id=>PARENTS[id]||state.names[id]||FALLBACK[id];
+const todayYmd=()=>toYmd(now());
+function freshDay(){const t=todayYmd();if(tools.doneDate!==t){tools.doneDate=t;tools.doneIds=[];tools.ended=null;saveTools()}}
+
+for(const b of document.querySelectorAll('.tabs button'))b.addEventListener('click',()=>{tools.tab=b.dataset.tool;renderTools()});
+function renderTools(){
+  for(const b of document.querySelectorAll('.tabs button'))b.setAttribute('aria-selected',b.dataset.tool===tools.tab);
+  $('toolNotes').hidden=tools.tab!=='notes';$('toolTimer').hidden=tools.tab!=='timer';$('toolVote').hidden=tools.tab!=='vote';
+  if(tools.tab==='timer')drawTimer();
+  if(tools.tab==='vote')drawVote();
+}
+
+// ---------- タイマー ----------
+let audioCtx=null,wakeLock=null;
+function unlockAudio(){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume?.()}catch{}}
+function chime(){try{if(!audioCtx)return;const t0=audioCtx.currentTime;[0,0.35,0.7].forEach((d,i)=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=[880,988,1175][i];g.gain.setValueAtTime(0.0001,t0+d);g.gain.exponentialRampToValueAtTime(0.3,t0+d+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t0+d+0.3);o.connect(g).connect(audioCtx.destination);o.start(t0+d);o.stop(t0+d+0.32)})}catch{}}
+async function keepAwake(on){try{if(on&&!wakeLock&&navigator.wakeLock)wakeLock=await navigator.wakeLock.request('screen');if(!on&&wakeLock){await wakeLock.release();wakeLock=null}}catch{}}
+const todaysOrder=()=>rotationOrder(todayYmd());
+function currentKid(){
+  if(tools.timer)return tools.timer.kid;
+  if(tools.orderMode)return nextInOrder(todaysOrder(),tools.doneIds);
+  return tools.pick;
+}
+function drawTimer(){
+  freshDay();
+  const t=Date.now(),kid=currentKid(),order=todaysOrder();
+  $('orderMode').checked=tools.orderMode;
+  $('minLabel').textContent=`${tools.minutes}ぷん`;
+  $('minDown').disabled=!!tools.timer||tools.minutes<=1;$('minUp').disabled=!!tools.timer||tools.minutes>=60;
+  $('orderRow').hidden=!tools.orderMode;
+  $('orderRow').replaceChildren(el('span',{textContent:'きょうの じゅんばん：'}),...order.flatMap((id,i)=>{const w=el('span',{className:'who'+(tools.doneIds.includes(id)?' done':''),textContent:(tools.doneIds.includes(id)?'✓ ':'')+nameOf(id)});w.dataset.who=id;return i?[el('span',{textContent:'→',ariaHidden:'true'}),w]:[w]}));
+  $('pickKid').hidden=tools.orderMode||!!tools.timer;
+  $('pickKid').replaceChildren(...CHILD_IDS.map(id=>{const b=el('button',{type:'button',className:'chip',textContent:(tools.doneIds.includes(id)?'✓ ':'')+nameOf(id)});b.dataset.who=id;b.setAttribute('aria-pressed',tools.pick===id);b.addEventListener('click',()=>{tools.pick=id;tools.ended=null;drawTimer()});return b}));
+  const c=$('clock');
+  if(kid)c.dataset.who=kid;else delete c.dataset.who;
+  const left=tools.timer?remainingMs(tools.timer,t):tools.minutes*60000;
+  $('clockWho').textContent=kid?`${nameOf(kid)} の ばん`:(tools.orderMode?'きょうは みんな おわり！':'だれの ばん？');
+  $('clockTime').textContent=formatClock(left);
+  const ended=tools.ended;
+  $('clockMsg').textContent=tools.timer?(isRunning(tools.timer)?'うごいてるよ':'とまっているよ'):ended?`${nameOf(ended)} は おわり！${kid&&tools.orderMode?`つぎは ${nameOf(kid)}`:''}`:'';
+  c.classList.toggle('end',!!ended&&!tools.timer);
+  $('tStart').hidden=!!tools.timer;$('tStart').disabled=!kid;
+  $('tStart').textContent=kid?`${nameOf(kid)} スタート`:'スタート';
+  $('tPause').hidden=!tools.timer;$('tStop').hidden=!tools.timer;
+  $('tPause').textContent=tools.timer&&!isRunning(tools.timer)?'さいかい':'いちじていし';
+}
+function tick(){
+  if(!tools.timer)return;
+  if(remainingMs(tools.timer,Date.now())===0){
+    const kid=tools.timer.kid;tools.timer=null;freshDay();
+    if(!tools.doneIds.includes(kid))tools.doneIds.push(kid);
+    tools.ended=kid;tools.pick=null;saveTools();chime();keepAwake(false);
+  }
+  if(tools.tab==='timer')drawTimer();
+}
+setInterval(tick,250);
+$('orderMode').addEventListener('change',()=>{tools.orderMode=$('orderMode').checked;tools.pick=null;saveTools();drawTimer()});
+$('minDown').addEventListener('click',()=>{tools.minutes=clampMinutes(tools.minutes-1);saveTools();drawTimer()});
+$('minUp').addEventListener('click',()=>{tools.minutes=clampMinutes(tools.minutes+1);saveTools();drawTimer()});
+$('tStart').addEventListener('click',()=>{const kid=currentKid();if(!kid)return;unlockAudio();tools.ended=null;tools.timer=startTimer(kid,tools.minutes,Date.now());saveTools();keepAwake(true);drawTimer()});
+$('tPause').addEventListener('click',()=>{const t=Date.now();tools.timer=isRunning(tools.timer)?pauseTimer(tools.timer,t):resumeTimer(tools.timer,t);saveTools();keepAwake(isRunning(tools.timer));drawTimer()});
+$('tStop').addEventListener('click',()=>{if(!confirm('タイマーを やめますか？（おわった ことには なりません）'))return;tools.timer=null;saveTools();keepAwake(false);drawTimer()});
+
+// ---------- とうひょう ----------
+function choiceInputs(n){
+  const cur=[...document.querySelectorAll('#pollChoices input')].map(i=>i.value);
+  $('pollChoices').replaceChildren(...Array.from({length:n},(_,i)=>{const id='pollC'+i;
+    return el('div',{className:'row'},el('label',{htmlFor:id,textContent:`${i+1}.`,style:'font-size:20px;font-weight:900;width:28px'}),el('input',{className:'field',id,maxLength:20,autocomplete:'off',value:cur[i]||'',placeholder:['れい：カレー','れい：ハンバーグ','れい：おすし','','',''][i],style:'flex:1'}))}));
+  $('addChoice').disabled=n>=MAX_CHOICES;
+}
+choiceInputs(3);
+$('addChoice').addEventListener('click',()=>choiceInputs(Math.min(MAX_CHOICES,document.querySelectorAll('#pollChoices input').length+1)));
+function readForm(){return createPoll($('pollQ').value||'ルーレット',[...document.querySelectorAll('#pollChoices input')].map(i=>i.value))}
+$('pollForm').addEventListener('submit',e=>{e.preventDefault();
+  if(!$('pollQ').value.trim()){$('pollWarn').textContent='「なにを きめる？」を いれてね';return}
+  const p=readForm();if(!p){$('pollWarn').textContent='せんたくしを 2つ いじょう いれてね';return}
+  tools.poll=p;tools.voter='father';tools.result='';tools.win=[];$('pollWarn').textContent='';saveTools();drawVote()});
+$('quickSpin').addEventListener('click',()=>{const p=readForm();if(!p){$('pollWarn').textContent='せんたくしを 2つ いじょう いれてね';return}
+  tools.poll=p;tools.voter=null;tools.result='';tools.win=[];$('pollWarn').textContent='';saveTools();drawVote();spin(p.choices.map((_,i)=>i))});
+function drawVote(){
+  const p=tools.poll;
+  $('pollForm').hidden=!!p;$('pollLive').hidden=!p;
+  if(!p)return;
+  $('pollTitle').textContent=p.question;
+  $('voterRow').replaceChildren(...VOTERS.map(v=>{const b=el('button',{type:'button',className:'chip',textContent:(p.votes[v]!=null?'✓ ':'')+nameOf(v)});b.dataset.who=v;b.setAttribute('aria-pressed',tools.voter===v);b.addEventListener('click',()=>{tools.voter=v;drawVote()});return b}));
+  const rows=tally(p);
+  $('choiceList').replaceChildren(...rows.map(r=>{
+    const b=el('button',{type:'button',className:'choice'+(tools.win.includes(r.index)?' win':'')+(tools.spin===r.index?' spin':''),ariaLabel:`${r.label}（${r.count}ひょう）`});
+    b.append(el('span',{textContent:r.label}),el('span',{className:'dots'},...(r.voters.length?r.voters.map(v=>{const d=el('span',{textContent:nameOf(v)});d.dataset.who=v;return d}):[el('span',{textContent:'0ひょう',style:'background:none;color:var(--muted)'})])));
+    b.addEventListener('click',()=>vote(r.index));return b}));
+  $('pollResult').textContent=tools.result;
+  for(const id of ['showResult','spinAll','newPoll'])$(id).disabled=tools.spinning;
+}
+function vote(i){
+  if(tools.spinning)return;
+  if(!tools.voter){tools.result='さきに だれが いれるか えらんでね';drawVote();return}
+  tools.poll=castVote(tools.poll,tools.voter,i);tools.result='';tools.win=[];
+  // まだ入れていない人に自動で進む
+  if(tools.poll.votes[tools.voter]!=null)tools.voter=VOTERS.find(v=>tools.poll.votes[v]==null)||null;
+  saveTools();drawVote();
+}
+$('showResult').addEventListener('click',()=>{
+  const w=winners(tools.poll);
+  if(!w.length){tools.result='まだ だれも いれてないよ';tools.win=[];drawVote();return}
+  if(w.length===1){tools.win=w;tools.result=`けっか：${tools.poll.choices[w[0]]}！`;drawVote();return}
+  tools.result='おなじ かず！ルーレットで きめるよ';drawVote();setTimeout(()=>spin(w),600);
+});
+$('spinAll').addEventListener('click',()=>spin(tools.poll.choices.map((_,i)=>i)));
+$('newPoll').addEventListener('click',()=>{if(!confirm('いまの とうひょうを けして、あたらしく つくりますか？'))return;tools.poll=null;tools.result='';tools.win=[];saveTools();drawVote()});
+function spin(cands){
+  if(tools.spinning||!cands.length)return;
+  const final=pickRandom(cands);
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const steps=reduce?0:14+cands.length;let k=0;
+  tools.spinning=true;tools.win=[];tools.result='ルーレット…';
+  const go=()=>{
+    if(k>=steps){tools.spin=null;tools.spinning=false;tools.win=[final];tools.result=`きまり：${tools.poll.choices[final]}！`;drawVote();return}
+    tools.spin=cands[(cands.indexOf(final)+1+k)%cands.length];k++;drawVote();setTimeout(go,60+k*12);
+  };
+  go();
+}
 
 // 日付・時刻が変わったら表示を更新（1分ごと）
 setInterval(()=>{if(!$('board').hidden)render();else drawDate()},60*1000);
