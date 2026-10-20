@@ -63,6 +63,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .tabs button{min-height:52px;border:3px solid transparent;border-radius:14px;background:#fff;font-size:clamp(18px,2.4vw,22px);font-weight:900;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:8px}
 .tabs button[aria-selected=true]{border-color:var(--green);background:var(--green-soft);color:var(--green)}
 .tabs svg{flex:none}
+@media (max-width:480px){.tabs svg{display:none}.tabs button{font-size:16px;padding:0 4px}}
 .panel{background:#fff;border-radius:18px;padding:14px;box-shadow:0 2px 6px rgba(60,50,20,.08)}
 .tool{display:grid;gap:12px}
 .row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
@@ -90,10 +91,32 @@ button{font:inherit;color:inherit;cursor:pointer}
 .stepper button{width:52px;height:52px;border-radius:14px;border:3px solid var(--line);background:#fff;font-size:26px;font-weight:900;color:var(--green)}
 /* とうひょう */
 .poll-q{margin:0;font-size:clamp(24px,3.4vw,32px);font-weight:900}
-.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
-.choice{min-height:84px;border:3px solid var(--line);border-radius:18px;background:#FBF8F0;padding:10px 14px;font-size:24px;font-weight:900;text-align:left;display:grid;gap:6px;color:var(--ink)}
-.choice.win{border-color:#E9A21B;background:#FFF1C9}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.choice{min-height:84px;border:3px solid var(--line);border-radius:20px;background:#FFFFFF;padding:12px 14px;font-size:24px;font-weight:900;text-align:left;display:grid;gap:10px;color:var(--ink);box-shadow:0 3px 0 #EADFC6}
+.choice .top{display:flex;align-items:center;gap:10px;min-width:0}
+.choice .label{flex:1;min-width:0;overflow-wrap:anywhere;line-height:1.25}
+.choice .num{flex:none;display:flex;align-items:baseline;gap:2px;color:var(--green)}
+.choice .num b{font-size:clamp(44px,6vw,60px);line-height:1;font-variant-numeric:tabular-nums}
+.choice .num small{font-size:18px}
+.choice.zero .num{color:#B3AA94}
+.rank{flex:none;min-width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:2px;font-size:18px;font-weight:900;background:#F1ECDF;color:#6F6656}
+.rank.r1{background:#F4B942;color:#4A3000}
+.rank.r2{background:#DCE3EA;color:#334155}
+.rank.r3{background:#EBCFB4;color:#5B3416}
+.cells{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.cells span{height:30px;border-radius:9px;border:2px dashed #E3DCCB;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;padding:0 2px}
+.cells span[data-who]{border:0;background:var(--kc);color:#fff}
+.cells span[data-who=child1]{--kc:var(--c1)}.cells span[data-who=child2]{--kc:var(--c2)}.cells span[data-who=child3]{--kc:var(--c3)}
+.cells span[data-who=father]{--kc:#2F5E9E}.cells span[data-who=mother]{--kc:#C25A22}
+.choice.lead{border-color:#F4B942}
+.choice.win{border-color:#E9A21B;background:#FFF6DA;box-shadow:0 0 0 4px #FFE7A8}
 .choice.spin{border-color:var(--green);background:var(--green-soft)}
+.tally{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:20px;font-weight:900}
+.tally .meter{display:flex;gap:4px}
+.tally .meter i{width:22px;height:22px;border-radius:50%;background:#EDE6D3}
+.tally .meter i.on{background:var(--green)}
+.result.banner{display:flex;align-items:center;justify-content:center;gap:12px;background:#FFF1C9;border-radius:20px;padding:14px;color:#5E3E00}
+.result.banner b{font-size:clamp(34px,5vw,48px)}
 .dots{display:flex;flex-wrap:wrap;gap:4px;font-size:14px;font-weight:800}
 .dots span{padding:2px 8px;border-radius:999px;background:var(--ks);color:var(--kc)}
 .dots span[data-who=child1]{--kc:var(--c1);--ks:var(--c1s)}.dots span[data-who=child2]{--kc:var(--c2);--ks:var(--c2s)}.dots span[data-who=child3]{--kc:var(--c3);--ks:var(--c3s)}
@@ -181,6 +204,7 @@ button{font:inherit;color:inherit;cursor:pointer}
         <p class="hint">① だれが いれるか えらぶ　② すきな ものを タッチ（もういちど おすと とりけし）</p>
         <div class="row" id="voterRow" role="group" aria-label="だれが いれる？"></div>
       </div>
+      <div class="tally" id="pollTally" aria-live="polite"></div>
       <div class="choices" id="choiceList"></div>
       <p class="result" id="pollResult" aria-live="polite"></p>
       <div class="row" style="justify-content:center">
@@ -475,12 +499,32 @@ function drawVote(){
   $('pollTitle').textContent=p.question;
   $('voterRow').replaceChildren(...VOTERS.map(v=>{const b=el('button',{type:'button',className:'chip',textContent:(p.votes[v]!=null?'✓ ':'')+nameOf(v)});b.dataset.who=v;b.setAttribute('aria-pressed',tools.voter===v);b.addEventListener('click',()=>{tools.voter=v;drawVote()});return b}));
   const rows=tally(p);
+  // 何人入れたか（5人中）
+  const voted=VOTERS.filter(v=>p.votes[v]!=null).length;
+  $('pollTally').replaceChildren(el('span',{textContent:`いれた人 ${voted} / ${VOTERS.length}`}),
+    el('span',{className:'meter',ariaHidden:'true'},...VOTERS.map(v=>el('i',{className:p.votes[v]!=null?'on':''}))),
+    el('span',{textContent:voted===VOTERS.length?'みんな いれたよ！':'',style:'color:var(--green)'}));
+  // 順位（票が多い順。同じ数は同じ順位。0票は順位なし）
+  const counts=[...new Set(rows.map(r=>r.count).filter(c=>c>0))].sort((a,b)=>b-a);
   $('choiceList').replaceChildren(...rows.map(r=>{
-    const b=el('button',{type:'button',className:'choice'+(tools.win.includes(r.index)?' win':'')+(tools.spin===r.index?' spin':''),ariaLabel:`${r.label}（${r.count}ひょう）`});
-    b.append(el('span',{textContent:r.label}),el('span',{className:'dots'},...(r.voters.length?r.voters.map(v=>{const d=el('span',{textContent:nameOf(v)});d.dataset.who=v;return d}):[el('span',{textContent:'0ひょう',style:'background:none;color:var(--muted)'})])));
+    const rank=r.count?counts.indexOf(r.count)+1:0;
+    const b=el('button',{type:'button',className:'choice'+(r.count?'':' zero')+(rank===1&&!tools.win.length?' lead':'')+(tools.win.includes(r.index)?' win':'')+(tools.spin===r.index?' spin':''),ariaLabel:`${r.label}（${r.count}ひょう${rank?`・${rank}い`:''}）`});
+    const badge=el('span',{className:'rank'+(rank&&rank<=3?' r'+rank:''),textContent:rank?`${rank}い`:'−'});
+    if(rank===1)badge.prepend(crown());
+    b.append(
+      el('span',{className:'top'},badge,el('span',{className:'label',textContent:r.label}),el('span',{className:'num'},el('b',{textContent:String(r.count)}),el('small',{textContent:'ひょう'}))),
+      el('span',{className:'cells',ariaHidden:'true'},...VOTERS.map((_,i)=>{const v=r.voters[i];const c=el('span',{textContent:v?nameOf(v):''});if(v)c.dataset.who=v;return c})));
     b.addEventListener('click',()=>vote(r.index));return b}));
-  $('pollResult').textContent=tools.result;
+  // 結果は大きく（決まった選択肢と票数）
+  const res=$('pollResult');
+  if(tools.win.length===1&&!tools.spinning){const r=rows[tools.win[0]];res.className='result banner';res.replaceChildren(crown(36),el('span',{textContent:tools.result}),el('b',{textContent:`${r.count}ひょう`}))}
+  else{res.className='result';res.textContent=tools.result}
   for(const id of ['showResult','spinAll','newPoll'])$(id).disabled=tools.spinning;
+}
+function crown(size=18){
+  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
+  svg.setAttribute('width',size);svg.setAttribute('height',size);svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');
+  const path=document.createElementNS(ns,'path');path.setAttribute('d','M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z');path.setAttribute('fill','currentColor');svg.append(path);return svg;
 }
 function vote(i){
   if(tools.spinning)return;

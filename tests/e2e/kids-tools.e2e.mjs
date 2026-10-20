@@ -101,15 +101,21 @@ ok(await k.getAttribute('#voterRow button[data-who=mother]', 'aria-pressed') ===
 await choice('すし'); await choice('すし'); await choice('カレー'); // おかあさん・テ一・テ二
 await k.click('#voterRow button[data-who=child3]'); await choice('うどん'); await k.click('#voterRow button[data-who=child3]'); await choice('うどん'); // 入れて取り消し
 const counts = await k.$$eval('#choiceList button', (x) => x.map((e) => e.getAttribute('aria-label')));
-ok(counts.join() === 'カレー（2ひょう）,すし（2ひょう）,うどん（0ひょう）', `票数（${counts.join(' ')}）`);
+ok(counts.join() === 'カレー（2ひょう・1い）,すし（2ひょう・1い）,うどん（0ひょう）', `票数（${counts.join(' ')}）`);
 await k.click('#showResult'); await k.waitForTimeout(1200);
 const r1 = await k.textContent('#pollResult');
 ok(/きまり：(カレー|すし)！/.test(r1), `同点はルーレットで同点の中から決める（${r1}）`);
 await k.click('#voterRow button[data-who=child3]'); await choice('すし');
 await k.click('#showResult'); await k.waitForTimeout(200);
-ok((await k.textContent('#pollResult')) === 'けっか：すし！' && await k.isVisible('#choiceList .choice.win'), '票が多いものが「けっか」');
+ok((await k.textContent('#pollResult')) === 'けっか：すし！3ひょう' && await k.isVisible('#choiceList .choice.win'), '票が多いものが「けっか」（票数も大きく）');
+ok((await k.textContent('#pollTally')).includes('いれた人 5 / 5') && (await k.textContent('#pollTally')).includes('みんな いれたよ'), '何人入れたかを数字で（5 / 5）');
+const nums = await k.$$eval('#choiceList .num b', (x) => x.map((e) => e.textContent));
+const ranks = await k.$$eval('#choiceList .rank', (x) => x.map((e) => e.textContent));
+ok(nums.join() === '2,3,0' && ranks.join() === '2い,1い,−', `選択肢ごとに票数と順位（${nums.join('・')}／${ranks.join('・')}）`);
+const cells = await k.$$eval('#choiceList button:nth-child(2) .cells span[data-who]', (x) => x.length);
+ok(cells === 3, '票の数だけマスが色で埋まる（だれが入れたかも分かる）');
 await k.reload(); await until(k, '#board .kid'); await k.click('.tabs button[data-tool=vote]');
-ok(await k.isVisible('#pollLive') && (await k.$$eval('#choiceList button', (x) => x.map((e) => e.getAttribute('aria-label')))).join() === 'カレー（2ひょう）,すし（3ひょう）,うどん（0ひょう）', '再読み込みしても投票は残る');
+ok(await k.isVisible('#pollLive') && (await k.$$eval('#choiceList .num b', (x) => x.map((e) => e.textContent))).join() === '2,3,0', '再読み込みしても投票は残る');
 await k.click('#spinAll'); await k.waitForTimeout(800);
 ok(/きまり：(カレー|すし|うどん)！/.test(await k.textContent('#pollResult')), '「ルーレットで きめる」は全部の中から1つ');
 await k.click('#newPoll');
