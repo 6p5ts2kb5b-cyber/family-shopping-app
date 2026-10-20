@@ -959,20 +959,24 @@ $('shareTextBtn').addEventListener('click',async()=>{
 });
 
 // ---------- 買い物リストをPNG画像にしてLINE等に共有 ----------
+const SHOP_MESSAGE='買い物よろしくお願いします。';
 async function shoppingImage(){
   const pending=items.filter(x=>!x.done),complete=items.filter(x=>x.done);
   const includeDone=$('shopIncludeDone').checked;
   if(!pending.length&&(!includeDone||!complete.length)){toast('画像にする買い物がありません');return}
   const rows=[{head:'買うもの',count:pending.length},...pending.map(x=>({name:x.name,quantity:x.quantity})),
     ...(includeDone?[{head:'購入済み',count:complete.length},...complete.map(x=>({name:x.name,quantity:x.quantity,done:true}))]:[])];
-  const W=960,M=55,ROW=70,H=Math.max(360,210+rows.reduce((a,r)=>a+(r.head?76:ROW),0)+70);
+  const W=960,M=55,ROW=70,MSG=SHOP_MESSAGE,TOP=262,H=Math.max(440,TOP+30+rows.reduce((a,r)=>a+(r.head?76:ROW),0)+70);
   const scale=Math.min(1,Math.sqrt(14000000/(W*H)));
   const canvas=document.createElement('canvas');canvas.width=Math.round(W*scale);canvas.height=Math.round(H*scale);
   const ctx=canvas.getContext('2d');if(!ctx){toast('画像を作れませんでした');return}
   ctx.scale(scale,scale);ctx.fillStyle='#F6F4EF';ctx.fillRect(0,0,W,H);
   ctx.fillStyle='#1F5C45';ctx.font=`bold 46px ${FONT}`;ctx.fillText('わが家の買い物メモ',M,83);
   const date=new Date();ctx.fillStyle='#5E6B63';ctx.font=`30px ${FONT}`;ctx.fillText(`${date.getFullYear()}年${date.getMonth()+1}月${date.getDate()}日`,M,135);
-  let y=180;ctx.fillStyle='#fff';rr(ctx,32,y,W-64,H-y-45,26);ctx.fill();y+=20;
+  // ひとこと（LINEで画像だけ届いても伝わるよう、画像の中にも入れる）
+  ctx.fillStyle='#FCE9C8';rr(ctx,32,166,W-64,72,36);ctx.fill();
+  ctx.fillStyle='#7A4A00';ctx.font=`bold 34px ${FONT}`;ctx.textAlign='center';ctx.fillText(MSG,W/2,214);ctx.textAlign='left';
+  let y=TOP;ctx.fillStyle='#fff';rr(ctx,32,y,W-64,H-y-45,26);ctx.fill();y+=20;
   for(const item of rows){
     if(item.head){ctx.fillStyle='#1F5C45';ctx.font=`bold 34px ${FONT}`;ctx.fillText(`${item.head}（${item.count}件）`,M,y+42);y+=76;continue}
     ctx.fillStyle=item.done?'#9BA49C':'#D9E8DE';rr(ctx,M,y+13,40,40,8);ctx.fill();
@@ -988,7 +992,7 @@ async function shoppingImage(){
   const name=`shopping-list-${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}.png`;
   const file=new File([blob],name,{type:'image/png'});
   if(navigator.canShare?.({files:[file]})){
-    try{await navigator.share({files:[file],title:'わが家の買い物メモ'});return}
+    try{await navigator.share({files:[file],title:'わが家の買い物メモ',text:MSG});return}
     catch(e){if(e?.name==='AbortError')return}
   }
   const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=name;document.body.append(link);link.click();link.remove();
