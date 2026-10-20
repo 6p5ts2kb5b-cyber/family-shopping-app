@@ -62,3 +62,20 @@ test('ランダム：同点・ルーレットは候補の中から必ず1つ', (
   const seen = new Set(); for (let i = 0; i < 300; i++) seen.add(pickRandom([1, 2, 3]));
   assert.equal(seen.size, 3);
 });
+
+test('カウントアップ／ダウン：表示する時間とアナログの割合', async () => {
+  const { elapsedMs, shownMs, dialFraction, wedgePath, startPrep, PREP_MIN } = await import('../lib/kid-tools.js');
+  const t0 = 0, t = startTimer('child1', 10, t0);
+  assert.equal(shownMs(t, 3 * 60000, 'down'), 7 * 60000);
+  assert.equal(shownMs(t, 3 * 60000, 'up'), 3 * 60000);
+  assert.equal(elapsedMs(t, 99 * 60000), 10 * 60000);            // 終わったら最大で全体の時間
+  assert.equal(dialFraction(t, 0, 'down'), 1); assert.equal(dialFraction(t, 0, 'up'), 0);
+  assert.equal(dialFraction(t, 5 * 60000, 'down'), 0.5); assert.equal(dialFraction(t, 5 * 60000, 'up'), 0.5);
+  assert.equal(wedgePath(0), '');
+  assert.match(wedgePath(0.25), /^M 100 100 L 100 10 A 90 90 0 0 1 190\.00 100\.00 Z$/);
+  assert.match(wedgePath(0.75), / 0 1 1 /);                       // 半分より大きいと大きい弧
+  assert.match(wedgePath(1), /^M 100 10 A/);
+  const p = startPrep('child2', 1000);
+  assert.ok(p.prep); assert.equal(p.kid, 'child2'); assert.equal(remainingMs(p, 1000), PREP_MIN * 60000);
+  assert.equal(PREP_MIN, 2);
+});

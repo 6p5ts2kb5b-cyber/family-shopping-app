@@ -79,7 +79,19 @@ button{font:inherit;color:inherit;cursor:pointer}
 .order .who{padding:6px 12px;border-radius:12px;background:var(--ks);color:var(--kc)}
 .order .who.done{text-decoration:line-through;opacity:.6}
 .order .who[data-who=child1]{--kc:var(--c1);--ks:var(--c1s)}.order .who[data-who=child2]{--kc:var(--c2);--ks:var(--c2s)}.order .who[data-who=child3]{--kc:var(--c3);--ks:var(--c3s)}
-.clock{display:grid;justify-items:center;gap:6px;padding:18px;border-radius:24px;background:var(--ks,#F4F1E8);color:var(--kc,var(--ink))}
+.clock{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px 36px;padding:18px;border-radius:24px;background:var(--ks,#F4F1E8);color:var(--kc,var(--ink))}
+.clock .digital{display:grid;justify-items:center;gap:6px;min-width:0}
+.dial{width:clamp(170px,26vw,240px);height:auto;flex:none}
+.dial .face{fill:#fff}
+.dial .wedge{fill:var(--kc,var(--green));opacity:.85}
+.clock.prep .dial .wedge{fill:#E9A21B}
+.dial .tick{stroke:#5F5A4E;stroke-width:3;stroke-linecap:round}
+.dial .tick.minor{stroke-width:1.5;opacity:.5}
+.dial .hub{fill:#2A2620}
+.clock.prep{--ks:#FFF1C9;--kc:#7A5300}
+.seg2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));background:#EFE9DA;border-radius:14px;padding:4px;gap:4px}
+.seg2 button{min-height:48px;padding:0 14px;border:0;border-radius:10px;background:none;font-size:18px;font-weight:800;color:var(--muted)}
+.seg2 button[aria-pressed=true]{background:#fff;color:var(--green);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .clock[data-who=child1]{--kc:var(--c1);--ks:var(--c1s)}.clock[data-who=child2]{--kc:var(--c2);--ks:var(--c2s)}.clock[data-who=child3]{--kc:var(--c3);--ks:var(--c3s)}
 .clock .who{font-size:clamp(26px,4vw,36px);font-weight:900}
 .clock .time{font-size:clamp(64px,12vw,120px);font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
@@ -172,13 +184,18 @@ button{font:inherit;color:inherit;cursor:pointer}
   <section id="toolTimer" class="tool" hidden aria-label="タイマー">
     <div class="panel row" style="justify-content:space-between">
       <label class="row" style="font-size:20px;font-weight:800;gap:10px"><input type="checkbox" id="orderMode" style="width:28px;height:28px"> じゅんばんモード</label>
+      <div class="seg2" role="group" aria-label="かぞえかた"><button type="button" data-count="down" aria-pressed="true">へっていく</button><button type="button" data-count="up" aria-pressed="false">ふえていく</button></div>
       <div class="stepper" aria-label="1人の じかん"><span>1人</span><button type="button" id="minDown" aria-label="1ぷん へらす">−</button><b id="minLabel">10ぷん</b><button type="button" id="minUp" aria-label="1ぷん ふやす">＋</button></div>
     </div>
     <div class="panel order" id="orderRow" aria-live="polite"></div>
     <div class="row" id="pickKid"></div>
-    <div class="clock" id="clock" aria-live="polite"><span class="who" id="clockWho">だれの ばん？</span><span class="time" id="clockTime">10:00</span><span class="msg" id="clockMsg"></span></div>
+    <div class="clock" id="clock">
+      <svg class="dial" viewBox="0 0 200 200" role="img" aria-label="アナログの タイマー" id="dial"><circle class="face" cx="100" cy="100" r="96"/><path class="wedge" id="dialWedge" d=""/><line class="tick" x1="100" y1="8" x2="100" y2="22" transform="rotate(0 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(6 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(12 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(18 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(24 100 100)"/><line class="tick" x1="100" y1="8" x2="100" y2="22" transform="rotate(30 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(36 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(42 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(48 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(54 100 100)"/><line class="tick" x1="100" y1="8" x2="100" y2="22" transform="rotate(60 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(66 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(72 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(78 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(84 100 100)"/><line class="tick" x1="100" y1="8" x2="100" y2="22" transform="rotate(90 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(96 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(102 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(108 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(114 100 100)"/><line class="tick" x1="100" y1="8" x2="100" y2="22" transform="rotate(120 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(126 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(132 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(138 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(144 100 100)"/><line class="tick" x1="100" y1="8" x2="100" y2="22" transform="rotate(150 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(156 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(162 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(168 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(174 100 100)"/><line class="tick" x1="100" y1="8" x2="100" y2="22" transform="rotate(180 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(186 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(192 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(198 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(204 100 100)"/><line class="tick" x1="100" y1="8" x2="100" y2="22" transform="rotate(210 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(216 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(222 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(228 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(234 100 100)"/><line class="tick" x1="100" y1="8" x2="100" y2="22" transform="rotate(240 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(246 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(252 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(258 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(264 100 100)"/><line class="tick" x1="100" y1="8" x2="100" y2="22" transform="rotate(270 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(276 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(282 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(288 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(294 100 100)"/><line class="tick" x1="100" y1="8" x2="100" y2="22" transform="rotate(300 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(306 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(312 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(318 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(324 100 100)"/><line class="tick" x1="100" y1="8" x2="100" y2="22" transform="rotate(330 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(336 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(342 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(348 100 100)"/><line class="tick minor" x1="100" y1="9" x2="100" y2="16" transform="rotate(354 100 100)"/><circle class="hub" cx="100" cy="100" r="7"/></svg>
+      <div class="digital" aria-live="polite"><span class="who" id="clockWho">だれの ばん？</span><span class="time" id="clockTime">10:00</span><span class="msg" id="clockMsg"></span></div>
+    </div>
     <div class="row" style="justify-content:center">
       <button type="button" class="big-btn" id="tStart">スタート</button>
+      <button type="button" class="big-btn" id="tSkip" hidden>すぐ はじめる</button>
       <button type="button" class="big-btn sub" id="tPause" hidden>いちじていし</button>
       <button type="button" class="big-btn sub" id="tStop" hidden>やめる</button>
     </div>
@@ -224,7 +241,7 @@ import {firebaseConfig} from "./firebase-config.js?v=20261011-fix2";
 import {CHILD_IDS,boardFor,periodAt,isDone,setDone,pruneDone,toYmd,DEFAULT_EVENING_FROM} from "./lib/kid-notices.js";
 import {newToken,sha256Hex,pairUrl,checkEmojis,PAIR_REFRESH_MS} from "./lib/kid-pairing.js";
 import qrcode from "./lib/vendor/qrcode.mjs";
-import {VOTERS,rotationOrder,nextInOrder,clampMinutes,startTimer,pauseTimer,resumeTimer,remainingMs,isRunning,formatClock,createPoll,castVote,tally,winners,pickRandom,MAX_CHOICES,TIMER_DEFAULT} from "./lib/kid-tools.js";
+import {VOTERS,rotationOrder,nextInOrder,clampMinutes,startTimer,pauseTimer,resumeTimer,remainingMs,isRunning,formatClock,shownMs,dialFraction,wedgePath,startPrep,PREP_MIN,createPoll,castVote,tally,winners,pickRandom,MAX_CHOICES,TIMER_DEFAULT} from "./lib/kid-tools.js";
 
 // 親の app.html とログイン状態・端末保存を分けるため、名前付きのアプリで初期化する
 const app=initializeApp(firebaseConfig,'kids'),auth=getAuth(app);
@@ -411,8 +428,8 @@ onAuthStateChanged(auth,async u=>{
 const TOOLS_KEY='kidsTools';
 const PARENTS={father:'おとうさん',mother:'おかあさん'};
 const tools=(()=>{let v=null;try{v=JSON.parse(store?.getItem(TOOLS_KEY)||'null')}catch{}
-  return {minutes:clampMinutes(v?.minutes??TIMER_DEFAULT),orderMode:v?.orderMode!==false,timer:v?.timer||null,doneDate:v?.doneDate||'',doneIds:Array.isArray(v?.doneIds)?v.doneIds:[],poll:v?.poll||null,tab:'notes',pick:null,voter:null,ended:null,spinning:false,result:'',win:[],spin:null}})();
-const saveTools=()=>{try{store?.setItem(TOOLS_KEY,JSON.stringify({minutes:tools.minutes,orderMode:tools.orderMode,timer:tools.timer,doneDate:tools.doneDate,doneIds:tools.doneIds,poll:tools.poll}))}catch{}};
+  return {countMode:v?.countMode==='up'?'up':'down',minutes:clampMinutes(v?.minutes??TIMER_DEFAULT),orderMode:v?.orderMode!==false,timer:v?.timer||null,doneDate:v?.doneDate||'',doneIds:Array.isArray(v?.doneIds)?v.doneIds:[],poll:v?.poll||null,tab:'notes',pick:null,voter:null,ended:null,spinning:false,result:'',win:[],spin:null}})();
+const saveTools=()=>{try{store?.setItem(TOOLS_KEY,JSON.stringify({countMode:tools.countMode,minutes:tools.minutes,orderMode:tools.orderMode,timer:tools.timer,doneDate:tools.doneDate,doneIds:tools.doneIds,poll:tools.poll}))}catch{}};
 const nameOf=id=>PARENTS[id]||state.names[id]||FALLBACK[id];
 const todayYmd=()=>toYmd(now());
 function freshDay(){const t=todayYmd();if(tools.doneDate!==t){tools.doneDate=t;tools.doneIds=[];tools.ended=null;saveTools()}}
@@ -446,14 +463,24 @@ function drawTimer(){
   $('orderRow').replaceChildren(el('span',{textContent:'きょうの じゅんばん：'}),...order.flatMap((id,i)=>{const w=el('span',{className:'who'+(tools.doneIds.includes(id)?' done':''),textContent:(tools.doneIds.includes(id)?'✓ ':'')+nameOf(id)});w.dataset.who=id;return i?[el('span',{textContent:'→',ariaHidden:'true'}),w]:[w]}));
   $('pickKid').hidden=tools.orderMode||!!tools.timer;
   $('pickKid').replaceChildren(...CHILD_IDS.map(id=>{const b=el('button',{type:'button',className:'chip',textContent:(tools.doneIds.includes(id)?'✓ ':'')+nameOf(id)});b.dataset.who=id;b.setAttribute('aria-pressed',tools.pick===id);b.addEventListener('click',()=>{tools.pick=id;tools.ended=null;drawTimer()});return b}));
-  const c=$('clock');
+  for(const b of document.querySelectorAll('[data-count]'))b.setAttribute('aria-pressed',b.dataset.count===tools.countMode);
+  const c=$('clock'),tm=tools.timer,prep=!!tm?.prep;
   if(kid)c.dataset.who=kid;else delete c.dataset.who;
-  const left=tools.timer?remainingMs(tools.timer,t):tools.minutes*60000;
-  $('clockWho').textContent=kid?`${nameOf(kid)} の ばん`:(tools.orderMode?'きょうは みんな おわり！':'だれの ばん？');
-  $('clockTime').textContent=formatClock(left);
+  c.classList.toggle('prep',prep);
+  // 表示：準備時間はいつも「のこり」。テレビの時間は へっていく／ふえていく を選べる
+  const mode=prep?'down':tools.countMode;
+  const shown=tm?shownMs(tm,t,mode):(mode==='up'?0:tools.minutes*60000);
+  const frac=tm?dialFraction(tm,t,mode):(mode==='up'?0:1);
+  $('dialWedge').setAttribute('d',wedgePath(frac));
+  $('dial').setAttribute('aria-label',`アナログの タイマー：${mode==='up'?'たった':'のこり'} ${formatClock(shown)}`);
+  $('clockWho').textContent=prep?`つぎは ${nameOf(kid)}：テレビを えらぶ じかん`:kid?`${nameOf(kid)} の ばん`:(tools.orderMode?'きょうは みんな おわり！':'だれの ばん？');
+  $('clockTime').textContent=formatClock(shown);
   const ended=tools.ended;
-  $('clockMsg').textContent=tools.timer?(isRunning(tools.timer)?'うごいてるよ':'とまっているよ'):ended?`${nameOf(ended)} は おわり！${kid&&tools.orderMode?`つぎは ${nameOf(kid)}`:''}`:'';
+  $('clockMsg').textContent=prep?`${ended?`${nameOf(ended)} は おわり！ `:''}じゅんび ${PREP_MIN}ぷん。おわると じどうで スタート`
+    :tm?(isRunning(tm)?(mode==='up'?`${tools.minutes}ぷん まで かぞえるよ`:'うごいてるよ'):'とまっているよ')
+    :ended?`${nameOf(ended)} は おわり！${kid&&tools.orderMode?`つぎは ${nameOf(kid)}`:''}`:'';
   c.classList.toggle('end',!!ended&&!tools.timer);
+  $('tSkip').hidden=!prep;
   $('tStart').hidden=!!tools.timer;$('tStart').disabled=!kid;
   $('tStart').textContent=kid?`${nameOf(kid)} スタート`:'スタート';
   $('tPause').hidden=!tools.timer;$('tStop').hidden=!tools.timer;
@@ -461,10 +488,21 @@ function drawTimer(){
 }
 function tick(){
   if(!tools.timer)return;
-  if(remainingMs(tools.timer,Date.now())===0){
-    const kid=tools.timer.kid;tools.timer=null;freshDay();
-    if(!tools.doneIds.includes(kid))tools.doneIds.push(kid);
-    tools.ended=kid;tools.pick=null;saveTools();chime();keepAwake(false);
+  const nowMs=Date.now();
+  if(remainingMs(tools.timer,nowMs)===0){
+    const t=tools.timer,kid=t.kid;
+    if(t.prep){
+      // 準備時間が終わった → その子のテレビの時間を、準備が終わった時刻から始める
+      tools.timer=startTimer(kid,tools.minutes,t.endsAt);chime();
+    }else{
+      tools.timer=null;freshDay();
+      if(!tools.doneIds.includes(kid))tools.doneIds.push(kid);
+      tools.ended=kid;tools.pick=null;chime();
+      // 順番モード：次の人がテレビを選ぶ準備時間（2分）へ
+      const next=tools.orderMode?nextInOrder(todaysOrder(),tools.doneIds):null;
+      if(next)tools.timer=startPrep(next,t.endsAt);else keepAwake(false);
+    }
+    saveTools();
   }
   if(tools.tab==='timer')drawTimer();
 }
@@ -473,8 +511,10 @@ $('orderMode').addEventListener('change',()=>{tools.orderMode=$('orderMode').che
 $('minDown').addEventListener('click',()=>{tools.minutes=clampMinutes(tools.minutes-1);saveTools();drawTimer()});
 $('minUp').addEventListener('click',()=>{tools.minutes=clampMinutes(tools.minutes+1);saveTools();drawTimer()});
 $('tStart').addEventListener('click',()=>{const kid=currentKid();if(!kid)return;unlockAudio();tools.ended=null;tools.timer=startTimer(kid,tools.minutes,Date.now());saveTools();keepAwake(true);drawTimer()});
+for(const b of document.querySelectorAll('[data-count]'))b.addEventListener('click',()=>{tools.countMode=b.dataset.count;saveTools();drawTimer()});
+$('tSkip').addEventListener('click',()=>{const t=tools.timer;if(!t?.prep)return;unlockAudio();tools.timer=startTimer(t.kid,tools.minutes,Date.now());saveTools();keepAwake(true);drawTimer()});
 $('tPause').addEventListener('click',()=>{const t=Date.now();tools.timer=isRunning(tools.timer)?pauseTimer(tools.timer,t):resumeTimer(tools.timer,t);saveTools();keepAwake(isRunning(tools.timer));drawTimer()});
-$('tStop').addEventListener('click',()=>{if(!confirm('タイマーを やめますか？（おわった ことには なりません）'))return;tools.timer=null;saveTools();keepAwake(false);drawTimer()});
+$('tStop').addEventListener('click',()=>{if(!confirm(tools.timer?.prep?'じゅんびを やめますか？':'タイマーを やめますか？（おわった ことには なりません）'))return;tools.timer=null;saveTools();keepAwake(false);drawTimer()});
 
 // ---------- とうひょう ----------
 function choiceInputs(n){

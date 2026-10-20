@@ -63,12 +63,33 @@ await k.reload(); await until(k, '#board .kid'); await k.click('.tabs button[dat
 ok((await k.textContent('#clockTime')) === '5:00' && (await k.textContent('#tPause')) === 'さいかい', '再読み込みしても止めた時間のまま');
 await k.click('#tPause'); await k.clock.setFixedTime(at(13 * MIN + 1000)); await k.waitForTimeout(600);
 const msg = await k.textContent('#clockMsg');
-ok(msg.includes(`${order[0]} は おわり`) && msg.includes(`つぎは ${order[1]}`), `時間になると「おわり！つぎは ${order[1]}」`);
-ok((await k.$$eval('#orderRow .who', (x) => x.map((e) => e.textContent)))[0].startsWith('✓') && (await k.textContent('#tStart')).includes(order[1]), '終わった人に✓、次の人のスタートに切り替わる');
+ok(msg.includes(`${order[0]} は おわり`) && (await k.textContent('#clockWho')) === `つぎは ${order[1]}：テレビを えらぶ じかん`, `時間になると「おわり！」、つぎは ${order[1]} の準備時間`);
+ok((await k.textContent('#clockTime')) === '1:59' && await k.isVisible('#tSkip') && await k.isHidden('#tStart'), '準備時間は2分（のこり 1:59）・「すぐ はじめる」');
+ok((await k.$$eval('#orderRow .who', (x) => x.map((e) => e.textContent)))[0].startsWith('✓'), '終わった人に✓');
+await k.clock.setFixedTime(at(15 * MIN + 1000)); await k.waitForTimeout(600);
+ok((await k.textContent('#clockWho')) === `${order[1]} の ばん` && (await k.textContent('#clockTime')) === '9:59' && await k.isHidden('#tSkip'), '2分たつと次の人のタイマーが自動で始まる');
 
-// 次の人：途中でやめる（終わった扱いにしない）
-await k.click('#tStart'); await k.waitForTimeout(200); await k.click('#tStop'); await k.waitForTimeout(200);
+// 途中でやめる（終わった扱いにしない）
+await k.click('#tStop'); await k.waitForTimeout(200);
 ok((await k.textContent('#tStart')).includes(order[1]) && !(await k.$$eval('#orderRow .who', (x) => x[1].textContent)).startsWith('✓'), '「やめる」は終わった扱いにしない');
+
+// 「すぐ はじめる」で準備時間をとばす
+await k.click('#tStart'); await k.clock.setFixedTime(at(25 * MIN + 2000)); await k.waitForTimeout(600);
+ok((await k.textContent('#clockWho')).startsWith(`つぎは ${order[2]}`), `${order[1]} が終わると ${order[2]} の準備時間`);
+await k.click('#tSkip'); await k.waitForTimeout(300);
+ok((await k.textContent('#clockWho')) === `${order[2]} の ばん` && (await k.textContent('#clockTime')) === '10:00', '「すぐ はじめる」で準備をとばしてすぐ始まる');
+await k.click('#tStop'); await k.waitForTimeout(200);
+
+// カウントアップ／ダウンとアナログ表示
+const wedge = () => k.getAttribute('#dialWedge', 'd');
+ok((await wedge()).startsWith('M 100 10 A') && (await k.getAttribute('#dial', 'aria-label')).includes('のこり 10:00'), 'アナログ表示：はじめは全部が色で埋まる（へっていく）');
+await k.click('[data-count=up]');
+ok((await k.textContent('#clockTime')) === '0:00' && (await wedge()) === '', '「ふえていく」にすると 0:00 から');
+await k.click('#tStart'); await k.clock.setFixedTime(at(28 * MIN + 2000)); await k.waitForTimeout(600);
+ok((await k.textContent('#clockTime')) === '3:00' && (await k.textContent('#clockMsg')).includes('10ぷん まで') && /A 90 90 0 0 1 /.test(await wedge()), 'カウントアップ：3分たつと 3:00、アナログの色も3分ぶん');
+await k.click('[data-count=down]'); await k.waitForTimeout(300);
+ok((await k.textContent('#clockTime')) === '7:00' && /A 90 90 0 1 1 /.test(await wedge()), '途中で「へっていく」に戻すと のこり 7:00');
+await k.click('#tStop'); await k.waitForTimeout(200);
 
 // 翌日は順番がずれて、✓ も消える
 await k.clock.setFixedTime(new Date(2026, 9, 21, 18, 0)); await k.reload(); await until(k, '#board .kid'); await k.click('.tabs button[data-tool=timer]');
