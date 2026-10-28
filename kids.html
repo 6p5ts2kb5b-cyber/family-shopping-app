@@ -241,6 +241,7 @@ import {firebaseConfig} from "./firebase-config.js?v=20261011-fix2";
 import {CHILD_IDS,boardFor,periodAt,isDone,setDone,pruneDone,toYmd,DEFAULT_EVENING_FROM} from "./lib/kid-notices.js";
 import {newToken,sha256Hex,pairUrl,checkEmojis,PAIR_REFRESH_MS} from "./lib/kid-pairing.js";
 import qrcode from "./lib/vendor/qrcode.mjs";
+import {installMotion,enableRipple,enter,bump,shake,play,burst,burstAt} from "./lib/motion.js";
 import {VOTERS,rotationOrder,nextInOrder,clampMinutes,startTimer,pauseTimer,resumeTimer,remainingMs,isRunning,formatClock,shownMs,dialFraction,wedgePath,startPrep,PREP_MIN,createPoll,castVote,tally,winners,pickRandom,MAX_CHOICES,TIMER_DEFAULT} from "./lib/kid-tools.js";
 
 // 親の app.html とログイン状態・端末保存を分けるため、名前付きのアプリで初期化する
@@ -278,6 +279,26 @@ function drawDate(){
 }
 
 // ---------- 伝言の表示 ----------
+// ---------- 動き（lib/motion.js。タブレットの中だけ・データは変えない） ----------
+installMotion(`
+#toolNotes:not([hidden]),#toolTimer:not([hidden]),#toolVote:not([hidden]){animation:m-fade .26s ease-out}
+.clock.soon{--m-pulse:color-mix(in srgb,var(--kc,#2E8B57) 55%,transparent);animation:m-pulse 1s ease-out infinite}
+@keyframes m-beat{0%,100%{transform:scale(1)}15%{transform:scale(1.07)}30%{transform:scale(1)}}
+.clock.soon .time{animation:m-beat 1s ease-in-out infinite}
+.none{animation:m-float 3.2s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){#toolNotes,#toolTimer,#toolVote,.clock.soon,.clock.soon .time,.none{animation:none!important}}
+`);
+enableRipple('.big-btn,.tabs button,.period button,.seg2 button,.stepper button,.retry,#pollForm button,#showResult,#spinAll,#newPoll');
+const seenNotes=new Set(),notesMotion={ready:false},prevVotes=new Map();let noticesLoaded=false,pollKey='',hadWin=false;
+const kcOf=sec=>{const v=getComputedStyle(sec).getPropertyValue('--kc').trim();return v?[v,'#F4B942','#FFFFFF']:undefined};
+// 「できた！」を押したとき：ボタンがはずみ、紙ふぶき。ぜんぶ できたら 大きな紙ふぶき
+function celebrate(c,id,rect){
+  const sec=$('cols').querySelector(`.kid[data-child=${c}]`);if(!sec)return;
+  const nb=[...sec.querySelectorAll('.donebtn')].find(b=>b.dataset.key===id);
+  play(nb,'m-like');bump(sec.querySelector('.count'));
+  burst(rect.left+rect.width/2,rect.top+rect.height/2,{colors:kcOf(sec),count:14,spread:90});
+  if(sec.classList.contains('alldone')){play(sec.querySelector('.all'),'m-pop');setTimeout(()=>burstAt(sec,{count:36,spread:200}),180)}
+}
 function render(){
   drawDate();
   const today=toYmd(now());
@@ -301,14 +322,16 @@ function render(){
     for(const n of list){
       const isD=isDone(store,today,c,period,n);
       const btn=el('button',{type:'button',className:'donebtn',textContent:(isD?'✓ ':'')+n.text,ariaLabel:(isD?'完了を取り消す：':'完了にする：')+n.text});
-      btn.setAttribute('aria-pressed',isD);
-      btn.addEventListener('click',()=>{setDone(store,today,c,period,n,!isD);render()});
-      ul.append(el('li',{className:'note'},btn));
+      btn.setAttribute('aria-pressed',isD);btn.dataset.key=n.id;
+      btn.addEventListener('click',()=>{const r=btn.getBoundingClientRect();setDone(store,today,c,period,n,!isD);render();if(!isD)celebrate(c,n.id,r)});
+      const li=el('li',{className:'note'},btn);li.dataset.key=c+':'+n.id;ul.append(li);
     }
     sec.append(ul);
     return sec;
   });
   $('cols').replaceChildren(...cols);
+  // でんごん：はじめは順番にふわっと、あとから届いたものだけポップイン
+  if(noticesLoaded)enter([...$('cols').querySelectorAll('li.note')].map(li=>[li.dataset.key,li]),seenNotes,notesMotion);
   renderTools();
 }
 
@@ -324,7 +347,7 @@ function startBoard(){
   show('board');render();
   const onErr=e=>{console.warn('kids board',e?.code);if(e?.code==='permission-denied')return; // 解除されたときは kidDevices の監視が登録画面に切り替える
     if(!state.notices.length)fail('でんごんを よみこめませんでした。おうちの ひとに しらせてね。');else setConn('err','つながりません')};
-  state.subs.push(onSnapshot(collection(db,'kidNotices'),{includeMetadataChanges:true},snap=>{state.notices=snap.docs.map(d=>({id:d.id,...d.data()}));syncState(snap);if(state.registered)show('board');render()},onErr));
+  state.subs.push(onSnapshot(collection(db,'kidNotices'),{includeMetadataChanges:true},snap=>{state.notices=snap.docs.map(d=>({id:d.id,...d.data()}));noticesLoaded=true;syncState(snap);if(state.registered)show('board');render()},onErr));
   state.subs.push(onSnapshot(doc(db,'kidSettings','board'),snap=>{const v=snap.exists()?snap.data():{};state.board={pause:v.pause||'',eveningFrom:v.eveningFrom||DEFAULT_EVENING_FROM};render()},onErr));
   state.subs.push(onSnapshot(doc(db,'familySettings','children'),snap=>{state.names={...FALLBACK,...(snap.exists()?snap.data():{})};render()},onErr));
 }
@@ -480,6 +503,8 @@ function drawTimer(){
     :tm?(isRunning(tm)?(mode==='up'?`${tools.minutes}ぷん まで かぞえるよ`:'うごいてるよ'):'とまっているよ')
     :ended?`${nameOf(ended)} は おわり！${kid&&tools.orderMode?`つぎは ${nameOf(kid)}`:''}`:'';
   c.classList.toggle('end',!!ended&&!tools.timer);
+  // のこり10びょう：時計がドキドキ（パルス）
+  c.classList.toggle('soon',!!tm&&!prep&&isRunning(tm)&&tools.countMode==='down'&&remainingMs(tm,t)>0&&remainingMs(tm,t)<=10000);
   $('tSkip').hidden=!prep;
   $('tStart').hidden=!!tools.timer;$('tStart').disabled=!kid;
   $('tStart').textContent=kid?`${nameOf(kid)} スタート`:'スタート';
@@ -498,6 +523,7 @@ function tick(){
       tools.timer=null;freshDay();
       if(!tools.doneIds.includes(kid))tools.doneIds.push(kid);
       tools.ended=kid;tools.pick=null;chime();
+      if(tools.tab==='timer')setTimeout(()=>burstAt($('clock'),{count:28,spread:180}),60);
       // 順番モード：次の人がテレビを選ぶ準備時間（2分）へ
       const next=tools.orderMode?nextInOrder(todaysOrder(),tools.doneIds):null;
       if(next)tools.timer=startPrep(next,t.endsAt);else keepAwake(false);
@@ -527,10 +553,10 @@ choiceInputs(3);
 $('addChoice').addEventListener('click',()=>choiceInputs(Math.min(MAX_CHOICES,document.querySelectorAll('#pollChoices input').length+1)));
 function readForm(){return createPoll($('pollQ').value||'ルーレット',[...document.querySelectorAll('#pollChoices input')].map(i=>i.value))}
 $('pollForm').addEventListener('submit',e=>{e.preventDefault();
-  if(!$('pollQ').value.trim()){$('pollWarn').textContent='「なにを きめる？」を いれてね';return}
-  const p=readForm();if(!p){$('pollWarn').textContent='せんたくしを 2つ いじょう いれてね';return}
+  if(!$('pollQ').value.trim()){$('pollWarn').textContent='「なにを きめる？」を いれてね';shake($('pollQ'));return}
+  const p=readForm();if(!p){$('pollWarn').textContent='せんたくしを 2つ いじょう いれてね';shake($('pollChoices'));return}
   tools.poll=p;tools.voter='father';tools.result='';tools.win=[];$('pollWarn').textContent='';saveTools();drawVote()});
-$('quickSpin').addEventListener('click',()=>{const p=readForm();if(!p){$('pollWarn').textContent='せんたくしを 2つ いじょう いれてね';return}
+$('quickSpin').addEventListener('click',()=>{const p=readForm();if(!p){$('pollWarn').textContent='せんたくしを 2つ いじょう いれてね';shake($('pollChoices'));return}
   tools.poll=p;tools.voter=null;tools.result='';tools.win=[];$('pollWarn').textContent='';saveTools();drawVote();spin(p.choices.map((_,i)=>i))});
 function drawVote(){
   const p=tools.poll;
@@ -555,10 +581,19 @@ function drawVote(){
       el('span',{className:'top'},badge,el('span',{className:'label',textContent:r.label}),el('span',{className:'num'},el('b',{textContent:String(r.count)}),el('small',{textContent:'ひょう'}))),
       el('span',{className:'cells',ariaHidden:'true'},...VOTERS.map((_,i)=>{const v=r.voters[i];const c=el('span',{textContent:v?nameOf(v):''});if(v)c.dataset.who=v;return c})));
     b.addEventListener('click',()=>vote(r.index));return b}));
+  // 票が入った数字だけ はずむ（同じ とうひょうの あいだ）
+  const key=p.question+'|'+p.choices.join('|');
+  if(key!==pollKey){pollKey=key;prevVotes.clear();hadWin=false}
+  const nums=[...$('choiceList').querySelectorAll('.choice .num b')];
+  rows.forEach(r=>{if(prevVotes.has(r.index)&&prevVotes.get(r.index)!==r.count)bump(nums[r.index]);prevVotes.set(r.index,r.count)});
   // 結果は大きく（決まった選択肢と票数）
   const res=$('pollResult');
   if(tools.win.length===1&&!tools.spinning){const r=rows[tools.win[0]];res.className='result banner';res.replaceChildren(crown(36),el('span',{textContent:tools.result}),el('b',{textContent:`${r.count}ひょう`}))}
   else{res.className='result';res.textContent=tools.result}
+  // きまった しゅんかん：バナーが ポン、かんむりが はねて、紙ふぶき
+  const won=tools.win.length===1&&!tools.spinning;
+  if(won&&!hadWin){play(res,'m-pop');play(res.querySelector('svg'),'m-bounce');setTimeout(()=>burstAt(res,{count:40,spread:220}),120)}
+  hadWin=won;
   for(const id of ['showResult','spinAll','newPoll'])$(id).disabled=tools.spinning;
 }
 function crown(size=18){

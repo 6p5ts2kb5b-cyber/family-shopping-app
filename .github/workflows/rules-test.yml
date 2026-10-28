@@ -55,7 +55,8 @@ jobs:
           node tests/e2e/kids-weekends.e2e.mjs >> e2e.txt 2>&1; c9=$?
           node tests/e2e/kids-tools.e2e.mjs >> e2e.txt 2>&1; c10=$?
           node tests/e2e/shop-image.e2e.mjs >> e2e.txt 2>&1; c11=$?
-          code=$(( c1 || c2 || c3 || c4 || c5 || c6 || c7 || c8 || c9 || c10 || c11 ))
+          node tests/e2e/motion.e2e.mjs >> e2e.txt 2>&1; c12=$?
+          code=$(( c1 || c2 || c3 || c4 || c5 || c6 || c7 || c8 || c9 || c10 || c11 || c12 ))
           cat e2e.txt
           echo "::notice title=e2e summary::exit=$code pass=$(grep -c '^PASS' e2e.txt) fail=$(grep -c '^FAIL' e2e.txt)"
           grep '^FAIL' e2e.txt | head -10 | while read -r l; do echo "::error title=e2e failed::$l"; done

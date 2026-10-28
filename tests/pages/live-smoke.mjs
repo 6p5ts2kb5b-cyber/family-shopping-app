@@ -19,7 +19,7 @@ async function fetchFile(path) {
 
 // 1) 公開待ち（最大10分）
 const NEW = ['app.html', 'lib/quick-schedule.js', 'lib/schedule-views.js', 'app.webmanifest', 'icons/icon-180.png',
-  'kids.html', 'kids.webmanifest', 'lib/kid-notices.js', 'lib/kid-pairing.js', 'lib/vendor/qrcode.mjs', 'icons/kids-180.png'];
+  'kids.html', 'kids.webmanifest', 'lib/kid-notices.js', 'lib/kid-pairing.js', 'lib/motion.js', 'lib/vendor/qrcode.mjs', 'icons/kids-180.png'];
 // kids.html はファイルの公開だけ確認する（ブラウザで開くと本物のFirebaseに匿名ログイン・登録申請を作ってしまうため開かない）
 let deployed = false;
 for (let i = 0; i < 40 && !deployed; i++) {
