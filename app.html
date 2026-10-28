@@ -616,6 +616,7 @@ import {getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged} f
 import {getDoc,serverTimestamp,getDocs,getFirestore,initializeFirestore,persistentLocalCache,persistentMultipleTabManager,terminate,clearIndexedDbPersistence,collection,doc,onSnapshot,runTransaction,deleteDoc,setDoc,updateDoc,writeBatch,increment,query,where} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import {firebaseConfig} from "./firebase-config.js?v=20261011-fix2";
 import {parseQuickSchedule,setWhoNames} from "./lib/quick-schedule.js";
+import {installMotion,enableRipple,enter,bump,shake,play,ghostDone} from "./lib/motion.js";
 import {CHILD_IDS,boardFor,isPaused,periodAt,onceDate,repeatChoice,draftFromChoice,staleOnceIds,isValidNoticeDraft,DEFAULT_EVENING_FROM} from "./lib/kid-notices.js";
 import {parsePair,checkEmojis,emojiChoices,PAIR_TTL_MS} from "./lib/kid-pairing.js";
 import {MEMBERS,WHO,setMemberLabels,normWho,sortDay,toYmd,addDays,weekendOf,weekOf,findOverlaps,clampDay,homeWeekendPreview,initialView,rangeFor,monthRange,shareDays,shareDaysRange,shareWeekTitle,shareTitle,shareText,timeText} from "./lib/schedule-views.js";
@@ -639,6 +640,19 @@ const today=()=>toYmd(new Date());
 
 let user=null,canWrite=false,items=[],favs=[],members=[],schedules=[],unsubs=[],readyItems=false,readyFavs=false;
 // 端末だけの小さな設定（使えない環境でも動くように try で囲む）
+// ---------- 動き（lib/motion.js。保存や表示は遅らせない） ----------
+installMotion(`
+.screen:not([hidden]){animation:m-dim .22s ease-out}
+.toast:not([hidden]){animation:m-toast .32s cubic-bezier(.2,.9,.3,1.1)}
+.sheet:not([hidden]){animation:m-sheet .3s cubic-bezier(.2,.8,.2,1)}
+.backdrop:not([hidden]){animation:m-dim .2s ease-out}
+.sync[data-tone=wait]::before{--m-pulse:rgba(63,77,69,.45);animation:m-pulse 1.1s ease-out infinite}
+#todo li.empty::before{content:"";display:block;width:46px;height:46px;margin:2px auto 8px;background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none' stroke='%232E8B57' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 16h28l-3 24H13z' fill='%23E3F0E8'/%3E%3Cpath d='M17 16a7 7 0 0 1 14 0'/%3E%3Cpath d='m18 28 4 4 8-8'/%3E%3C/svg%3E");animation:m-float 3.2s ease-in-out infinite}
+@media (hover:hover) and (pointer:fine){.chip,.sharebtn,.ev{transition:transform .15s ease,box-shadow .15s ease}.chip:hover,.sharebtn:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(20,28,24,.10)}}
+@media (prefers-reduced-motion:reduce){.screen,.toast,.sheet,.backdrop,.sync::before,#todo li.empty::before{animation:none!important}.chip:hover,.sharebtn:hover{transform:none!important}}
+`);
+enableRipple('.btn,.sharebtn,.chip');
+const seenTodo=new Set(),todoMotion={ready:false},prevQty=new Map();let prevCounts=null;
 const store={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v){try{localStorage.setItem(k,v)}catch{}}};
 let tab='home',scheduleView=initialView(store.get('wm.view'));
 // QRで開いたとき（app.html#pair=…）：ログインの前に取り出し、アドレス欄・履歴から消す
@@ -1148,7 +1162,7 @@ function itemRow(item){
   const done=!!item.done;
   const row=el('div',{className:'item'+(done?' done':'')});
   row.append(
-    el('button',{type:'button',className:'check',ariaLabel:item.name+(done?'を未購入に戻す':'を購入済みにする'),onclick:()=>write(()=>setDoc(doc(db,'shoppingItems',item.id),{done:!done,doneAt:!done?Date.now():null},{merge:true}))},el('i')),
+    el('button',{type:'button',className:'check',ariaLabel:item.name+(done?'を未購入に戻す':'を購入済みにする'),onclick:()=>{if(!done)ghostDone(row);write(()=>setDoc(doc(db,'shoppingItems',item.id),{done:!done,doneAt:!done?Date.now():null},{merge:true}))}},el('i')),
     el('button',{type:'button',className:'namebtn',ariaLabel:item.name+'を編集'+(item.pending?'（未送信）':''),onclick:()=>openEdit(item)},item.name,...(item.pending?[el('span',{className:'pend',textContent:'未送信'})]:[])));
   const q=item.quantity||1;
   if(!done){
@@ -1157,8 +1171,10 @@ function itemRow(item){
       el('output',{className:'num',textContent:String(q)}),
       el('button',{type:'button',textContent:'＋',ariaLabel:item.name+'を1つ増やす',disabled:q>=999,onclick:()=>adjust(item,1)}));
     row.append(st);
+    if(prevQty.has(item.id)&&prevQty.get(item.id)!==q)bump(st.querySelector('output'));
   }else{if(q>1)row.append(el('span',{className:'qty num',textContent:'×'+q}));row.append(el('button',{type:'button',className:'backbtn',textContent:'戻す',ariaLabel:item.name+'を買うものに戻す',onclick:()=>write(()=>setDoc(doc(db,'shoppingItems',item.id),{done:false,doneAt:null},{merge:true}))}))}
   const li=el('li',{className:'swipe'},el('div',{className:'bg',ariaHidden:'true',textContent:'削除'}),row);
+  li.dataset.key=item.id;
   enableSwipe(row,()=>removeItem(item));
   return li;
 }
@@ -1249,6 +1265,13 @@ function draw(){
   const done=items.filter(x=>x.done).sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));
   $('todoCount').textContent=todo.length;$('doneCount').textContent=done.length;$('favCount').textContent=favs.length;
   $('todo').replaceChildren(...(todo.length?todo.map(itemRow):[el('li',{className:'empty',textContent:'買うものはありません'})]));
+  if(readyItems){
+    // 初回は順番にふわっと、あとから増えたものだけポップイン。個数・件数が変わったら数字がはずむ
+    enter([...$('todo').children].filter(li=>li.dataset.key).map(li=>[li.dataset.key,li]),seenTodo,todoMotion);
+    if(prevCounts){if(prevCounts[0]!==todo.length)bump($('todoCount'));if(prevCounts[1]!==done.length)bump($('doneCount'))}
+    prevCounts=[todo.length,done.length];
+    prevQty.clear();for(const x of todo)prevQty.set(x.id,x.quantity||1);
+  }
   $('done').replaceChildren(...(done.length?done.map(itemRow):[el('li',{className:'empty',textContent:'まだありません'})]));
   const pend=pendingNames();
   const sortedFavs=favs.slice().sort((a,b)=>a.name.localeCompare(b.name,'ja'));
@@ -1262,7 +1285,12 @@ async function addProduct(raw,q){
   if(!name||name.length>60||!Number.isInteger(quantity)||quantity<1||quantity>999){message('商品名と個数を確認してください。',true);return false}
   const ref=doc(db,'shoppingItems',encode(name));
   // 同じ名前が「買うもの」にあれば追加しない（表記ゆれも同じ扱い。IDの形式に関係なく名前で確認）
-  if(items.some(x=>!x.done&&key(x.name)===key(name))){message(safeError({code:'already-listed'}),true);return false}
+  if(items.some(x=>!x.done&&key(x.name)===key(name))){
+    message(safeError({code:'already-listed'}),true);
+    // どこにあるか分かるように：入力欄をゆらし、リストの同じ品物にマーカー
+    shake($('product'));const ex=items.find(x=>!x.done&&key(x.name)===key(name));
+    const nb=ex&&$('todo').querySelector(`li[data-key="${CSS.escape(ex.id)}"] .namebtn`);if(nb){nb.scrollIntoView({block:'nearest',behavior:'smooth'});play(nb,'m-mark')}
+    return false}
   const data={name,quantity,done:false,createdAt:Date.now(),doneAt:null};
   return write(txOr(
     async tx=>{const ex=await tx.get(ref);if(ex.exists()&&!ex.data().done)throw {code:'already-listed'};tx.set(ref,data)},
