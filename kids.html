@@ -60,7 +60,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .dclock .face{fill:#FFFDF6;stroke:#E2D6B8;stroke-width:4}
 .dclock .tick{stroke:#B9AE95;stroke-width:2}.dclock .tick.big{stroke:#6E6450;stroke-width:4}
 .dclock .numeral{font-size:17px;font-weight:800;fill:#4A4232;text-anchor:middle;dominant-baseline:central}
-.dclock .wedge{fill:#F07B4A}
+.dclock .wedge{fill:#E5482F}
 .dclock .sector{fill:#FFD3BF}
 .dclock .mark{fill:#E2572B;stroke:#fff;stroke-width:3}
 .dclock .hand{stroke:#2B2620;stroke-linecap:round}
@@ -297,7 +297,7 @@ import {CHILD_IDS,boardFor,periodAt,isDone,setDone,pruneDone,toYmd,DEFAULT_EVENI
 import {newToken,sha256Hex,pairUrl,checkEmojis,PAIR_REFRESH_MS} from "./lib/kid-pairing.js";
 import qrcode from "./lib/vendor/qrcode.mjs";
 import {installMotion,enableRipple,enter,bump,shake,play,burst,burstAt} from "./lib/motion.js";
-import {normDepart,shiftDepart,departLabel,departState,departText,clockAngles,sectorPath,wedgePath as dialWedge,VOTERS,rotationOrder,nextInOrder,clampMinutes,startTimer,pauseTimer,resumeTimer,remainingMs,isRunning,formatClock,shownMs,dialFraction,wedgePath,startPrep,PREP_MIN,createPoll,castVote,tally,winners,pickRandom,MAX_CHOICES,TIMER_DEFAULT} from "./lib/kid-tools.js";
+import {normDepart,shiftDepart,departLabel,departState,departText,clockAngles,sectorPath,wedgePathCCW,wedgePath as dialWedge,VOTERS,rotationOrder,nextInOrder,clampMinutes,startTimer,pauseTimer,resumeTimer,remainingMs,isRunning,formatClock,shownMs,dialFraction,wedgePath,startPrep,PREP_MIN,createPoll,castVote,tally,winners,pickRandom,MAX_CHOICES,TIMER_DEFAULT} from "./lib/kid-tools.js";
 
 // 親の app.html とログイン状態・端末保存を分けるため、名前付きのアプリで初期化する
 const app=initializeApp(firebaseConfig,'kids'),auth=getAuth(app);
@@ -693,7 +693,12 @@ const saveDepart=()=>{try{store?.setItem(DEPART_KEY,JSON.stringify(depart))}catc
 let departGoDay='';
 (function buildDials(){
   const ns='http://www.w3.org/2000/svg',mk=(tag,attrs)=>{const e=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);return e};
-  for(const id of ['dLeftTicks','dNowTicks']){
+  // 左：タイムタイマー型（0が上、5・10・15…が左まわり。めもりの内側に色の円板）
+  {const g=$('dLeftTicks');
+    for(let i=0;i<60;i++){const a=-i*6*Math.PI/180,big=i%5===0,r1=big?60:66,r2=74;
+      g.append(mk('line',{class:'tick'+(big?' big':''),x1:(100+r1*Math.sin(a)).toFixed(2),y1:(100-r1*Math.cos(a)).toFixed(2),x2:(100+r2*Math.sin(a)).toFixed(2),y2:(100-r2*Math.cos(a)).toFixed(2)}))}
+    for(let m=0;m<60;m+=5){const a=-m*6*Math.PI/180,t=mk('text',{class:'numeral',x:(100+86*Math.sin(a)).toFixed(2),y:(100-86*Math.cos(a)).toFixed(2)});t.textContent=m;g.append(t)}}
+  for(const id of ['dNowTicks']){
     const g=$(id);
     for(let i=0;i<60;i++){const a=i*6*Math.PI/180,big=i%5===0,r1=big?80:86,r2=92;
       g.append(mk('line',{class:'tick'+(big?' big':''),x1:(100+r1*Math.sin(a)).toFixed(2),y1:(100-r1*Math.cos(a)).toFixed(2),x2:(100+r2*Math.sin(a)).toFixed(2),y2:(100-r2*Math.cos(a)).toFixed(2)}))}
@@ -711,9 +716,9 @@ function drawDepart(){
   if(!show)return;
   const label=departLabel(depart.time);
   $('dTime').textContent=label;$('dSetTime').textContent=label;
-  // 左：しゅっぱつ まで（60ぷんで いっしゅう。のこりが へっていく）
+  // 左：しゅっぱつ まで（タイムタイマー型。60ぷんで いっしゅう。色が 0 にむかって へっていく）
   const frac=Math.min(1,st.leftMs/3600000);
-  $('dLeftWedge').setAttribute('d',dialWedge(frac));
+  $('dLeftWedge').setAttribute('d',wedgePathCCW(frac,100,68));
   $('dLeftText').textContent=departText(st.leftMs);
   $('dLeftSvg').setAttribute('aria-label',`しゅっぱつ まで ${departText(st.leftMs)}`);
   // 右：いまの じかん（はりの とけい）。しゅっぱつまでの ところに いろ

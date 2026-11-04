@@ -38,7 +38,11 @@ const vis = (sel) => k.isVisible(sel);
 ok(await vis('#depart'), '朝は「しゅっぱつ まで」が出る');
 ok((await txt('dTime')) === '7:30' && (await txt('dLeftText')) === 'あと 25ふん', `しゅっぱつ 7:30・あと 25ふん（${await txt('dLeftText')}）`);
 const wedge = await attr('dLeftWedge', 'd');
-ok(/^M 100 100 L 100 10 A 90 90 0 0 1 /.test(wedge), 'しゅっぱつまでの とけい：12じから のこりの ぶんだけ いろ');
+// 25ふん → 0 から 左まわりに 25 の所まで（タイムタイマーと同じ）
+const ang = 25 / 60 * 2 * Math.PI, ex = (100 - 68 * Math.sin(ang)).toFixed(2), ey = (100 - 68 * Math.cos(ang)).toFixed(2);
+ok(wedge === `M 100 100 L 100 32 A 68 68 0 0 0 ${ex} ${ey}`.replace(/$/, ' Z'), `しゅっぱつまでの とけい：0 から 左まわりに 25 まで いろ（${wedge}）`);
+const nums = await k.$$eval('#dLeftTicks text', (x) => x.map((e) => [e.textContent, Math.round(Number(e.getAttribute('x'))), Math.round(Number(e.getAttribute('y')))]));
+ok(nums.map((n) => n[0]).join() === '0,5,10,15,20,25,30,35,40,45,50,55' && nums[3][1] === 14 && nums[3][2] === 100 && nums[9][1] === 186, 'すうじは 0 が上、15 が左、45 が右（タイムタイマーと同じ）');
 ok(await vis('#dNow') && (await txt('dNowText')) === '7:05', 'いまの とけい：7:05');
 const hand = async (id) => [Number(await attr(id, 'x2')), Number(await attr(id, 'y2'))];
 const [mx, my] = await hand('dMin');
