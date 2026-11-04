@@ -46,6 +46,8 @@ for (const [label, opts] of [['iPhone SE', devices['iPhone SE']], ['iPhone 13', 
 
   // くりかえしの並びと、狭い画面で崩れないこと
   await p.click('#noteAdd');
+  // シートが下からせり上がる動き（0.3びょう）が終わってから大きさを測る
+  await p.waitForFunction(() => document.getAnimations().every((x) => x.playState !== 'running'), null, { timeout: 3000 }).catch(() => {});
   const reps = await p.$$eval('#noteRep button:not([hidden])', (x) => x.map((e) => e.textContent));
   ok(reps.join() === '毎日,平日だけ,土日両方,土曜だけ,日曜だけ,今日だけ,明日だけ', `${label}：くりかえしの並び（${reps.join('・')}）`);
   const fit = await p.$$eval('#noteRep button:not([hidden])', (x) => x.every((e) => { const r = e.getBoundingClientRect(); return r.height >= 44 && r.right <= innerWidth && e.scrollWidth <= e.clientWidth + 1; }));

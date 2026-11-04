@@ -50,6 +50,35 @@ button{font:inherit;color:inherit;cursor:pointer}
 .donebtn[aria-pressed=true]{background:var(--kc);color:#fff}
 .donebtn:focus-visible{outline:3px solid #8DBBA5;outline-offset:2px}
 .none{margin:3px 2px;font-size:16px;color:var(--muted)}
+/* 朝の「しゅっぱつ まで」（タブレットの中だけ） */
+.depart{margin:8px 0 0;background:#fff;border-radius:18px;padding:10px 12px;border:3px solid #FFE3A3;box-shadow:0 2px 6px rgba(60,50,20,.08)}
+.depart .dmain{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 24px}
+.dclock{margin:0;display:grid;justify-items:center;gap:4px}
+.dclock svg{width:clamp(150px,22vw,210px);height:auto;display:block}
+.dclock figcaption{font-size:18px;font-weight:800;color:var(--muted)}
+.dclock figcaption b{color:var(--ink);font-variant-numeric:tabular-nums}
+.dclock .face{fill:#FFFDF6;stroke:#E2D6B8;stroke-width:4}
+.dclock .tick{stroke:#B9AE95;stroke-width:2}.dclock .tick.big{stroke:#6E6450;stroke-width:4}
+.dclock .numeral{font-size:17px;font-weight:800;fill:#4A4232;text-anchor:middle;dominant-baseline:central}
+.dclock .wedge{fill:#F07B4A}
+.dclock .sector{fill:#FFD3BF}
+.dclock .mark{fill:#E2572B;stroke:#fff;stroke-width:3}
+.dclock .hand{stroke:#2B2620;stroke-linecap:round}
+.dclock .hand.h{stroke-width:7}.dclock .hand.m{stroke-width:4.5}
+.dclock .hub{fill:#2B2620}
+.dtext{display:grid;justify-items:center;gap:4px;text-align:center;min-width:0}
+.dtext p{margin:0}
+.dwhen{font-size:20px;font-weight:800;color:#7A5300}
+.dleft{font-size:clamp(38px,6.5vw,64px);font-weight:900;color:#C2461C;line-height:1.1;font-variant-numeric:tabular-nums}
+.dmsg{font-size:20px;font-weight:800;color:#7A5300;min-height:1.2em}
+.depart.soon{border-color:#F07B4A}
+.depart.go{border-color:#2E8B57;background:#EAF6EF}.depart.go .dleft{color:#1F6B44}
+.dbtn{min-height:48px;padding:0 16px;border-radius:12px;border:2px solid var(--line);background:#fff;font-size:17px;font-weight:800;color:var(--muted)}
+.dset{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 18px;margin-top:10px;padding-top:10px;border-top:2px dashed #EADFC6}
+.dset label{display:inline-flex;align-items:center;gap:8px;min-height:48px;font-size:18px;font-weight:800}
+.dset input[type=checkbox]{width:26px;height:26px}
+.dset .stepper b{min-width:64px;text-align:center;font-variant-numeric:tabular-nums}
+.dshow{display:block;margin:8px auto 0}
 /* お休み・登録・読み込み */
 .big{background:#fff;border-radius:28px;padding:28px 20px;text-align:center;max-width:720px;margin:24px auto}
 .big h2{margin:0 0 8px;font-size:clamp(30px,5vw,44px)}
@@ -178,6 +207,32 @@ button{font:inherit;color:inherit;cursor:pointer}
   </div>
   <section class="big" id="paused" hidden><h2>🌈 きょうは おやすみ</h2><p>でんごんは おやすみです。</p></section>
   <div class="cols" id="cols"></div>
+  <!-- 朝の「しゅっぱつ まで」（タブレットの中だけ。Firebaseには送らない） -->
+  <section class="depart" id="depart" hidden aria-label="しゅっぱつ まで">
+    <div class="dmain">
+      <figure class="dclock">
+        <svg id="dLeftSvg" viewBox="0 0 200 200" role="img" aria-label="しゅっぱつ まで"><circle class="face" cx="100" cy="100" r="96"/><path class="wedge" id="dLeftWedge" d=""/><g id="dLeftTicks"></g><circle class="hub" cx="100" cy="100" r="7"/></svg>
+        <figcaption>しゅっぱつ まで</figcaption>
+      </figure>
+      <figure class="dclock" id="dNow">
+        <svg id="dNowSvg" viewBox="0 0 200 200" role="img" aria-label="いまの じかん"><circle class="face" cx="100" cy="100" r="96"/><path class="sector" id="dNowSector" d=""/><g id="dNowTicks"></g><circle class="mark" id="dMark" cx="100" cy="10" r="8"/><line class="hand h" id="dHour" x1="100" y1="100" x2="100" y2="52"/><line class="hand m" id="dMin" x1="100" y1="100" x2="100" y2="26"/><circle class="hub" cx="100" cy="100" r="7"/></svg>
+        <figcaption>いま <b id="dNowText"></b></figcaption>
+      </figure>
+      <div class="dtext">
+        <p class="dwhen">しゅっぱつ <b id="dTime"></b></p>
+        <p class="dleft" id="dLeftText" aria-live="polite"></p>
+        <p class="dmsg" id="dMsg"></p>
+        <button type="button" class="dbtn" id="dSetOpen" aria-expanded="false" aria-controls="dSet">⚙ せってい</button>
+      </div>
+    </div>
+    <div class="dset" id="dSet" hidden>
+      <div class="stepper" aria-label="しゅっぱつ じかん"><span>しゅっぱつ</span><button type="button" id="dEarlier" aria-label="5ふん はやく">−</button><b id="dSetTime"></b><button type="button" id="dLater" aria-label="5ふん おそく">＋</button></div>
+      <label><input type="checkbox" id="dShowNow">いまの とけい</label>
+      <label><input type="checkbox" id="dWeekdays">へいじつ だけ</label>
+      <button type="button" class="dbtn" id="dOff">とけいを けす</button>
+    </div>
+  </section>
+  <button type="button" class="dbtn dshow" id="dOn" hidden>🕖 しゅっぱつの とけいを だす</button>
   </div>
 
   <!-- タイマー（このタブレットの中だけ） -->
@@ -242,7 +297,7 @@ import {CHILD_IDS,boardFor,periodAt,isDone,setDone,pruneDone,toYmd,DEFAULT_EVENI
 import {newToken,sha256Hex,pairUrl,checkEmojis,PAIR_REFRESH_MS} from "./lib/kid-pairing.js";
 import qrcode from "./lib/vendor/qrcode.mjs";
 import {installMotion,enableRipple,enter,bump,shake,play,burst,burstAt} from "./lib/motion.js";
-import {VOTERS,rotationOrder,nextInOrder,clampMinutes,startTimer,pauseTimer,resumeTimer,remainingMs,isRunning,formatClock,shownMs,dialFraction,wedgePath,startPrep,PREP_MIN,createPoll,castVote,tally,winners,pickRandom,MAX_CHOICES,TIMER_DEFAULT} from "./lib/kid-tools.js";
+import {normDepart,shiftDepart,departLabel,departState,departText,clockAngles,sectorPath,wedgePath as dialWedge,VOTERS,rotationOrder,nextInOrder,clampMinutes,startTimer,pauseTimer,resumeTimer,remainingMs,isRunning,formatClock,shownMs,dialFraction,wedgePath,startPrep,PREP_MIN,createPoll,castVote,tally,winners,pickRandom,MAX_CHOICES,TIMER_DEFAULT} from "./lib/kid-tools.js";
 
 // 親の app.html とログイン状態・端末保存を分けるため、名前付きのアプリで初期化する
 const app=initializeApp(firebaseConfig,'kids'),auth=getAuth(app);
@@ -331,6 +386,7 @@ function render(){
   });
   $('cols').replaceChildren(...cols);
   // でんごん：はじめは順番にふわっと、あとから届いたものだけポップイン
+  drawDepart();
   if(noticesLoaded)enter([...$('cols').querySelectorAll('li.note')].map(li=>[li.dataset.key,li]),seenNotes,notesMotion);
   renderTools();
 }
@@ -629,6 +685,64 @@ function spin(cands){
   };
   go();
 }
+
+// ---------- 朝の「しゅっぱつ まで あと なんぷん」（このタブレットの中だけ。Firebaseには送らない） ----------
+const DEPART_KEY='kidsDepart';
+let depart=(()=>{try{return normDepart(JSON.parse(store?.getItem(DEPART_KEY)||'null'))}catch{return normDepart(null)}})();
+const saveDepart=()=>{try{store?.setItem(DEPART_KEY,JSON.stringify(depart))}catch{}};
+let departGoDay='';
+(function buildDials(){
+  const ns='http://www.w3.org/2000/svg',mk=(tag,attrs)=>{const e=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);return e};
+  for(const id of ['dLeftTicks','dNowTicks']){
+    const g=$(id);
+    for(let i=0;i<60;i++){const a=i*6*Math.PI/180,big=i%5===0,r1=big?80:86,r2=92;
+      g.append(mk('line',{class:'tick'+(big?' big':''),x1:(100+r1*Math.sin(a)).toFixed(2),y1:(100-r1*Math.cos(a)).toFixed(2),x2:(100+r2*Math.sin(a)).toFixed(2),y2:(100-r2*Math.cos(a)).toFixed(2)}))}
+    if(id==='dNowTicks')for(let h=1;h<=12;h++){const a=h*30*Math.PI/180,t=mk('text',{class:'numeral',x:(100+67*Math.sin(a)).toFixed(2),y:(100-67*Math.cos(a)).toFixed(2)});t.textContent=h;g.append(t)}
+  }
+})();
+const handEnd=(deg,len)=>{const a=deg*Math.PI/180;return [(100+len*Math.sin(a)).toFixed(2),(100-len*Math.cos(a)).toFixed(2)]};
+function drawDepart(){
+  const box=$('depart'),d=now();
+  const morning=currentPeriod()==='morning'&&!(state.board.pause==='on'||state.board.pause===toYmd(d));
+  const st=departState(d,depart);
+  const show=morning&&st.show;
+  box.hidden=!show;
+  $('dOn').hidden=!(morning&&!depart.on);
+  if(!show)return;
+  const label=departLabel(depart.time);
+  $('dTime').textContent=label;$('dSetTime').textContent=label;
+  // 左：しゅっぱつ まで（60ぷんで いっしゅう。のこりが へっていく）
+  const frac=Math.min(1,st.leftMs/3600000);
+  $('dLeftWedge').setAttribute('d',dialWedge(frac));
+  $('dLeftText').textContent=departText(st.leftMs);
+  $('dLeftSvg').setAttribute('aria-label',`しゅっぱつ まで ${departText(st.leftMs)}`);
+  // 右：いまの じかん（はりの とけい）。しゅっぱつまでの ところに いろ
+  $('dNow').hidden=!depart.showNow;
+  const ang=clockAngles(d);
+  const [hx,hy]=handEnd(ang.hour,48),[mx,my]=handEnd(ang.minute,74);
+  $('dHour').setAttribute('x2',hx);$('dHour').setAttribute('y2',hy);$('dMin').setAttribute('x2',mx);$('dMin').setAttribute('y2',my);
+  $('dNowSector').setAttribute('d',st.leftMs>0?sectorPath(ang.minute/360,ang.minute/360+frac,100,92):'');
+  const at=new Date(st.at),[kx,ky]=handEnd(at.getMinutes()*6,92);
+  $('dMark').setAttribute('cx',kx);$('dMark').setAttribute('cy',ky);
+  const nowText=`${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+  $('dNowText').textContent=nowText;$('dNowSvg').setAttribute('aria-label',`いまの じかん ${nowText}`);
+  $('dMsg').textContent=st.phase==='go'?'いってらっしゃい！':st.phase==='soon'?'もうすぐ！ じゅんび できた？':'';
+  box.classList.toggle('soon',st.phase==='soon');box.classList.toggle('go',st.phase==='go');
+  // のこり5ふん：パルス、しゅっぱつ じかん：その日 1かいだけ 紙ふぶき
+  if(st.phase==='soon')box.style.setProperty('--m-pulse','rgba(240,123,74,.45)');
+  box.style.animation=st.phase==='soon'&&!matchMedia('(prefers-reduced-motion: reduce)').matches?'m-pulse 1.2s ease-out infinite':'';
+  const today=toYmd(d);
+  if(st.phase==='go'&&departGoDay!==today){departGoDay=today;burstAt($('dLeftText'),{count:30,spread:180})}
+  $('dShowNow').checked=depart.showNow;$('dWeekdays').checked=depart.weekdaysOnly;
+}
+$('dSetOpen').addEventListener('click',()=>{const open=$('dSet').hidden;$('dSet').hidden=!open;$('dSetOpen').setAttribute('aria-expanded',open)});
+$('dEarlier').addEventListener('click',()=>{depart={...depart,time:shiftDepart(depart.time,-1)};saveDepart();drawDepart()});
+$('dLater').addEventListener('click',()=>{depart={...depart,time:shiftDepart(depart.time,1)};saveDepart();drawDepart()});
+$('dShowNow').addEventListener('change',()=>{depart={...depart,showNow:$('dShowNow').checked};saveDepart();drawDepart()});
+$('dWeekdays').addEventListener('change',()=>{depart={...depart,weekdaysOnly:$('dWeekdays').checked};saveDepart();drawDepart()});
+$('dOff').addEventListener('click',()=>{depart={...depart,on:false};$('dSet').hidden=true;$('dSetOpen').setAttribute('aria-expanded','false');saveDepart();drawDepart()});
+$('dOn').addEventListener('click',()=>{depart={...depart,on:true};saveDepart();drawDepart()});
+setInterval(()=>{if(!$('board').hidden&&!$('toolNotes').hidden)drawDepart()},1000);
 
 // 日付・時刻が変わったら表示を更新（1分ごと）
 setInterval(()=>{if(!$('board').hidden)render();else drawDate()},60*1000);

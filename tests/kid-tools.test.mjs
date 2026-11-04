@@ -79,3 +79,34 @@ test('カウントアップ／ダウン：表示する時間とアナログの�
   assert.ok(p.prep); assert.equal(p.kid, 'child2'); assert.equal(remainingMs(p, 1000), PREP_MIN * 60000);
   assert.equal(PREP_MIN, 2);
 });
+
+test('しゅっぱつ まで：時刻の設定・のこり・表示する時間帯', async () => {
+  const { normDepart, shiftDepart, departLabel, departState, departText, clockAngles, sectorPath, DEPART_DEFAULT } = await import('../lib/kid-tools.js');
+  assert.deepEqual(normDepart(null), { ...DEPART_DEFAULT });
+  assert.equal(normDepart({ time: '04:00' }).time, '05:00');            // 5:00〜10:00 に収める
+  assert.equal(normDepart({ time: 'x' }).time, '07:30');                // 壊れた値は初期値
+  assert.equal(normDepart({ on: false, showNow: false }).on, false);
+  assert.equal(shiftDepart('07:30', 1), '07:35'); assert.equal(shiftDepart('07:30', -2), '07:20');
+  assert.equal(shiftDepart('09:58', 3), '10:00'); assert.equal(departLabel('07:05'), '7:05');
+  const thu = (h, m, s = 0) => new Date(2026, 10, 5, h, m, s);   // 木曜
+  let st = departState(thu(7, 5), {});
+  assert.ok(st.show); assert.equal(st.phase, 'count'); assert.equal(st.leftMs, 25 * 60000);
+  assert.equal(departState(thu(7, 26), {}).phase, 'soon');               // のこり5ふん以内
+  st = departState(thu(7, 30), {}); assert.equal(st.phase, 'go'); assert.equal(st.leftMs, 0);
+  assert.ok(departState(thu(7, 44), {}).show);                           // しゅっぱつ15ふん後まで出す
+  assert.ok(!departState(thu(7, 45), {}).show);
+  assert.ok(!departState(thu(7, 5), { on: false }).show);
+  const sat = new Date(2026, 10, 7, 7, 5);
+  assert.ok(!departState(sat, {}).show);                                 // へいじつだけ：土曜は出さない
+  assert.ok(departState(sat, { weekdaysOnly: false }).show);
+  assert.equal(departText(25 * 60000), 'あと 25ふん');
+  assert.equal(departText(24 * 60000 + 1), 'あと 25ふん');               // 1びょうでも のこれば切り上げ
+  assert.equal(departText(4 * 60000), 'あと 4ぷん'); assert.equal(departText(10 * 60000), 'あと 10ぷん');
+  assert.equal(departText(70 * 60000), 'あと 1じかん 10ぷん'); assert.equal(departText(120 * 60000), 'あと 2じかん');
+  assert.equal(departText(30000), 'あと すこし！'); assert.equal(departText(0), 'しゅっぱつ じかん！');
+  const a = clockAngles(thu(7, 30));
+  assert.equal(a.minute, 180); assert.equal(a.hour, 225);                // 7:30 → 長い針は6、短い針は7と8のあいだ
+  assert.equal(sectorPath(0.5, 0.5), '');
+  assert.match(sectorPath(0, 0.25), /^M 100 100 L 100\.00 10\.00 A 90 90 0 0 1 190\.00 100\.00 Z$/);
+  assert.match(sectorPath(0.75, 1.25), /A 90 90 0 0 1 190\.00 100\.00 Z$/); // 12時をまたいでもよい
+});
