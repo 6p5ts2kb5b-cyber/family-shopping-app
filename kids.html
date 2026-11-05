@@ -51,11 +51,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 .donebtn:focus-visible{outline:3px solid #8DBBA5;outline-offset:2px}
 .none{margin:3px 2px;font-size:16px;color:var(--muted)}
 /* 朝の「しゅっぱつ まで」（タブレットの中だけ） */
-.depart{margin:8px 0 0;background:#fff;border-radius:18px;padding:10px 12px;border:3px solid #FFE3A3;box-shadow:0 2px 6px rgba(60,50,20,.08)}
-.depart .dmain{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 24px}
+.depart{--dial:clamp(110px,min(22vw,30vh),200px);margin:7px 0 0;background:#fff;border-radius:18px;padding:6px 12px;border:3px solid #FFE3A3;box-shadow:0 2px 6px rgba(60,50,20,.08)}
+.depart .dmain{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px clamp(12px,3vw,32px)}
 .dclock{margin:0;display:grid;justify-items:center;gap:4px}
-.dclock svg{width:clamp(150px,22vw,210px);height:auto;display:block}
-.dclock figcaption{font-size:18px;font-weight:800;color:var(--muted)}
+.dclock{gap:2px}.dclock svg{width:var(--dial);height:auto;display:block}
+.dclock figcaption{font-size:clamp(14px,calc(var(--dial)*.09),18px);font-weight:800;color:var(--muted);line-height:1.2}
 .dclock figcaption b{color:var(--ink);font-variant-numeric:tabular-nums}
 .dclock .face{fill:#FFFDF6;stroke:#E2D6B8;stroke-width:4}
 .dclock .tick{stroke:#B9AE95;stroke-width:2}.dclock .tick.big{stroke:#6E6450;stroke-width:4}
@@ -66,11 +66,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 .dclock .hand{stroke:#2B2620;stroke-linecap:round}
 .dclock .hand.h{stroke-width:7}.dclock .hand.m{stroke-width:4.5}
 .dclock .hub{fill:#2B2620}
-.dtext{display:grid;justify-items:center;gap:4px;text-align:center;min-width:0}
+.dtext{display:grid;justify-items:center;gap:2px;text-align:center;min-width:0}
 .dtext p{margin:0}
-.dwhen{font-size:20px;font-weight:800;color:#7A5300}
-.dleft{font-size:clamp(38px,6.5vw,64px);font-weight:900;color:#C2461C;line-height:1.1;font-variant-numeric:tabular-nums}
-.dmsg{font-size:20px;font-weight:800;color:#7A5300;min-height:1.2em}
+.dwhen{display:flex;align-items:center;gap:10px;font-size:clamp(16px,calc(var(--dial)*.1),20px);font-weight:800;color:#7A5300}
+.dleft{font-size:clamp(30px,calc(var(--dial)*.32),64px);font-weight:900;color:#C2461C;line-height:1.1;font-variant-numeric:tabular-nums}
+.dmsg{font-size:clamp(16px,calc(var(--dial)*.1),20px);font-weight:800;color:#7A5300}
 .depart.soon{border-color:#F07B4A}
 .depart.go{border-color:#2E8B57;background:#EAF6EF}.depart.go .dleft{color:#1F6B44}
 .dbtn{min-height:48px;padding:0 16px;border-radius:12px;border:2px solid var(--line);background:#fff;font-size:17px;font-weight:800;color:var(--muted)}
@@ -219,10 +219,9 @@ button{font:inherit;color:inherit;cursor:pointer}
         <figcaption>いま <b id="dNowText"></b></figcaption>
       </figure>
       <div class="dtext">
-        <p class="dwhen">しゅっぱつ <b id="dTime"></b></p>
+        <p class="dwhen"><span>しゅっぱつ <b id="dTime"></b></span><button type="button" class="dbtn" id="dSetOpen" aria-expanded="false" aria-controls="dSet" aria-label="しゅっぱつの せってい">⚙</button></p>
         <p class="dleft" id="dLeftText" aria-live="polite"></p>
-        <p class="dmsg" id="dMsg"></p>
-        <button type="button" class="dbtn" id="dSetOpen" aria-expanded="false" aria-controls="dSet">⚙ せってい</button>
+        <p class="dmsg" id="dMsg" hidden></p>
       </div>
     </div>
     <div class="dset" id="dSet" hidden>
@@ -386,7 +385,7 @@ function render(){
   });
   $('cols').replaceChildren(...cols);
   // でんごん：はじめは順番にふわっと、あとから届いたものだけポップイン
-  drawDepart();
+  departShownKey='';drawDepart();
   if(noticesLoaded)enter([...$('cols').querySelectorAll('li.note')].map(li=>[li.dataset.key,li]),seenNotes,notesMotion);
   renderTools();
 }
@@ -706,6 +705,19 @@ let departGoDay='';
   }
 })();
 const handEnd=(deg,len)=>{const a=deg*Math.PI/180;return [(100+len*Math.sin(a)).toFixed(2),(100-len*Math.cos(a)).toFixed(2)]};
+// 画面に おさまる大きさに：はみ出すあいだ 時計を少しずつ小さくする（せっていを ひらいている ぶんは のぞく）
+const DIAL_MIN=72;
+function fitDepart(){
+  const box=$('depart');if(box.hidden)return;
+  const extra=$('dSet').hidden?0:$('dSet').offsetHeight+10;
+  let size=Math.round(Math.min(200,Math.max(DIAL_MIN,Math.min(innerWidth*.22,innerHeight*.3))));
+  box.style.setProperty('--dial',size+'px');
+  const start=size,over=()=>document.documentElement.scrollHeight-extra>innerHeight+1;
+  while(size>DIAL_MIN&&over()){size=Math.max(DIAL_MIN,size-8);box.style.setProperty('--dial',size+'px')}
+  // いちばん小さくしても おさまらない（スマホ・伝言が多い）ときは、小さくしても意味がないので 元の大きさに
+  if(over())box.style.setProperty('--dial',start+'px');
+}
+let departShownKey='';
 function drawDepart(){
   const box=$('depart'),d=now();
   const morning=currentPeriod()==='morning'&&!(state.board.pause==='on'||state.board.pause===toYmd(d));
@@ -713,7 +725,7 @@ function drawDepart(){
   const show=morning&&st.show;
   box.hidden=!show;
   $('dOn').hidden=!(morning&&!depart.on);
-  if(!show)return;
+  if(!show){departShownKey='';return}
   const label=departLabel(depart.time);
   $('dTime').textContent=label;$('dSetTime').textContent=label;
   // 左：しゅっぱつ まで（タイムタイマー型。60ぷんで いっしゅう。色が 0 にむかって へっていく）
@@ -731,7 +743,7 @@ function drawDepart(){
   $('dMark').setAttribute('cx',kx);$('dMark').setAttribute('cy',ky);
   const nowText=`${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
   $('dNowText').textContent=nowText;$('dNowSvg').setAttribute('aria-label',`いまの じかん ${nowText}`);
-  $('dMsg').textContent=st.phase==='go'?'いってらっしゃい！':st.phase==='soon'?'もうすぐ！ じゅんび できた？':'';
+  $('dMsg').textContent=st.phase==='go'?'いってらっしゃい！':st.phase==='soon'?'もうすぐ！ じゅんび できた？':'';$('dMsg').hidden=st.phase==='count';
   box.classList.toggle('soon',st.phase==='soon');box.classList.toggle('go',st.phase==='go');
   // のこり5ふん：パルス、しゅっぱつ じかん：その日 1かいだけ 紙ふぶき
   if(st.phase==='soon')box.style.setProperty('--m-pulse','rgba(240,123,74,.45)');
@@ -739,7 +751,11 @@ function drawDepart(){
   const today=toYmd(d);
   if(st.phase==='go'&&departGoDay!==today){departGoDay=today;burstAt($('dLeftText'),{count:30,spread:180})}
   $('dShowNow').checked=depart.showNow;$('dWeekdays').checked=depart.weekdaysOnly;
+  // 出たとき・表示が変わったときだけ 大きさを合わせる（毎秒は しない）
+  const key=[depart.showNow,st.phase,innerWidth,innerHeight].join();
+  if(key!==departShownKey){departShownKey=key;fitDepart()}
 }
+addEventListener('resize',()=>{departShownKey='';if(!$('board').hidden)drawDepart()});
 $('dSetOpen').addEventListener('click',()=>{const open=$('dSet').hidden;$('dSet').hidden=!open;$('dSetOpen').setAttribute('aria-expanded',open)});
 $('dEarlier').addEventListener('click',()=>{depart={...depart,time:shiftDepart(depart.time,-1)};saveDepart();drawDepart()});
 $('dLater').addEventListener('click',()=>{depart={...depart,time:shiftDepart(depart.time,1)};saveDepart();drawDepart()});
