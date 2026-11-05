@@ -110,3 +110,11 @@ test('しゅっぱつ まで：時刻の設定・のこり・表示する時間�
   assert.match(sectorPath(0, 0.25), /^M 100 100 L 100\.00 10\.00 A 90 90 0 0 1 190\.00 100\.00 Z$/);
   assert.match(sectorPath(0.75, 1.25), /A 90 90 0 0 1 190\.00 100\.00 Z$/); // 12時をまたいでもよい
 });
+
+test('タイムタイマー型の扇形：0から左まわり', async () => {
+  const { wedgePathCCW } = await import('../lib/kid-tools.js');
+  assert.equal(wedgePathCCW(0), '');
+  assert.equal(wedgePathCCW(0.25), 'M 100 100 L 100 10 A 90 90 0 0 0 10.00 100.00 Z');   // 15ふん → 左（9時）
+  assert.match(wedgePathCCW(0.75), / 0 1 0 190\.00 100\.00 Z$/);                        // 45ふん → 右（3時）
+  assert.match(wedgePathCCW(1), /^M 100 10 A 90 90 0 1 0 /);
+});

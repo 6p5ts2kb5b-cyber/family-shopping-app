@@ -38,7 +38,11 @@ const vis = (sel) => k.isVisible(sel);
 ok(await vis('#depart'), '朝は「しゅっぱつ まで」が出る');
 ok((await txt('dTime')) === '7:30' && (await txt('dLeftText')) === 'あと 25ふん', `しゅっぱつ 7:30・あと 25ふん（${await txt('dLeftText')}）`);
 const wedge = await attr('dLeftWedge', 'd');
-ok(/^M 100 100 L 100 10 A 90 90 0 0 1 /.test(wedge), 'しゅっぱつまでの とけい：12じから のこりの ぶんだけ いろ');
+// 25ふん → 0 から 左まわりに 25 の所まで（タイムタイマーと同じ）
+const ang = 25 / 60 * 2 * Math.PI, ex = (100 - 68 * Math.sin(ang)).toFixed(2), ey = (100 - 68 * Math.cos(ang)).toFixed(2);
+ok(wedge === `M 100 100 L 100 32 A 68 68 0 0 0 ${ex} ${ey}`.replace(/$/, ' Z'), `しゅっぱつまでの とけい：0 から 左まわりに 25 まで いろ（${wedge}）`);
+const nums = await k.$$eval('#dLeftTicks text', (x) => x.map((e) => [e.textContent, Math.round(Number(e.getAttribute('x'))), Math.round(Number(e.getAttribute('y')))]));
+ok(nums.map((n) => n[0]).join() === '0,5,10,15,20,25,30,35,40,45,50,55' && nums[3][1] === 14 && nums[3][2] === 100 && nums[9][1] === 186, 'すうじは 0 が上、15 が左、45 が右（タイムタイマーと同じ）');
 ok(await vis('#dNow') && (await txt('dNowText')) === '7:05', 'いまの とけい：7:05');
 const hand = async (id) => [Number(await attr(id, 'x2')), Number(await attr(id, 'y2'))];
 const [mx, my] = await hand('dMin');
@@ -111,7 +115,37 @@ for (const [label, vp] of [['iPad たて', { width: 820, height: 1180 }], ['iPad
   });
   ok(r.noH, `${label}：横に はみ出さない`);
   ok(r.minBtn >= 48, `${label}：せっていの ボタンが押しやすい（${Math.round(r.minBtn)}px）`);
-  ok(r.dial >= 140 && r.now >= 140 && r.left >= 36, `${label}：とけい（${Math.round(r.dial)}px）と「あと なんぷん」（${r.left}px）が 大きい`);
+  ok(r.dial >= 72 && r.now >= 72 && r.left >= 30, `${label}：とけい（${Math.round(r.dial)}px）と「あと なんぷん」（${r.left}px）が 見える大きさ`);
+  await c.close();
+}
+
+// ---- 1画面に おさまる（スライドしなくてよい）：Safariの上のバーや「ページの拡大」を引いた大きさ ----
+{
+  const N4 = (text, targets) => ({ text, targets, period: 'morning', repeat: 'daily', onDate: '', active: true, updatedAt: ts(1) });
+  const full = () => ({ ...seed(), kidNotices: {
+    a: N4('テストぬりぬり', ['child1', 'child2']), b: N4('テストおはし', ['child1', 'child2']),
+    c: N4('テストすいとう', ['child1', 'child2', 'child3']), d: N4('テストハンカチ・ティッシュ', ['child1', 'child2']), e: N4('テストごむ', ['child3']) } });
+  for (const [label, vp] of [['iPad よこ（Safari）', { width: 1080, height: 690 }], ['iPad 1024 よこ', { width: 1024, height: 650 }],
+    ['iPad mini よこ', { width: 1133, height: 630 }], ['iPad よこ・拡大125%', { width: 864, height: 520 }], ['iPad たて', { width: 810, height: 960 }]]) {
+    const c = await b.newContext({ viewport: vp, hasTouch: true, isMobile: true, reducedMotion: 'reduce' });
+    await route(c);
+    const p = await c.newPage(); await p.clock.setFixedTime(THU(7, 15));
+    await p.goto(BASE + 'kids.html');
+    await p.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('nextAnonUid', 'tabT'); }, full());
+    await p.reload(); await p.waitForSelector('#board .kid'); await p.waitForTimeout(1300);
+    const r = await p.evaluate(() => ({ fits: document.documentElement.scrollHeight <= innerHeight + 1, dial: document.getElementById('dLeftSvg').getBoundingClientRect().width, vis: !document.getElementById('depart').hidden }));
+    ok(r.vis && r.fits && r.dial >= 72, `${label}：伝言と時計が 1画面に おさまる（時計 ${Math.round(r.dial)}px）`);
+    await c.close();
+  }
+  // 向きを変えたら 合わせなおす
+  const c = await b.newContext({ viewport: { width: 810, height: 960 }, hasTouch: true, isMobile: true, reducedMotion: 'reduce' });
+  await route(c);
+  const p = await c.newPage(); await p.clock.setFixedTime(THU(7, 15));
+  await p.goto(BASE + 'kids.html');
+  await p.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('nextAnonUid', 'tabT'); }, full());
+  await p.reload(); await p.waitForSelector('#board .kid'); await p.waitForTimeout(1300);
+  await p.setViewportSize({ width: 1024, height: 650 }); await p.waitForTimeout(1300);
+  ok(await p.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1), 'たて→よこに 向きを変えても 1画面に おさまる');
   await c.close();
 }
 await b.close();
