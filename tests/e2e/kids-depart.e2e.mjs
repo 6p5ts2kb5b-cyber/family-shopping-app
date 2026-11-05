@@ -36,7 +36,7 @@ const vis = (sel) => k.isVisible(sel);
 
 // ---- 朝 7:05（しゅっぱつ 7:30） ----
 ok(await vis('#depart'), '朝は「しゅっぱつ まで」が出る');
-ok((await txt('dTime')) === '7:30' && (await txt('dLeftText')) === 'あと 25ふん', `しゅっぱつ 7:30・あと 25ふん（${await txt('dLeftText')}）`);
+ok((await txt('dGroups')) === 'しゅっぱつ 7:30' && (await txt('dLeftText')) === 'あと 25ふん', `しゅっぱつ 7:30・あと 25ふん（${await txt('dLeftText')}）`);
 const wedge = await attr('dLeftWedge', 'd');
 // 25ふん → 0 から 左まわりに 25 の所まで（タイムタイマーと同じ）
 const ang = 25 / 60 * 2 * Math.PI, ex = (100 - 68 * Math.sin(ang)).toFixed(2), ey = (100 - 68 * Math.cos(ang)).toFixed(2);
@@ -50,7 +50,7 @@ ok(Math.abs(mx - (100 + 74 * Math.sin(Math.PI / 6))) < 0.1 && Math.abs(my - (100
 const [hx, hy] = await hand('dHour');
 const ha = (7 + 5 / 60) * 30 * Math.PI / 180;
 ok(Math.abs(hx - (100 + 48 * Math.sin(ha))) < 0.1 && Math.abs(hy - (100 - 48 * Math.cos(ha))) < 0.1, '短い針は 7 の すこし さき');
-ok((await attr('dNowSector', 'd')).length > 10 && Number(await attr('dMark', 'cy')) > 180, 'いまの とけいに しゅっぱつまでの いろと、しゅっぱつ（6）の しるし');
+ok((await attr('dNowSector', 'd')).length > 10 && Number(await k.getAttribute('#dMarks circle', 'cy')) > 180, 'いまの とけいに しゅっぱつまでの いろと、しゅっぱつ（6）の しるし');
 ok((await k.$$eval('#dNowTicks text', (x) => x.map((e) => e.textContent).join())) === '1,2,3,4,5,6,7,8,9,10,11,12', 'いまの とけいに 1〜12 の すうじ');
 
 // ---- 時間が進む ----
@@ -66,17 +66,40 @@ await at(THU(7, 5));
 ok(await k.isHidden('#dSet'), 'せっていは ふだん かくれている');
 await k.click('#dSetOpen');
 ok(await vis('#dSet') && (await attr('dSetOpen', 'aria-expanded')) === 'true', '「せってい」で ひらく');
-await k.click('#dLater'); await k.click('#dLater');
-ok((await txt('dTime')) === '7:40' && (await txt('dSetTime')) === '7:40' && (await txt('dLeftText')) === 'あと 35ふん', 'しゅっぱつ じかんを 5ふんずつ かえられる（7:40）');
-await k.click('#dEarlier');
-ok((await txt('dTime')) === '7:35', '−で はやく できる（7:35）');
+const rows = await k.$$eval('#dTimes .stepper', (x) => x.map((e) => e.textContent.replace(/[−＋]/g, '')));
+ok(rows.join() === 'テ一7:30,テ二7:30,テ三7:30', `ひとりずつ しゅっぱつ時刻が ならぶ（${rows.join('・')}）`);
+// テ三だけ おそく（7:50）
+const later = (id) => k.click(`#dTimes [data-kid=${id}] button[data-d="1"]`), earlier = (id) => k.click(`#dTimes [data-kid=${id}] button[data-d="-1"]`);
+for (let i = 0; i < 4; i++) await later('child3');
+ok((await k.textContent('#dTimes [data-kid=child3] b')) === '7:50' && (await k.textContent('#dTimes [data-kid=child1] b')) === '7:30', 'テ三だけ 5ふんずつ おそく できる（7:50）');
+const groups = () => k.$$eval('#dGroups .dg', (x) => x.map((e) => e.textContent.trim()));
+ok((await groups()).join('|') === 'テ一・テ二 7:30|テ三 7:50' && (await txt('dLeftText')) === 'あと 25ふん', `時刻が ちがうと ひとりずつ 出る（${(await groups()).join('・')}）・大きい数字は いちばん近い しゅっぱつ`);
+ok((await k.$$eval('#dMarks circle', (x) => x.length)) === 2, 'いまの とけいに しゅっぱつ時刻の しるしが 2つ');
+await k.click('#dSetOpen');
+await at(THU(7, 33));
+ok((await txt('dLeftText')) === 'あと 17ふん' && (await txt('dMsg')) === 'テ一・テ二：いってらっしゃい！' && (await groups())[0].endsWith('✓'), '7:33：テ一・テ二は いってらっしゃい、テ三は あと 17ふん');
+ok(await k.$eval('#dGroups .dg.now', (e) => e.textContent.startsWith('テ三')), 'つぎに しゅっぱつする テ三が めだつ');
+await at(THU(7, 47));
+ok((await txt('dLeftText')) === 'あと 3ぷん' && (await txt('dMsg')) === 'テ三：もうすぐ！ じゅんび できた？', '7:47：テ三 もうすぐ');
+await at(THU(7, 50));
+ok((await txt('dMsg')) === 'テ三：いってらっしゃい！' && (await txt('dLeftText')) === 'しゅっぱつ じかん！', '7:50：テ三 いってらっしゃい');
+await at(THU(8, 4));
+ok(await vis('#depart'), 'いちばん おそい しゅっぱつ（7:50）の 15ふん後までは 出る');
+await at(THU(8, 5));
+ok(!(await vis('#depart')), '8:05 には けす');
+await at(THU(7, 5));
+await k.click('#dSetOpen'); await earlier('child1');
+ok((await k.textContent('#dTimes [data-kid=child1] b')) === '7:25' && (await groups())[0] === 'テ一 7:25', '−で はやく できる（テ一 7:25）');
 // いまの とけい：けす／だす
 await k.click('#dShowNow');
 ok(await k.isHidden('#dNow') && await vis('#dLeftSvg'), '「いまの とけい」を けせる（しゅっぱつまでの とけいは のこる）');
 await k.reload(); await k.waitForSelector('#board .kid'); await k.waitForTimeout(1300);
-ok((await txt('dTime')) === '7:35' && await k.isHidden('#dNow'), 'もういちど ひらいても せっていは のこる');
+ok((await groups()).join('|') === 'テ一 7:25|テ二 7:30|テ三 7:50' && await k.isHidden('#dNow'), 'もういちど ひらいても せっていは のこる（ひとりずつの 時刻も）');
 await k.click('#dSetOpen'); await k.click('#dShowNow');
 ok(await vis('#dNow'), '「いまの とけい」を また だせる');
+// あとの テストのため みんな 7:30 に もどす
+await later('child1'); for (let i = 0; i < 4; i++) await earlier('child3');
+ok((await txt('dGroups')) === 'しゅっぱつ 7:30', 'みんな 同じ時刻なら「しゅっぱつ 7:30」だけ');
 // とけいを けす → だす
 await k.click('#dOff');
 ok(await k.isHidden('#depart') && await vis('#dOn'), '「とけいを けす」で けせて、「だす」ボタンが出る');
@@ -92,7 +115,7 @@ await at(new Date(2026, 10, 7, 7, 5));
 ok(await k.isHidden('#depart'), 'どようびは 出ない（へいじつ だけ）');
 await k.evaluate(() => { const v = JSON.parse(localStorage.getItem('kidsDepart')); v.weekdaysOnly = false; localStorage.setItem('kidsDepart', JSON.stringify(v)); });
 await k.reload(); await k.waitForSelector('#board .kid'); await at(new Date(2026, 10, 7, 7, 5));
-ok(await vis('#depart') && (await txt('dLeftText')) === 'あと 30ぷん', '「へいじつ だけ」を はずすと どようびも 出る');
+ok(await vis('#depart') && (await txt('dLeftText')) === 'あと 25ふん', '「へいじつ だけ」を はずすと どようびも 出る');
 
 ok((await k.evaluate(() => localStorage.getItem('fakeDB'))) === dbBefore, 'Firebaseには なにも 送らない（データは変わらない）');
 ok(errs.length === 0, 'エラーなし ' + errs.join(' / '));
