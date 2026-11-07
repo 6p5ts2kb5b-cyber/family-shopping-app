@@ -62,12 +62,14 @@ button{font:inherit;color:inherit;cursor:pointer}
 .dclock .numeral{font-size:17px;font-weight:800;fill:#4A4232;text-anchor:middle;dominant-baseline:central}
 .dclock .wedge{fill:#E5482F}
 .dclock .sector{fill:#FFD3BF}
-.dclock .mark{fill:#E2572B;stroke:#fff;stroke-width:3}
+.dclock .mark{fill:#E2572B;stroke:#fff;stroke-width:3}.dclock .mark.past{fill:#B9AE95}
 .dclock .hand{stroke:#2B2620;stroke-linecap:round}
 .dclock .hand.h{stroke-width:7}.dclock .hand.m{stroke-width:4.5}
 .dclock .hub{fill:#2B2620}
 .dtext{display:grid;justify-items:center;gap:2px;text-align:center;min-width:0}
 .dtext p{margin:0}
+.dgroups{display:grid;gap:0;justify-items:start}.dg{white-space:nowrap}.dg.past{color:#8A8170;font-weight:700}.dg.past b{text-decoration:line-through}.dg.now{color:#C2461C}
+.dtimes{display:grid;gap:6px}.dtimes .stepper span{min-width:4.5em;font-size:18px;overflow-wrap:anywhere}
 .dwhen{display:flex;align-items:center;gap:10px;font-size:clamp(16px,calc(var(--dial)*.1),20px);font-weight:800;color:#7A5300}
 .dleft{font-size:clamp(30px,calc(var(--dial)*.32),64px);font-weight:900;color:#C2461C;line-height:1.1;font-variant-numeric:tabular-nums}
 .dmsg{font-size:clamp(16px,calc(var(--dial)*.1),20px);font-weight:800;color:#7A5300}
@@ -215,17 +217,17 @@ button{font:inherit;color:inherit;cursor:pointer}
         <figcaption>しゅっぱつ まで</figcaption>
       </figure>
       <figure class="dclock" id="dNow">
-        <svg id="dNowSvg" viewBox="0 0 200 200" role="img" aria-label="いまの じかん"><circle class="face" cx="100" cy="100" r="96"/><path class="sector" id="dNowSector" d=""/><g id="dNowTicks"></g><circle class="mark" id="dMark" cx="100" cy="10" r="8"/><line class="hand h" id="dHour" x1="100" y1="100" x2="100" y2="52"/><line class="hand m" id="dMin" x1="100" y1="100" x2="100" y2="26"/><circle class="hub" cx="100" cy="100" r="7"/></svg>
+        <svg id="dNowSvg" viewBox="0 0 200 200" role="img" aria-label="いまの じかん"><circle class="face" cx="100" cy="100" r="96"/><path class="sector" id="dNowSector" d=""/><g id="dNowTicks"></g><g id="dMarks"></g><line class="hand h" id="dHour" x1="100" y1="100" x2="100" y2="52"/><line class="hand m" id="dMin" x1="100" y1="100" x2="100" y2="26"/><circle class="hub" cx="100" cy="100" r="7"/></svg>
         <figcaption>いま <b id="dNowText"></b></figcaption>
       </figure>
       <div class="dtext">
-        <p class="dwhen"><span>しゅっぱつ <b id="dTime"></b></span><button type="button" class="dbtn" id="dSetOpen" aria-expanded="false" aria-controls="dSet" aria-label="しゅっぱつの せってい">⚙</button></p>
+        <div class="dwhen"><div class="dgroups" id="dGroups"></div><button type="button" class="dbtn" id="dSetOpen" aria-expanded="false" aria-controls="dSet" aria-label="しゅっぱつの せってい">⚙</button></div>
         <p class="dleft" id="dLeftText" aria-live="polite"></p>
         <p class="dmsg" id="dMsg" hidden></p>
       </div>
     </div>
     <div class="dset" id="dSet" hidden>
-      <div class="stepper" aria-label="しゅっぱつ じかん"><span>しゅっぱつ</span><button type="button" id="dEarlier" aria-label="5ふん はやく">−</button><b id="dSetTime"></b><button type="button" id="dLater" aria-label="5ふん おそく">＋</button></div>
+      <div class="dtimes" id="dTimes" role="group" aria-label="しゅっぱつ じかん（ひとりずつ）"></div>
       <label><input type="checkbox" id="dShowNow">いまの とけい</label>
       <label><input type="checkbox" id="dWeekdays">へいじつ だけ</label>
       <button type="button" class="dbtn" id="dOff">とけいを けす</button>
@@ -296,7 +298,7 @@ import {CHILD_IDS,boardFor,periodAt,isDone,setDone,pruneDone,toYmd,DEFAULT_EVENI
 import {newToken,sha256Hex,pairUrl,checkEmojis,PAIR_REFRESH_MS} from "./lib/kid-pairing.js";
 import qrcode from "./lib/vendor/qrcode.mjs";
 import {installMotion,enableRipple,enter,bump,shake,play,burst,burstAt} from "./lib/motion.js";
-import {normDepart,shiftDepart,departLabel,departState,departText,clockAngles,sectorPath,wedgePathCCW,wedgePath as dialWedge,VOTERS,rotationOrder,nextInOrder,clampMinutes,startTimer,pauseTimer,resumeTimer,remainingMs,isRunning,formatClock,shownMs,dialFraction,wedgePath,startPrep,PREP_MIN,createPoll,castVote,tally,winners,pickRandom,MAX_CHOICES,TIMER_DEFAULT} from "./lib/kid-tools.js";
+import {normDepart,shiftDepart,departLabel,departState,departPlan,departText,clockAngles,sectorPath,wedgePathCCW,wedgePath as dialWedge,VOTERS,rotationOrder,nextInOrder,clampMinutes,startTimer,pauseTimer,resumeTimer,remainingMs,isRunning,formatClock,shownMs,dialFraction,wedgePath,startPrep,PREP_MIN,createPoll,castVote,tally,winners,pickRandom,MAX_CHOICES,TIMER_DEFAULT} from "./lib/kid-tools.js";
 
 // 親の app.html とログイン状態・端末保存を分けるため、名前付きのアプリで初期化する
 const app=initializeApp(firebaseConfig,'kids'),auth=getAuth(app);
@@ -689,7 +691,7 @@ function spin(cands){
 const DEPART_KEY='kidsDepart';
 let depart=(()=>{try{return normDepart(JSON.parse(store?.getItem(DEPART_KEY)||'null'))}catch{return normDepart(null)}})();
 const saveDepart=()=>{try{store?.setItem(DEPART_KEY,JSON.stringify(depart))}catch{}};
-let departGoDay='';
+const departGoDone=new Set();
 (function buildDials(){
   const ns='http://www.w3.org/2000/svg',mk=(tag,attrs)=>{const e=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);return e};
   // 左：タイムタイマー型（0が上、5・10・15…が左まわり。めもりの内側に色の円板）
@@ -718,47 +720,65 @@ function fitDepart(){
   if(over())box.style.setProperty('--dial',start+'px');
 }
 let departShownKey='';
+const nameList=kids=>kids.map(nameOf).join('・');
 function drawDepart(){
   const box=$('depart'),d=now();
   const morning=currentPeriod()==='morning'&&!(state.board.pause==='on'||state.board.pause===toYmd(d));
-  const st=departState(d,depart);
-  const show=morning&&st.show;
+  const plan=departPlan(d,depart),g=plan.groups[plan.target],multi=plan.groups.length>1;
+  const show=morning&&plan.show;
   box.hidden=!show;
   $('dOn').hidden=!(morning&&!depart.on);
   if(!show){departShownKey='';return}
-  const label=departLabel(depart.time);
-  $('dTime').textContent=label;$('dSetTime').textContent=label;
-  // 左：しゅっぱつ まで（タイムタイマー型。60ぷんで いっしゅう。色が 0 にむかって へっていく）
-  const frac=Math.min(1,st.leftMs/3600000);
+  // だれが 何時に（みんな同じなら「しゅっぱつ 7:30」、ちがうときは ひとりずつ）
+  $('dGroups').replaceChildren(...plan.groups.map((x,i)=>{
+    const row=el('span',{className:'dg'+(i===plan.target&&multi?' now':'')+(i<plan.target?' past':'')});
+    row.append(multi?nameList(x.kids)+' ':'しゅっぱつ ',el('b',{textContent:departLabel(x.time)}));
+    if(i<plan.target)row.append(' ✓');
+    return row}));
+  // 左：しゅっぱつ まで（タイムタイマー型。60ぷんで いっしゅう。色が 0 にむかって へっていく）。いちばん近い しゅっぱつ
+  const frac=Math.min(1,g.leftMs/3600000);
   $('dLeftWedge').setAttribute('d',wedgePathCCW(frac,100,68));
-  $('dLeftText').textContent=departText(st.leftMs);
-  $('dLeftSvg').setAttribute('aria-label',`しゅっぱつ まで ${departText(st.leftMs)}`);
-  // 右：いまの じかん（はりの とけい）。しゅっぱつまでの ところに いろ
+  $('dLeftText').textContent=departText(g.leftMs);
+  $('dLeftSvg').setAttribute('aria-label',`${multi?nameList(g.kids)+'の ':''}しゅっぱつ まで ${departText(g.leftMs)}`);
+  // 右：いまの じかん（はりの とけい）。いちばん近い しゅっぱつ までに いろ、しゅっぱつ時刻ごとに しるし
   $('dNow').hidden=!depart.showNow;
   const ang=clockAngles(d);
   const [hx,hy]=handEnd(ang.hour,48),[mx,my]=handEnd(ang.minute,74);
   $('dHour').setAttribute('x2',hx);$('dHour').setAttribute('y2',hy);$('dMin').setAttribute('x2',mx);$('dMin').setAttribute('y2',my);
-  $('dNowSector').setAttribute('d',st.leftMs>0?sectorPath(ang.minute/360,ang.minute/360+frac,100,92):'');
-  const at=new Date(st.at),[kx,ky]=handEnd(at.getMinutes()*6,92);
-  $('dMark').setAttribute('cx',kx);$('dMark').setAttribute('cy',ky);
+  $('dNowSector').setAttribute('d',g.leftMs>0?sectorPath(ang.minute/360,ang.minute/360+frac,100,92):'');
+  const ns='http://www.w3.org/2000/svg';
+  $('dMarks').replaceChildren(...plan.groups.map((x,i)=>{const [kx,ky]=handEnd(new Date(x.at).getMinutes()*6,92);const c=document.createElementNS(ns,'circle');
+    c.setAttribute('class','mark'+(i<plan.target?' past':''));c.setAttribute('cx',kx);c.setAttribute('cy',ky);c.setAttribute('r',i===plan.target?8:6);return c}));
   const nowText=`${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
   $('dNowText').textContent=nowText;$('dNowSvg').setAttribute('aria-label',`いまの じかん ${nowText}`);
-  $('dMsg').textContent=st.phase==='go'?'いってらっしゃい！':st.phase==='soon'?'もうすぐ！ じゅんび できた？':'';$('dMsg').hidden=st.phase==='count';
-  box.classList.toggle('soon',st.phase==='soon');box.classList.toggle('go',st.phase==='go');
-  // のこり5ふん：パルス、しゅっぱつ じかん：その日 1かいだけ 紙ふぶき
-  if(st.phase==='soon')box.style.setProperty('--m-pulse','rgba(240,123,74,.45)');
-  box.style.animation=st.phase==='soon'&&!matchMedia('(prefers-reduced-motion: reduce)').matches?'m-pulse 1.2s ease-out infinite':'';
+  // ひとこと：さっき しゅっぱつした 子へ「いってらっしゃい」、いちばん近い子が もうすぐ なら「もうすぐ」
+  const justLeft=plan.groups.filter((x,i)=>i!==plan.target&&x.phase==='go'&&d.getTime()-x.at<15*60000);
+  const who=multi?nameList(g.kids)+'：':'';
+  const msg=g.phase==='go'?`${who}いってらっしゃい！`:g.phase==='soon'?`${who}もうすぐ！ じゅんび できた？`:justLeft.length?`${nameList(justLeft.flatMap(x=>x.kids))}：いってらっしゃい！`:'';
+  $('dMsg').textContent=msg;$('dMsg').hidden=!msg;
+  box.classList.toggle('soon',g.phase==='soon');box.classList.toggle('go',g.phase==='go');
+  // のこり5ふん：パルス、しゅっぱつ じかん：その時刻ごとに 1かいだけ 紙ふぶき
+  if(g.phase==='soon')box.style.setProperty('--m-pulse','rgba(240,123,74,.45)');
+  box.style.animation=g.phase==='soon'&&!matchMedia('(prefers-reduced-motion: reduce)').matches?'m-pulse 1.2s ease-out infinite':'';
   const today=toYmd(d);
-  if(st.phase==='go'&&departGoDay!==today){departGoDay=today;burstAt($('dLeftText'),{count:30,spread:180})}
+  for(const x of plan.groups){const k=today+' '+x.time;if(x.phase==='go'&&d.getTime()-x.at<60000&&!departGoDone.has(k)){departGoDone.add(k);burstAt($('dLeftText'),{count:30,spread:180})}}
   $('dShowNow').checked=depart.showNow;$('dWeekdays').checked=depart.weekdaysOnly;
   // 出たとき・表示が変わったときだけ 大きさを合わせる（毎秒は しない）
-  const key=[depart.showNow,st.phase,innerWidth,innerHeight].join();
+  const key=[depart.showNow,plan.target,g.phase,!!msg,plan.groups.length,innerWidth,innerHeight].join();
   if(key!==departShownKey){departShownKey=key;fitDepart()}
 }
+// せってい：ひとりずつ しゅっぱつ時刻（5ふんずつ）
+function drawDepartTimes(){
+  $('dTimes').replaceChildren(...CHILD_IDS.map(id=>{
+    const row=el('div',{className:'stepper'});row.dataset.kid=id;
+    const b=el('b',{textContent:departLabel(depart.times[id])});
+    const btn=(delta,txt,label)=>{const x=el('button',{type:'button',textContent:txt,ariaLabel:`${nameOf(id)} ${label}`});x.dataset.d=delta;
+      x.addEventListener('click',()=>{depart={...depart,times:{...depart.times,[id]:shiftDepart(depart.times[id],delta)}};saveDepart();drawDepartTimes();drawDepart()});return x};
+    row.append(el('span',{textContent:nameOf(id)}),btn(-1,'−','5ふん はやく'),b,btn(1,'＋','5ふん おそく'));
+    return row}));
+}
 addEventListener('resize',()=>{departShownKey='';if(!$('board').hidden)drawDepart()});
-$('dSetOpen').addEventListener('click',()=>{const open=$('dSet').hidden;$('dSet').hidden=!open;$('dSetOpen').setAttribute('aria-expanded',open)});
-$('dEarlier').addEventListener('click',()=>{depart={...depart,time:shiftDepart(depart.time,-1)};saveDepart();drawDepart()});
-$('dLater').addEventListener('click',()=>{depart={...depart,time:shiftDepart(depart.time,1)};saveDepart();drawDepart()});
+$('dSetOpen').addEventListener('click',()=>{const open=$('dSet').hidden;if(open)drawDepartTimes();$('dSet').hidden=!open;$('dSetOpen').setAttribute('aria-expanded',open)});
 $('dShowNow').addEventListener('change',()=>{depart={...depart,showNow:$('dShowNow').checked};saveDepart();drawDepart()});
 $('dWeekdays').addEventListener('change',()=>{depart={...depart,weekdaysOnly:$('dWeekdays').checked};saveDepart();drawDepart()});
 $('dOff').addEventListener('click',()=>{depart={...depart,on:false};$('dSet').hidden=true;$('dSetOpen').setAttribute('aria-expanded','false');saveDepart();drawDepart()});

@@ -82,7 +82,7 @@ test('カウントアップ／ダウン：表示する時間とアナログの�
 
 test('しゅっぱつ まで：時刻の設定・のこり・表示する時間帯', async () => {
   const { normDepart, shiftDepart, departLabel, departState, departText, clockAngles, sectorPath, DEPART_DEFAULT } = await import('../lib/kid-tools.js');
-  assert.deepEqual(normDepart(null), { ...DEPART_DEFAULT });
+  assert.deepEqual(normDepart(null), { ...DEPART_DEFAULT, times: { child1: '07:30', child2: '07:30', child3: '07:30' } });
   assert.equal(normDepart({ time: '04:00' }).time, '05:00');            // 5:00〜10:00 に収める
   assert.equal(normDepart({ time: 'x' }).time, '07:30');                // 壊れた値は初期値
   assert.equal(normDepart({ on: false, showNow: false }).on, false);
@@ -117,4 +117,22 @@ test('タイムタイマー型の扇形：0から左まわり', async () => {
   assert.equal(wedgePathCCW(0.25), 'M 100 100 L 100 10 A 90 90 0 0 0 10.00 100.00 Z');   // 15ふん → 左（9時）
   assert.match(wedgePathCCW(0.75), / 0 1 0 190\.00 100\.00 Z$/);                        // 45ふん → 右（3時）
   assert.match(wedgePathCCW(1), /^M 100 10 A 90 90 0 1 0 /);
+});
+
+test('しゅっぱつ：子どもごとの時刻', async () => {
+  const { normDepart, departGroups, departPlan } = await import('../lib/kid-tools.js');
+  // 以前の「みんな同じ時刻」の設定は、全員にひきつぐ
+  assert.deepEqual(normDepart({ time: '07:40' }).times, { child1: '07:40', child2: '07:40', child3: '07:40' });
+  const cfg = { times: { child3: '07:50' } };
+  assert.deepEqual(departGroups(cfg), [{ time: '07:30', kids: ['child1', 'child2'] }, { time: '07:50', kids: ['child3'] }]);
+  assert.deepEqual(departGroups({ times: { child1: '08:00', child2: '07:15' } }).map((g) => g.time), ['07:15', '07:30', '08:00']); // 早い順
+  const fri = (h, m) => new Date(2026, 10, 6, h, m);
+  let p = departPlan(fri(7, 15), cfg);
+  assert.equal(p.target, 0); assert.equal(p.groups[0].leftMs, 15 * 60000);
+  p = departPlan(fri(7, 33), cfg);
+  assert.equal(p.target, 1); assert.equal(p.groups[0].phase, 'go'); assert.equal(p.groups[1].leftMs, 17 * 60000);
+  p = departPlan(fri(7, 52), cfg);
+  assert.equal(p.target, 1); assert.equal(p.groups[1].phase, 'go');            // 全員すぎたら 最後のグループ
+  assert.ok(departPlan(fri(8, 4), cfg).show); assert.ok(!departPlan(fri(8, 5), cfg).show); // 最後の15ふん後まで
+  assert.equal(normDepart({ times: { child2: '11:00' } }).times.child2, '10:00');   // はんいの外は 収める
 });
