@@ -174,3 +174,23 @@ test('「日」1文字は曜日と読まない', () => {
 test('日付が書いてあれば曜日より日付を優先（11/3(火)）', () => {
   assert.equal(P('11/3(火) 野球大会').date, '2026-11-03');
 });
+
+test('同じ予定を何人かで：1行にまとめる・重なり・共有の絞り込み', async () => {
+  const { groupSameEvents, whosOf, shareDaysRange, shareText } = await import('../lib/schedule-views.js');
+  const ev = (id, who, name = '神宮大会', departure = '07:00', returnTime = '15:00', date = '2026-11-23') => ({ id, date, who, name, departure, returnTime });
+  const g = groupSameEvents([ev('b', 'child2'), ev('a', 'child1'), ev('c', 'wife', '美容院', '10:00', '12:00'), ev('d', 'child1', '神宮大会', '07:00', '16:00')]);
+  assert.equal(g.length, 3);                                   // 時刻がちがえば別の予定
+  const j = g.find((x) => x.name === '神宮大会' && x.returnTime === '15:00');
+  assert.deepEqual(j.whos, ['child1', 'child2']); assert.deepEqual(j.ids, ['a', 'b']);
+  assert.equal(j.who, 'child1'); assert.equal(j.id, 'a'); assert.equal(j.items.length, 2);
+  assert.deepEqual(whosOf({ who: 'me' }), ['husband']);         // 旧データ
+  // まとめた予定どうしで「同じ人の重なり」を出す（別の人だけなら出さない）
+  const ov = findOverlaps(g);
+  assert.ok(ov.has('a') && ov.has('d'));                       // 子ども1が同じ時間に2つ
+  assert.ok(!ov.has('c'));
+  // 共有：子ども2だけ → まとめた予定も入る
+  const days = shareDaysRange(g, '2026-11-23', '2026-11-23', { who: 'child2' });
+  assert.equal(days[0].events.length, 1);
+  const text = shareText(shareDaysRange(g, '2026-11-23', '2026-11-23'), 't');
+  assert.match(text, /子ども1・子ども2｜神宮大会/);
+});

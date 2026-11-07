@@ -16,7 +16,8 @@ await ctx.route(/gstatic\.com\/firebasejs\/.*\/firebase-(app|auth|firestore)\.js
 const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process.exitCode = 1; };
 const errs = [];
 
-const now = new Date();
+// 「今日」を平日（水曜）に固定する（土日に実行すると、今日の予定が週末の件数に混ざって結果が変わるため）
+const now = (() => { const d = new Date(); d.setHours(9, 0, 0, 0); while (d.getDay() !== 3) d.setDate(d.getDate() + 1); return d; })();
 const W0 = weekendOf(now, 0), W1 = weekendOf(now, 1);
 const TODAY = toYmd(now);
 const pastWeek = weekOf(now, -4);
@@ -36,6 +37,7 @@ const sched = {
 for (let i = 0; i < 200; i++) sched['old' + i] = ev(`${now.getFullYear() - 1}-0${1 + (i % 9)}-1${i % 10}`, 'family', '去年の予定' + i, '09:00', '10:00');
 
 const seed = await ctx.newPage();
+await seed.clock.setFixedTime(now);
 await seed.goto(URL0);
 await seed.evaluate((sched) => {
   localStorage.clear();
@@ -49,6 +51,7 @@ await seed.close();
 
 const open = async (uid) => {
   const p = await ctx.newPage();
+  await p.clock.setFixedTime(now);
   p.on('pageerror', (e) => errs.push(e.message));
   p.on('console', (m) => m.type() === 'error' && errs.push(m.text()));
   await p.goto(URL0);

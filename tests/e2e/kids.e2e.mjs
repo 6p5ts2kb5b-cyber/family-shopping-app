@@ -55,8 +55,10 @@ for (const [label, opts] of [['iPhone SE', devices['iPhone SE']], ['iPhone 13', 
 
   // 編集で子ども3に変更
   await p.click('#scheduleBody button.ev:has-text("テストサッカー")');
-  await p.click('#quickWho button[data-v=child3]'); await p.click('#quickSave'); await p.waitForTimeout(300);
-  ok(Object.values((await db()).familySchedules).find((x) => x.name === 'テストサッカー')?.who === 'child3', `${label}：編集で子ども3に変更できる`);
+  // 何人でも選べるので、子ども1をはずしてから子ども3を選ぶ
+  await p.click('#quickWho button[data-v=child1]'); await p.click('#quickWho button[data-v=child3]'); await p.click('#quickSave'); await p.waitForTimeout(300);
+  const soccer = Object.values((await db()).familySchedules).filter((x) => x.name === 'テストサッカー');
+  ok(soccer.length === 1 && soccer[0].who === 'child3', `${label}：編集で子ども3に変更できる`);
 
   // 送る画面で子どもだけを選ぶ
   await p.click('#shareOpen'); await p.waitForTimeout(500);
