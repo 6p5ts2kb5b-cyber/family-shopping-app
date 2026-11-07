@@ -91,10 +91,14 @@ test('予定内容がなければ空欄', () => {
   assert.ok(r.missing.includes('name'));
 });
 
-test('夫と妻が両方書かれていたら決めずに警告', () => {
+test('夫と妻が両方書かれていたら 2人とも（whos）', () => {
   const r = P('明日 夫 妻 買い物');
   assert.equal(r.who, '');
-  assert.ok(r.warnings.some((w) => w.type === 'multiple-who'));
+  assert.deepEqual(r.whos, ['husband', 'wife']);
+  assert.equal(r.name, '買い物');
+  assert.ok(!r.missing.includes('who'));
+  assert.deepEqual(P('夫 明日 買い物').whos, ['husband']);
+  assert.deepEqual(P('明日 買い物').whos, []);
 });
 
 test('時刻の名前の混同：「6時」を日付と読まない／「11.3」を時刻と読まない', () => {

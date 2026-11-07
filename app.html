@@ -73,7 +73,7 @@ main{padding-bottom:190px}
 .ev .t span{font-size:13px;color:var(--muted)}
 .ev .t .nt{font-size:14px;font-weight:700;color:var(--muted)}
 .ev .body{flex:1;min-width:0;display:flex;align-items:center;gap:8px}
-.ev .body .tag{order:-1}
+.ev .body .tags{order:-1;flex:none;display:flex;flex-wrap:wrap;gap:4px;max-width:50%}
 .wkday+.ev{border-top:0}
 #hWk{flex-direction:column;align-items:flex-start;gap:0;line-height:1.3}
 #hWk .hrange{margin-left:0;font-size:13px}
@@ -427,7 +427,7 @@ details.fold>summary::-webkit-details-marker{display:none}
         <label class="lbl">帰宅予定<input type="time" id="quickReturn"></label>
       </div>
       <div>
-        <p class="lbl" style="margin:0 0 4px" id="whoLabel">誰の予定</p>
+        <p class="lbl" style="margin:0 0 4px" id="whoLabel">誰の予定 <span class="hint" style="font-weight:500">（何人でも選べます）</span></p>
         <div class="who" id="quickWho" role="group" aria-labelledby="whoLabel">
           <button type="button" data-v="husband" aria-pressed="false">夫</button>
           <button type="button" data-v="wife" aria-pressed="false">妻</button>
@@ -619,7 +619,7 @@ import {parseQuickSchedule,setWhoNames} from "./lib/quick-schedule.js";
 import {installMotion,enableRipple,enter,bump,shake,play,ghostDone} from "./lib/motion.js";
 import {CHILD_IDS,boardFor,isPaused,periodAt,onceDate,repeatChoice,draftFromChoice,staleOnceIds,isValidNoticeDraft,DEFAULT_EVENING_FROM} from "./lib/kid-notices.js";
 import {parsePair,checkEmojis,emojiChoices,PAIR_TTL_MS} from "./lib/kid-pairing.js";
-import {MEMBERS,WHO,setMemberLabels,normWho,sortDay,toYmd,addDays,weekendOf,weekOf,findOverlaps,clampDay,homeWeekendPreview,initialView,rangeFor,monthRange,shareDays,shareDaysRange,shareWeekTitle,shareTitle,shareText,timeText} from "./lib/schedule-views.js";
+import {MEMBERS,WHO,setMemberLabels,normWho,whosOf,groupSameEvents,sortDay,toYmd,addDays,weekendOf,weekOf,findOverlaps,clampDay,homeWeekendPreview,initialView,rangeFor,monthRange,shareDays,shareDaysRange,shareWeekTitle,shareTitle,shareText,timeText} from "./lib/schedule-views.js";
 
 const app=initializeApp(firebaseConfig),auth=getAuth(app),provider=new GoogleAuthProvider();
 // 端末内に保存（オフラインでも見られる・操作できる。電波が戻ると自動で送る）。使えない環境では通常の方式で動く
@@ -724,9 +724,10 @@ function eventRow(e,overlapWith){
   const time=e.departure?[el('b',{textContent:fmtTime(e.departure)}),el('span',{textContent:e.returnTime?'〜'+fmtTime(e.returnTime):'帰り未定'})]
     :e.returnTime?[el('span',{className:'nt',textContent:'出発未定'}),el('span',{textContent:'〜'+fmtTime(e.returnTime)})]
     :[el('span',{className:'nt',textContent:'時間未定'})];
-  return el('button',{type:'button',className:'ev '+who,ariaLabel:fmtDay(e.date)+' '+WHO[who]+' '+(e.name||'予定')+'を編集',onclick:()=>startEditSchedule(e)},
+  const ws=whosOf(e);
+  return el('button',{type:'button',className:'ev '+who,ariaLabel:fmtDay(e.date)+' '+ws.map(w=>WHO[w]).join('・')+' '+(e.name||'予定')+'を編集',onclick:()=>startEditSchedule(e)},
     el('div',{className:'t num'},...time),
-    el('div',{className:'body'},name,el('span',{className:'tag '+who,textContent:WHO[who]})));
+    el('div',{className:'body'},name,el('span',{className:'tags'},...ws.map(w=>el('span',{className:'tag '+w,textContent:WHO[w]})))));
 }
 const eventsOn=ymd=>schedules.filter(x=>x.date===ymd);
 // 出発〜帰宅の帯グラフ（時刻が入っている予定だけ。帰宅未定は点だけで推測しない）
@@ -738,7 +739,7 @@ function timeline(list){
   const pct=h=>((Math.max(start,Math.min(end,h))-start)/(end-start)*100).toFixed(2)+'%';
   const box=el('div',{className:'tl',ariaHidden:'true'});
   for(const who of MEMBERS.map(m=>m.key)){
-    const mine=timed.filter(e=>normWho(e.who)===who);if(!mine.length)continue;
+    const mine=timed.filter(e=>whosOf(e).includes(who));if(!mine.length)continue;
     const track=el('div',{className:'track'});
     for(const e of mine){
       const d=toH(e.departure);
@@ -773,7 +774,7 @@ function weekCard(days){
     const {shown,more}=clampDay(eventsOn(ymd),3);
     const lines=el('div',{className:'lines'});
     if(!shown.length)lines.append(el('span',{className:'none',textContent:'予定なし'}));
-    for(const e of shown){const w=normWho(e.who);lines.append(el('span',{},el('b',{className:w,textContent:WHO[w]}),'　'+(e.name||'予定')+'　',el('span',{className:'tm num',textContent:e.departure?fmtTime(e.departure)+' → '+(fmtTime(e.returnTime)||'未定'):''})))}
+    for(const e of shown){lines.append(el('span',{},...whosOf(e).flatMap((w,i)=>[...(i?['・']:[]),el('b',{className:w,textContent:WHO[w]})]),'　'+(e.name||'予定')+'　',el('span',{className:'tm num',textContent:e.departure?fmtTime(e.departure)+' → '+(fmtTime(e.returnTime)||'未定'):''})))}
     if(more)lines.append(el('span',{className:'tm',textContent:`ほか${more}件`}));
     card.append(el('button',{type:'button',className:'wrow'+(ymd===today()?' today':''),ariaLabel:`${m}月${d}日（${dow}）の予定を開く`,onclick:()=>{dayFocus=ymd;drawScheduleList()}},
       el('div',{className:'d'},el('small',{textContent:dow}),el('b',{className:'num',textContent:String(d)})),lines));
@@ -880,12 +881,15 @@ function drawShareCanvas(days,title){
     y+=HEAD;
     if(!d.events.length){ctx.fillStyle='#7A867E';ctx.font=`500 34px ${FONT}`;ctx.fillText('予定なし',PAD+40,y+50);y+=ROW;}
     for(const e of d.events){
-      const w=normWho(e.who),[bg,fg]=SHARE_COLORS[w];
-      rr(ctx,PAD+32,y+14,96,54,14);ctx.fillStyle=bg;ctx.fill();
-      ctx.fillStyle=fg;ctx.font=`800 30px ${FONT}`;ctx.textAlign='center';ctx.fillText(WHO[w],PAD+80,y+52);ctx.textAlign='left';
+      // 人のラベル（2人以上なら小さく並べる）
+      const ws=whosOf(e),pw=ws.length>1?72:96,fs=ws.length>1?24:30;
+      ws.forEach((w,j)=>{const [bg,fg]=SHARE_COLORS[w],x=PAD+32+j*(pw+8);
+        rr(ctx,x,y+14,pw,54,14);ctx.fillStyle=bg;ctx.fill();
+        ctx.fillStyle=fg;ctx.font=`800 ${fs}px ${FONT}`;ctx.textAlign='center';ctx.fillText(fitText(ctx,WHO[w],pw-8),x+pw/2,y+50);ctx.textAlign='left'});
+      const nameX=Math.max(PAD+150,PAD+32+ws.length*(pw+8)+14);
       const tm=timeText(e);ctx.font=`600 34px ${FONT}`;const tw=ctx.measureText(tm).width;
       ctx.fillStyle='#5E6B63';ctx.textAlign='right';ctx.fillText(tm,W-PAD-16,y+52);ctx.textAlign='left';
-      ctx.fillStyle='#1F2A24';ctx.font=`700 38px ${FONT}`;ctx.fillText(fitText(ctx,e.name||'予定',W-PAD-16-tw-40-(PAD+150)),PAD+150,y+54);
+      ctx.fillStyle='#1F2A24';ctx.font=`700 38px ${FONT}`;ctx.fillText(fitText(ctx,e.name||'予定',W-PAD-16-tw-40-nameX),nameX,y+54);
       y+=ROW;
     }
     y+=20;
@@ -901,7 +905,7 @@ async function loadShareMonth(){
   $('shareInfo').textContent='読み込み中…';
   try{
     const snap=await getDocs(query(collection(db,'familySchedules'),where('date','>=',start),where('date','<=',end)));
-    share.events=snap.docs.map(d=>({id:d.id,...d.data()}));
+    share.events=groupSameEvents(snap.docs.map(d=>({id:d.id,...d.data()})));
   }catch(e){
     console.warn('share load',e?.code);
     share.events=schedules.filter(x=>x.date>=start&&x.date<=end); // 圏外などのときは表示中の予定から作る
@@ -1036,27 +1040,28 @@ function subscribeSchedules(){
     schedUnsubs.push(onSnapshot(q,{includeMetadataChanges:true},snap=>{schedSets[k]=snap.docs.map(d=>({id:d.id,...d.data(),pending:!!d.metadata?.hasPendingWrites}));trackPending('sched-'+k,snap);mergeSchedules()},e=>{console.warn('schedules',e?.code);schedErr=true;$('todaySchedule').replaceChildren(el('p',{className:'empty',textContent:'予定を読み込めません（ルールの設定を確認してください）'}))}));
   }
 }
-function mergeSchedules(){const m=new Map();for(const list of Object.values(schedSets))for(const e of list)m.set(e.id,e);schedules=[...m.values()];drawSchedules()}
+function mergeSchedules(){const m=new Map();for(const list of Object.values(schedSets))for(const e of list)m.set(e.id,e);schedules=groupSameEvents([...m.values()]);drawSchedules()}
 // 日付が変わったら読み直す（画面を開きっぱなしでも翌日に正しく出す）
 let lastDay=today();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&today()!==lastDay){lastDay=today();subscribeSchedules()}});
 
 // ---------- かんたん予定入力 ----------
 // 手で直した欄は、文章を打ち直しても上書きしない
-const quick={date:'',name:'',who:'',departure:'',returnTime:''};
+const quick={date:'',name:'',whos:[],departure:'',returnTime:''};
 const touched=new Set();
 const fieldIds={date:'quickDate',name:'quickName',departure:'quickDeparture',returnTime:'quickReturn'};
 function paintQuick(){
   for(const [k,id] of Object.entries(fieldIds))if($(id).value!==quick[k])$(id).value=quick[k];
-  for(const b of $('quickWho').querySelectorAll('button'))b.setAttribute('aria-pressed',b.dataset.v===quick.who);
+  for(const b of $('quickWho').querySelectorAll('button'))b.setAttribute('aria-pressed',quick.whos.includes(b.dataset.v));
   const hasText=!!$('quickText').value.trim()||touched.size>0;
   $('lDate').classList.toggle('miss',hasText&&!quick.date);
   $('lName').classList.toggle('miss',hasText&&!quick.name);
-  $('quickWho').classList.toggle('miss',hasText&&!quick.who);
-  const ready=/^\d{4}-\d{2}-\d{2}$/.test(quick.date)&&!!quick.name&&!!WHO[quick.who];
+  const hasWho=quick.whos.length>0&&quick.whos.every(w=>WHO[w]);
+  $('quickWho').classList.toggle('miss',hasText&&!hasWho);
+  const ready=/^\d{4}-\d{2}-\d{2}$/.test(quick.date)&&!!quick.name&&hasWho;
   $('quickSave').disabled=!ready;
-  const missing=[!quick.date&&'日付',!quick.name&&'予定内容',!quick.who&&'誰の予定'].filter(Boolean);
-  $('quickWarn').textContent=!hasText?'':missing.length?missing.join('・')+'を入れると保存できます。':'内容を確認して「予定を保存」を押してください。';
+  const missing=[!quick.date&&'日付',!quick.name&&'予定内容',!hasWho&&'誰の予定'].filter(Boolean);
+  $('quickWarn').textContent=!hasText?'':missing.length?missing.join('・')+'を入れると保存できます。':quick.whos.length>1?`${quick.whos.map(w=>WHO[w]).join('・')}の${quick.whos.length}人の予定として保存します。`:'内容を確認して「予定を保存」を押してください。';
 }
 function askButtons(text,buttons){
   const box=$('quickAsk');
@@ -1069,7 +1074,8 @@ $('quickText').addEventListener('input',()=>{
   const text=$('quickText').value;
   if(!text.trim()){touched.clear();answered={sig:'',date:''};if(prefillDate){quick.date=prefillDate;touched.add('date')}}
   const r=parseQuickSchedule(text);
-  for(const k of ['date','name','who','departure','returnTime'])if(!touched.has(k))quick[k]=r[k];
+  for(const k of ['date','name','departure','returnTime'])if(!touched.has(k))quick[k]=r[k];
+  if(!touched.has('who'))quick.whos=[...(r.whos||[])];
   $('quickAsk').hidden=true;
   // 日の「＋追加」から開いたのに、文章に別の日付が書かれていたら確認する
   if(prefillDate&&r.date&&r.date!==prefillDate&&touched.has('date')){
@@ -1096,12 +1102,17 @@ $('quickText').addEventListener('input',()=>{
   const warn=[];
   if(r.warnings.some(w=>w.type==='return-before-departure'))warn.push('帰宅が出発より前になっています（夜勤なら問題ありません）。');
   if(r.warnings.some(w=>w.type==='invalid-date'||w.type==='invalid-time'))warn.push('読めない日付・時刻がありました。');
-  if(r.warnings.some(w=>w.type==='multiple-who'))warn.push('誰の予定かが2人以上書かれています。1人選んでください（全員なら「家族」）。');
   paintQuick();
   if(warn.length)$('quickWarn').textContent=warn.join(' ')+' '+$('quickWarn').textContent;
 });
 for(const [k,id] of Object.entries(fieldIds))$(id).addEventListener('input',()=>{quick[k]=k==='name'?$(id).value.trim():$(id).value;touched.add(k);paintQuick()});
-for(const b of $('quickWho').querySelectorAll('button'))b.addEventListener('click',()=>{quick.who=b.dataset.v;touched.add('who');paintQuick()});
+// 何人でも選べる（もう一度押すと外れる）。「家族」は全員の予定なので、ほかの人とは一緒に選ばない
+for(const b of $('quickWho').querySelectorAll('button'))b.addEventListener('click',()=>{
+  const v=b.dataset.v,on=quick.whos.includes(v);
+  if(on)quick.whos=quick.whos.filter(x=>x!==v);
+  else if(v==='family')quick.whos=['family'];
+  else quick.whos=MEMBERS.map(m=>m.key).filter(k=>k!=='family'&&(k===v||quick.whos.includes(k)));
+  touched.add('who');paintQuick()});
 // ---------- 日付を決めて追加（日の「＋ 追加」） ----------
 function startAddForDate(ymd){
   if(tab!=='schedule')switchTab('schedule'); // ホームの「＋ 予定を入力」からも入力欄へ移動する
@@ -1114,7 +1125,7 @@ let editingSchedule=null;
 function startEditSchedule(e){
   editingSchedule=e;switchTab('schedule');
   $('quickText').value='';$('quickText').disabled=true;$('quickAsk').hidden=true;
-  quick.date=e.date||'';quick.name=e.name||'';quick.who=normWho(e.who);quick.departure=e.departure||'';quick.returnTime=e.returnTime||'';
+  quick.date=e.date||'';quick.name=e.name||'';quick.whos=[...whosOf(e)];quick.departure=e.departure||'';quick.returnTime=e.returnTime||'';
   for(const k of ['date','name','who','departure','returnTime'])touched.add(k);
   $('hQuick').textContent='予定を編集';$('editingNote').hidden=false;$('editActions').hidden=false;$('quickSave').textContent='変更を保存';
   paintQuick();$('hQuick').scrollIntoView({block:'start'});$('quickName').focus();
@@ -1125,25 +1136,31 @@ function endEditSchedule(){
 $('quickCancel').addEventListener('click',()=>{endEditSchedule();resetQuick()});
 $('quickDelete').addEventListener('click',async()=>{
   const e=editingSchedule;if(!e)return;
-  const {id,...data}=e,ref=doc(db,'familySchedules',id);
-  const backup={date:data.date,name:data.name,who:data.who,departure:data.departure??'',returnTime:data.returnTime??''};
-  if(await write(()=>deleteDoc(ref))){
+  // まとめて表示している予定（2人以上）は、全員分を消す
+  const items=e.items||[e];
+  const backups=items.map(x=>({id:x.id,ref:doc(db,'familySchedules',x.id),data:{date:x.date,name:x.name,who:x.who,departure:x.departure??'',returnTime:x.returnTime??''}}));
+  if(await write(()=>Promise.all(backups.map(x=>deleteDoc(x.ref))))){
     endEditSchedule();resetQuick();drawScheduleList();
     // 元に戻す：その間に相手が同じ予定を戻した・作り直した場合は上書きしない
-    toast('「'+e.name+'」を削除しました',async()=>{if(await write(txOr(
-      async tx=>{const ex=await tx.get(ref);if(ex.exists())throw {code:'schedule-exists'};tx.set(ref,backup)},
-      ()=>{if(schedules.some(x=>x.id===id))throw {code:'schedule-exists'};return setDoc(ref,backup)})))toast('元に戻しました')});
+    toast('「'+e.name+'」を削除しました',async()=>{if(await write(()=>Promise.all(backups.map(b=>txOr(
+      async tx=>{const ex=await tx.get(b.ref);if(ex.exists())throw {code:'schedule-exists'};tx.set(b.ref,b.data)},
+      ()=>{if(schedules.some(x=>(x.ids||[x.id]).includes(b.id)))throw {code:'schedule-exists'};return setDoc(b.ref,b.data)})()))))toast('元に戻しました')});
   }
 });
-function resetQuick(){$('quickText').value='';for(const k in quick)quick[k]='';touched.clear();answered={sig:'',date:''};prefillDate='';$('quickAsk').hidden=true;paintQuick()}
+function resetQuick(){$('quickText').value='';for(const k in quick)quick[k]='';quick.whos=[];touched.clear();answered={sig:'',date:''};prefillDate='';$('quickAsk').hidden=true;paintQuick()}
 $('quickSave').addEventListener('click',async()=>{
-  const record={date:quick.date,name:quick.name.slice(0,80),who:quick.who,departure:quick.departure||'',returnTime:quick.returnTime||''};
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(record.date)||!record.name||!WHO[record.who])return;
+  const whos=quick.whos.filter(w=>WHO[w]);
+  const record={date:quick.date,name:quick.name.slice(0,80),who:whos[0]||'',departure:quick.departure||'',returnTime:quick.returnTime||''};
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(record.date)||!record.name||!whos.length)return;
   $('quickSave').disabled=true;
-  const id=editingSchedule?.id||crypto.randomUUID?.()||String(Date.now())+'-'+Math.random().toString(36).slice(2);
+  const newId=()=>crypto.randomUUID?.()||String(Date.now())+'-'+Math.random().toString(36).slice(2);
   const wasEdit=!!editingSchedule;
+  // 保存は1人1件（ルールはそのまま）。編集では、残る人は上書き・増えた人は追加・外した人は削除
+  const items=wasEdit?(editingSchedule.items||[editingSchedule]):[];
+  const removes=items.filter(x=>!whos.includes(normWho(x.who))).map(x=>x.id);
   // 子どもの予定は新しいルールが必要。古いルールのままだと拒否されるので、分かる言葉で知らせる
-  const save=()=>setDoc(doc(db,'familySchedules',id),record).catch(e=>{throw e?.code==='permission-denied'&&record.who.startsWith('child')?{code:'rules-outdated'}:e});
+  const save=()=>Promise.all([...whos.map(w=>{const ex=items.find(x=>normWho(x.who)===w);return setDoc(doc(db,'familySchedules',ex?ex.id:newId()),{...record,who:w}).catch(e=>{throw e?.code==='permission-denied'&&w.startsWith('child')?{code:'rules-outdated'}:e})}),
+    ...removes.map(id=>deleteDoc(doc(db,'familySchedules',id)))]);
   if(await write(save)){
     if(!wasEdit){
       if(record.date===today()){scheduleView='today';dayFocus=null}
