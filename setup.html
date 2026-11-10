@@ -243,6 +243,28 @@ service cloud.firestore {
       allow get: if owner() || (anonUser() && request.auth.uid == deviceUid);
       allow delete: if owner();
     }
+    // ---------- 夕飯の献立 ----------
+    // 日ごとの献立（文書ID＝日付）：読むのは家族と登録済みタブレット、書くのは家族だけ。未定の日は文書なし
+    match /dinnerMenus/{day} {
+      allow read: if kidReader();
+      allow delete: if family();
+      allow create, update: if family()
+        && validYmd(day)
+        && request.resource.data.keys().hasAll(['date', 'dish'])
+        && request.resource.data.keys().hasOnly(['date', 'dish'])
+        && request.resource.data.date == day
+        && validKidText(request.resource.data.dish, 40);
+    }
+    // 作れるメニューの一覧：家族だけ（タブレットは読めない）
+    match /dinnerDishes/{dishId} {
+      allow read, delete: if family();
+      allow create, update: if family()
+        && request.resource.data.keys().hasAll(['name', 'order'])
+        && request.resource.data.keys().hasOnly(['name', 'order'])
+        && validKidText(request.resource.data.name, 40)
+        && request.resource.data.order is int
+        && request.resource.data.order >= 0 && request.resource.data.order <= 9999;
+    }
     match /{document=**} {
       allow read, write: if false;
     }

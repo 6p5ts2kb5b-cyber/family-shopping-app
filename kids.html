@@ -90,13 +90,23 @@ button{font:inherit;color:inherit;cursor:pointer}
 .retry{min-height:56px;padding:0 24px;border:0;border-radius:16px;background:var(--green);color:#fff;font-size:20px;font-weight:800;margin-top:10px}
 .small{font-size:15px!important}
 /* でんごん・タイマー・とうひょうの切り替え */
-.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:6px 0 8px}
+.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:6px 0 8px}
 .tabs button{min-height:52px;border:3px solid transparent;border-radius:14px;background:#fff;font-size:clamp(18px,2.4vw,22px);font-weight:900;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:8px}
 .tabs button[aria-selected=true]{border-color:var(--green);background:var(--green-soft);color:var(--green)}
 .tabs svg{flex:none}
-@media (max-width:480px){.tabs svg{display:none}.tabs button{font-size:16px;padding:0 4px}}
+@media (max-width:480px){.tabs svg{display:none}.tabs button{font-size:15px;padding:0 2px}}
 .panel{background:#fff;border-radius:18px;padding:14px;box-shadow:0 2px 6px rgba(60,50,20,.08)}
 .tool{display:grid;gap:12px}
+/* ゆうごはん（1しゅうかん） */
+.mtitle{margin:0 0 10px;font-size:clamp(22px,3vw,28px);font-weight:900}
+.mweek{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.mday{border:3px solid #EFE6D2;border-radius:16px;padding:10px 12px;background:#FFFDF6;display:grid;gap:4px;align-content:start;min-height:96px}
+.mday .when{font-size:17px;font-weight:800;color:var(--muted)}
+.mday .dish{font-size:clamp(21px,2.6vw,26px);font-weight:900;color:var(--ink);overflow-wrap:anywhere;line-height:1.25}
+.mday .dish.un{color:#B9AE95;font-weight:800}
+.mday.today{border-color:#F4B942;background:#FFF4D6}.mday.today .when{color:#7A5300}
+.tonight{margin:0 0 8px;padding:8px 14px;border-radius:14px;background:#FFF4D6;border:2px solid #F4B942;font-size:clamp(19px,2.5vw,23px);font-weight:800;color:#7A5300}
+.tonight b{color:var(--ink)}
 .row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .chip{min-height:52px;padding:0 16px;border-radius:14px;border:3px solid var(--line);background:#fff;font-size:20px;font-weight:800;color:var(--ink)}
 .chip[aria-pressed=true]{border-color:var(--kc,var(--green));background:var(--ks,var(--green-soft));color:var(--kc,var(--green))}
@@ -200,6 +210,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   <div class="tabs" role="tablist" aria-label="きりかえ">
     <button type="button" role="tab" data-tool="notes" aria-selected="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg>でんごん</button>
     <button type="button" role="tab" data-tool="timer" aria-selected="false"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>タイマー</button>
+    <button type="button" role="tab" data-tool="menu" aria-selected="false"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M8 7c0-1.5 1-2 1-3.5M12 7c0-1.5 1-2 1-3.5M16 7c0-1.5 1-2 1-3.5"/></svg>ごはん</button>
     <button type="button" role="tab" data-tool="vote" aria-selected="false"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l3 3 6-7"/><path d="M14 5h6M14 11h6M4 19h16"/></svg>とうひょう</button>
   </div>
   <div id="toolNotes">
@@ -207,6 +218,7 @@ button{font:inherit;color:inherit;cursor:pointer}
     <button type="button" data-p="morning" aria-pressed="false">☀️ あさ</button>
     <button type="button" data-p="evening" aria-pressed="false">🌙 ゆうがた</button>
   </div>
+  <p class="tonight" id="tonight" hidden></p>
   <section class="big" id="paused" hidden><h2>🌈 きょうは おやすみ</h2><p>でんごんは おやすみです。</p></section>
   <div class="cols" id="cols"></div>
   <!-- 朝の「しゅっぱつ まで」（タブレットの中だけ。Firebaseには送らない） -->
@@ -287,16 +299,26 @@ button{font:inherit;color:inherit;cursor:pointer}
       </div>
     </div>
   </section>
+
+  <!-- ゆうごはん（1しゅうかん。おうちの ひとが アプリで きめる） -->
+  <section id="toolMenu" class="tool" hidden aria-label="ゆうごはん">
+    <div class="panel">
+      <h2 class="mtitle">🍚 1しゅうかんの ゆうごはん</h2>
+      <ol class="mweek" id="menuWeek"></ol>
+      <p class="small" id="menuNote" hidden></p>
+    </div>
+  </section>
 </main>
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import {getAuth,signInAnonymously,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import {initializeFirestore,getFirestore,persistentLocalCache,collection,doc,onSnapshot,setDoc,serverTimestamp,terminate,clearIndexedDbPersistence} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import {initializeFirestore,getFirestore,persistentLocalCache,collection,doc,onSnapshot,query,where,setDoc,serverTimestamp,terminate,clearIndexedDbPersistence} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import {firebaseConfig} from "./firebase-config.js?v=20261011-fix2";
 import {CHILD_IDS,boardFor,periodAt,isDone,setDone,pruneDone,toYmd,DEFAULT_EVENING_FROM} from "./lib/kid-notices.js";
 import {newToken,sha256Hex,pairUrl,checkEmojis,PAIR_REFRESH_MS} from "./lib/kid-pairing.js";
 import qrcode from "./lib/vendor/qrcode.mjs";
+import {daysFrom,menuMap} from "./lib/dinner.js";
 import {installMotion,enableRipple,enter,bump,shake,play,burst,burstAt} from "./lib/motion.js";
 import {normDepart,shiftDepart,departLabel,departState,departPlan,departText,clockAngles,sectorPath,wedgePathCCW,wedgePath as dialWedge,VOTERS,rotationOrder,nextInOrder,clampMinutes,startTimer,pauseTimer,resumeTimer,remainingMs,isRunning,formatClock,shownMs,dialFraction,wedgePath,startPrep,PREP_MIN,createPoll,castVote,tally,winners,pickRandom,MAX_CHOICES,TIMER_DEFAULT} from "./lib/kid-tools.js";
 
@@ -337,12 +359,12 @@ function drawDate(){
 // ---------- 伝言の表示 ----------
 // ---------- 動き（lib/motion.js。タブレットの中だけ・データは変えない） ----------
 installMotion(`
-#toolNotes:not([hidden]),#toolTimer:not([hidden]),#toolVote:not([hidden]){animation:m-fade .26s ease-out}
+#toolNotes:not([hidden]),#toolTimer:not([hidden]),#toolVote:not([hidden]),#toolMenu:not([hidden]){animation:m-fade .26s ease-out}
 .clock.soon{--m-pulse:color-mix(in srgb,var(--kc,#2E8B57) 55%,transparent);animation:m-pulse 1s ease-out infinite}
 @keyframes m-beat{0%,100%{transform:scale(1)}15%{transform:scale(1.07)}30%{transform:scale(1)}}
 .clock.soon .time{animation:m-beat 1s ease-in-out infinite}
 .none{animation:m-float 3.2s ease-in-out infinite}
-@media (prefers-reduced-motion:reduce){#toolNotes,#toolTimer,#toolVote,.clock.soon,.clock.soon .time,.none{animation:none!important}}
+@media (prefers-reduced-motion:reduce){#toolNotes,#toolTimer,#toolVote,#toolMenu,.clock.soon,.clock.soon .time,.none{animation:none!important}}
 `);
 enableRipple('.big-btn,.tabs button,.period button,.seg2 button,.stepper button,.retry,#pollForm button,#showResult,#spinAll,#newPoll');
 const seenNotes=new Set(),notesMotion={ready:false},prevVotes=new Map();let noticesLoaded=false,pollKey='',hadWin=false;
@@ -388,12 +410,39 @@ function render(){
   $('cols').replaceChildren(...cols);
   // でんごん：はじめは順番にふわっと、あとから届いたものだけポップイン
   departShownKey='';drawDepart();
+  if(dinnerUnsub)subDinner(); // 日付が変わったら7日ぶんを読み直す
+  drawTonight();
   if(noticesLoaded)enter([...$('cols').querySelectorAll('li.note')].map(li=>[li.dataset.key,li]),seenNotes,notesMotion);
   renderTools();
 }
 
 // ---------- Firebase ----------
-function stopBoard(){state.subs.forEach(u=>u());state.subs=[]}
+function stopBoard(){state.subs.forEach(u=>u());state.subs=[];dinnerUnsub?.();dinnerUnsub=null;dinnerFrom=''}
+// ---------- ゆうごはん（dinnerMenus：きょうから7日ぶんだけ よむ） ----------
+let dinner={},dinnerErr='',dinnerUnsub=null,dinnerFrom='';
+function subDinner(){
+  const from=toYmd(now());if(from===dinnerFrom&&dinnerUnsub)return;
+  dinnerUnsub?.();dinnerFrom=from;const to=daysFrom(from,7)[6];
+  // 読めないとき（ルールがまだ・通信）は「ゆうごはん」だけ ひかえめに しらせる（でんごんは ふつうに つかえる）
+  dinnerUnsub=onSnapshot(query(collection(db,'dinnerMenus'),where('date','>=',from),where('date','<=',to)),snap=>{dinner=menuMap(snap.docs.map(d=>d.data()));dinnerErr='';drawTonight();if(tools.tab==='menu')drawMenu()},
+    e=>{console.warn('dinner',e?.code);dinnerErr=e?.code||'error';drawTonight();if(tools.tab==='menu')drawMenu()});
+}
+const dayLabel=(ymd,i)=>{if(i===0)return 'きょう';if(i===1)return 'あした';const [y,m,d]=ymd.split('-').map(Number);return `${m}/${d}（${DOWS[new Date(y,m-1,d).getDay()]}）`};
+function drawMenu(){
+  const days=daysFrom(toYmd(now()),7);
+  $('menuWeek').replaceChildren(...days.map((d,i)=>{const dish=dinner[d]||'';
+    const li=el('li',{className:'mday'+(i===0?' today':'')});
+    li.append(el('span',{className:'when',textContent:dayLabel(d,i)}),el('span',{className:'dish'+(dish?'':' un'),textContent:dish||'みてい'}));
+    li.setAttribute('aria-label',`${dayLabel(d,i)}の ゆうごはん：${dish||'みてい'}`);return li}));
+  $('menuNote').hidden=!dinnerErr;
+  $('menuNote').textContent=dinnerErr==='permission-denied'?'おうちの ひとへ：こんだてを だすには、Firebaseの ルールの こうしんが ひつようです（設定ページの手順で1回だけ）。':'こんだてを よみこめませんでした。';
+}
+// ゆうがたの でんごんの うえに「きょうの ゆうごはん」
+function drawTonight(){
+  const dish=dinner[toYmd(now())]||'',show=!!dish&&currentPeriod()==='evening';
+  $('tonight').hidden=!show;
+  if(show)$('tonight').replaceChildren('🍚 きょうの ゆうごはん：',el('b',{textContent:dish}));
+}
 function syncState(snap){
   if(!navigator.onLine||snap.metadata?.fromCache)setConn('off',state.lastSync?`オフライン（${state.lastSync} の でんごん）`:'オフライン');
   else{const d=now();state.lastSync=`${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;setConn('ok','つながっています')}
@@ -407,6 +456,7 @@ function startBoard(){
   state.subs.push(onSnapshot(collection(db,'kidNotices'),{includeMetadataChanges:true},snap=>{state.notices=snap.docs.map(d=>({id:d.id,...d.data()}));noticesLoaded=true;syncState(snap);if(state.registered)show('board');render()},onErr));
   state.subs.push(onSnapshot(doc(db,'kidSettings','board'),snap=>{const v=snap.exists()?snap.data():{};state.board={pause:v.pause||'',eveningFrom:v.eveningFrom||DEFAULT_EVENING_FROM};render()},onErr));
   state.subs.push(onSnapshot(doc(db,'familySettings','children'),snap=>{state.names={...FALLBACK,...(snap.exists()?snap.data():{})};render()},onErr));
+  subDinner();
 }
 
 // 登録を解除された：この端末に残っている伝言・名前・「できた！」の記録を消してから登録画面へ
@@ -517,7 +567,8 @@ function freshDay(){const t=todayYmd();if(tools.doneDate!==t){tools.doneDate=t;t
 for(const b of document.querySelectorAll('.tabs button'))b.addEventListener('click',()=>{tools.tab=b.dataset.tool;renderTools()});
 function renderTools(){
   for(const b of document.querySelectorAll('.tabs button'))b.setAttribute('aria-selected',b.dataset.tool===tools.tab);
-  $('toolNotes').hidden=tools.tab!=='notes';$('toolTimer').hidden=tools.tab!=='timer';$('toolVote').hidden=tools.tab!=='vote';
+  $('toolNotes').hidden=tools.tab!=='notes';$('toolTimer').hidden=tools.tab!=='timer';$('toolVote').hidden=tools.tab!=='vote';$('toolMenu').hidden=tools.tab!=='menu';
+  if(tools.tab==='menu')drawMenu();
   if(tools.tab==='timer')drawTimer();
   if(tools.tab==='vote')drawVote();
 }

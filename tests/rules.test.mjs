@@ -334,3 +334,43 @@ test('QR登録：解除は管理者だけ。解除後は伝言を読めない', 
   await assertFails(getDocs(collection(tablet(), 'kidNotices')));
   await assertFails(getDoc(doc(tablet(), 'familySettings/children')));
 });
+
+// ==================== 夕飯の献立 ====================
+test('献立：家族は日ごとの献立とメニュー一覧を読み書きできる', async () => {
+  for (const db of [owner(), wife()]) {
+    await assertSucceeds(setDoc(doc(db, 'dinnerMenus/2026-11-10'), { date: '2026-11-10', dish: 'カレー' }));
+    await assertSucceeds(getDoc(doc(db, 'dinnerMenus/2026-11-10')));
+    await assertSucceeds(getDocs(collection(db, 'dinnerMenus')));
+    await assertSucceeds(deleteDoc(doc(db, 'dinnerMenus/2026-11-10')));
+    await assertSucceeds(setDoc(doc(db, 'dinnerDishes/d1'), { name: 'カレー', order: 0 }));
+    await assertSucceeds(getDocs(collection(db, 'dinnerDishes')));
+    await assertSucceeds(deleteDoc(doc(db, 'dinnerDishes/d1')));
+  }
+});
+test('献立：形のおかしいデータは拒否', async () => {
+  const db = owner();
+  await assertFails(setDoc(doc(db, 'dinnerMenus/2026-11-10'), { date: '2026-11-11', dish: 'カレー' }));   // 文書IDと日付がちがう
+  await assertFails(setDoc(doc(db, 'dinnerMenus/x'), { date: 'x', dish: 'カレー' }));
+  await assertFails(setDoc(doc(db, 'dinnerMenus/2026-11-10'), { date: '2026-11-10', dish: '' }));
+  await assertFails(setDoc(doc(db, 'dinnerMenus/2026-11-10'), { date: '2026-11-10', dish: 'あ'.repeat(41) }));
+  await assertFails(setDoc(doc(db, 'dinnerMenus/2026-11-10'), { date: '2026-11-10', dish: 'カレー', extra: 1 }));
+  await assertFails(setDoc(doc(db, 'dinnerDishes/d1'), { name: 'カレー' }));
+  await assertFails(setDoc(doc(db, 'dinnerDishes/d1'), { name: 'カレー', order: -1 }));
+  await assertFails(setDoc(doc(db, 'dinnerDishes/d1'), { name: 'カレー', order: 1.5 }));
+});
+test('献立：登録済みタブレットは献立を読めるだけ（一覧は読めない・書けない）', async () => {
+  await seed('dinnerMenus/2026-11-10', { date: '2026-11-10', dish: 'カレー' });
+  await seed('dinnerDishes/d1', { name: 'カレー', order: 0 });
+  await registerDevice();
+  const db = tablet();
+  await assertSucceeds(getDocs(collection(db, 'dinnerMenus')));
+  await assertSucceeds(getDoc(doc(db, 'dinnerMenus/2026-11-10')));
+  await assertFails(setDoc(doc(db, 'dinnerMenus/2026-11-11'), { date: '2026-11-11', dish: 'すし' }));
+  await assertFails(deleteDoc(doc(db, 'dinnerMenus/2026-11-10')));
+  await assertFails(getDocs(collection(db, 'dinnerDishes')));
+  // 未登録の端末・名簿外・未ログインは読めない
+  await assertFails(getDocs(collection(tablet(TAB2), 'dinnerMenus')));
+  await assertFails(getDoc(doc(stranger(), 'dinnerMenus/2026-11-10')));
+  await assertFails(getDoc(doc(anon(), 'dinnerMenus/2026-11-10')));
+  await assertFails(getDocs(collection(wife(false), 'dinnerDishes')));
+});
