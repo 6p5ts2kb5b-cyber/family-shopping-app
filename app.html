@@ -334,6 +334,18 @@ details.fold>summary::-webkit-details-marker{display:none}
 .dishchips .dc{display:inline-flex;align-items:stretch;border-radius:12px;border:1px solid var(--line2);background:var(--card);overflow:hidden}
 .dishchips .dc>button{min-height:44px;padding:4px 14px;border:0;background:none;color:var(--green);font-weight:700;font-size:16px}
 .dishchips .dc.on{border-color:var(--green);background:var(--green)}.dishchips .dc.on>button{color:#fff}
+.dishchips .dc.cand{border-color:#E9A21B;background:#FFF4D6}.dishchips .dc.cand>button{color:#7A5300}
+.dishchips .dc.spin{border-color:#E9A21B;background:#F4B942;transform:scale(1.06)}.dishchips .dc.spin>button{color:#3A2A00}
+.dways{flex-wrap:wrap;gap:8px}.dways .btn{min-height:46px;flex:1 1 140px}
+.dvote{display:grid;gap:10px}
+.dvwho{display:flex;flex-wrap:wrap;gap:6px}.dvwho button{flex:1 1 auto;min-height:44px}
+.dvlist{display:grid;gap:8px}
+.dvc{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:2px;width:100%;height:auto;min-height:56px;padding:8px 12px;border:2px solid var(--line2);border-radius:14px;background:var(--card);text-align:left;color:var(--ink)}
+.dvc .dvtop{display:flex;align-items:baseline;gap:10px;width:100%}.dvc .vs:empty{display:none}.dvc .nm{flex:1;min-width:0;font-size:18px;font-weight:800;overflow-wrap:anywhere}
+.dvc .ct{font-size:24px;font-weight:900;color:var(--green);font-variant-numeric:tabular-nums}.dvc .ct small{font-size:13px;margin-left:2px}
+.dvc .vs{font-size:13px;color:var(--muted);min-height:1em}
+.dvc.lead{border-color:#F4B942;background:#FFFBF0}.dvc.spin{border-color:#E9A21B;background:#F4B942}
+.dvmsg{margin:0;font-size:15px;font-weight:700;color:#7A5300;min-height:1.2em}
 .dishchips .dc .x{min-width:40px;padding:0 8px;border-left:1px solid var(--line2);color:#B3261E;font-size:18px}
 
 .noteSheet textarea{width:100%;min-height:84px;border:1px solid var(--line2);border-radius:14px;padding:10px 12px;font:inherit;font-size:17px;resize:vertical}
@@ -585,8 +597,16 @@ details.fold>summary::-webkit-details-marker{display:none}
   <div class="dweek" id="dinnerWeek" role="group" aria-label="日ごとの夕飯"></div>
   <div class="dpick" id="dinnerPick">
     <h3 id="dinnerPickTitle"></h3>
+    <p class="hint" id="dinnerHint" style="margin:0" hidden></p>
     <div class="dishchips" id="dishChips" role="group" aria-label="作れるメニュー"></div>
-    <div class="row" style="flex-wrap:wrap">
+    <div class="dvote" id="dinnerVote" hidden>
+      <p class="lbl" style="margin:0">① だれが 投票するか えらぶ　② 食べたい メニューを押す</p>
+      <div class="who dvwho" id="dvVoters" role="group" aria-label="投票する人"></div>
+      <div class="dvlist" id="dvList"></div>
+      <p class="dvmsg" id="dvMsg" aria-live="polite"></p>
+    </div>
+    <div class="row dways" id="dinnerWays"></div>
+    <div class="row" style="flex-wrap:wrap" id="dinnerTools">
       <button type="button" class="btn sub" id="dinnerUnset" style="min-height:44px">未定にする</button>
       <button type="button" class="link" id="dishEdit" aria-pressed="false">メニュー一覧を編集</button>
     </div>
@@ -676,6 +696,7 @@ import {parseQuickSchedule,setWhoNames} from "./lib/quick-schedule.js";
 import {installMotion,enableRipple,enter,bump,shake,play,ghostDone} from "./lib/motion.js";
 import {CHILD_IDS,boardFor,isPaused,periodAt,onceDate,repeatChoice,draftFromChoice,staleOnceIds,isValidNoticeDraft,DEFAULT_EVENING_FROM} from "./lib/kid-notices.js";
 import {parsePair,checkEmojis,emojiChoices,PAIR_TTL_MS} from "./lib/kid-pairing.js";
+import {createPoll,castVote,tally,winners,pickRandom} from "./lib/kid-tools.js";
 import {daysFrom,addDaysYmd,cleanDish,dishKey,menuMap,sortDishes,hasDish,nextOrder as nextDishOrder,menuRecord} from "./lib/dinner.js";
 import {MEMBERS,WHO,setMemberLabels,normWho,whosOf,groupSameEvents,sortDay,toYmd,addDays,weekendOf,weekOf,findOverlaps,clampDay,homeWeekendPreview,initialView,rangeFor,monthRange,shareDays,shareDaysRange,shareWeekTitle,shareTitle,shareText,timeText} from "./lib/schedule-views.js";
 
@@ -1441,7 +1462,7 @@ function drawDinnerSheet(){
       el('span',{className:'d'},el('b',{className:'num',textContent:md}),`（${dow}）`,...(d===today()?[el('span',{className:'td',textContent:'今日'})]:[])),
       el('span',{className:'n'+(dish?'':' un'),textContent:dish||'未定'}));
     btn.setAttribute('aria-pressed',d===dinnerDay);btn.dataset.date=d;
-    btn.addEventListener('click',()=>{dinnerDay=d;drawDinnerSheet();dinnerPickEl.scrollIntoView({block:'nearest',behavior:'smooth'})});
+    btn.addEventListener('click',()=>{if(dinnerSpinning)return;if(d!==dinnerDay)resetDinnerMode();dinnerDay=d;drawDinnerSheet();dinnerPickEl.scrollIntoView({block:'nearest',behavior:'smooth'})});
     return btn}));
   // 選んだ日の すぐ下に メニューを出す（スマホでも 下まで スクロールしなくてよい）
   $('dinnerWeek').querySelector(`.drow[data-date="${dinnerDay}"]`)?.after(dinnerPickEl);
@@ -1449,20 +1470,102 @@ function drawDinnerSheet(){
   $('dinnerPickTitle').textContent=`${md}（${dow}）の夕飯：${cur||'未定'}`;
   $('dinnerUnset').disabled=!cur;
   $('dishEdit').setAttribute('aria-pressed',dishEditing);$('dishEdit').textContent=dishEditing?'編集をおわる':'メニュー一覧を編集';
+  const candMode=dinnerMode==='cands';
+  $('dishChips').hidden=dinnerMode==='vote';$('dinnerVote').hidden=dinnerMode!=='vote';
+  $('dinnerTools').hidden=dinnerMode!=='pick';$('dishForm').hidden=dinnerMode!=='pick';
   $('dishChips').replaceChildren(...sortDishes(dinnerDishes).map(x=>{
-    const on=dishKey(x.name)===dishKey(cur);
-    const wrap=el('span',{className:'dc'+(on?' on':'')});
-    const pick=el('button',{type:'button',textContent:x.name,ariaLabel:`${md}の夕飯を「${x.name}」にする`});
-    pick.setAttribute('aria-pressed',on);
-    pick.addEventListener('click',()=>setDinner(dinnerDay,x.name));
+    const on=!candMode&&dishKey(x.name)===dishKey(cur),cand=candMode&&dinnerCands.has(x.name);
+    const wrap=el('span',{className:'dc'+(on?' on':'')+(cand?' cand':'')+(dinnerSpin===x.name?' spin':'')});
+    const pick=el('button',{type:'button',textContent:(cand?'✓ ':'')+x.name,ariaLabel:candMode?`「${x.name}」を候補に${cand?'しない':'する'}`:`${md}の夕飯を「${x.name}」にする`});
+    pick.setAttribute('aria-pressed',candMode?cand:on);pick.disabled=dinnerSpinning;
+    pick.addEventListener('click',()=>{if(candMode){if(cand)dinnerCands.delete(x.name);else dinnerCands.add(x.name);drawDinnerSheet()}else setDinner(dinnerDay,x.name)});
     wrap.append(pick);
-    if(dishEditing)wrap.append(el('button',{type:'button',className:'x',textContent:'×',ariaLabel:`「${x.name}」を一覧から消す`,onclick:()=>{if(confirm(`「${x.name}」をメニュー一覧から消しますか？（決めてある献立は消えません）`))write(()=>deleteDoc(doc(db,'dinnerDishes',x.id)))}}));
+    if(dishEditing&&dinnerMode==='pick')wrap.append(el('button',{type:'button',className:'x',textContent:'×',ariaLabel:`「${x.name}」を一覧から消す`,onclick:()=>{if(confirm(`「${x.name}」をメニュー一覧から消しますか？（決めてある献立は消えません）`))write(()=>deleteDoc(doc(db,'dinnerDishes',x.id)))}}));
     return wrap}));
+  drawDinnerWays();
+  if(dinnerMode==='vote')drawDinnerVote();
 }
-async function setDinner(day,name){
+// ---------- ランダム・投票で決める（投票はこのスマホの中だけ。決まった献立だけ保存） ----------
+const DV_VOTERS=['husband','wife','child1','child2','child3'];
+const DV_KEY={husband:'father',wife:'mother',child1:'child1',child2:'child2',child3:'child3'};
+let dinnerMode='pick',dinnerIntent='',dinnerCands=new Set(),dinnerPoll=null,dinnerVoter='husband',dinnerSpin=null,dinnerSpinning=false;
+function resetDinnerMode(){dinnerMode='pick';dinnerIntent='';dinnerCands=new Set();dinnerPoll=null;dinnerVoter='husband';dinnerSpin=null;dinnerSpinning=false}
+const allDishNames=()=>sortDishes(dinnerDishes).map(x=>x.name);
+function drawDinnerWays(){
+  const box=$('dinnerWays'),hint=$('dinnerHint');
+  const b=(label,fn,cls='btn sub',id='')=>{const x=el('button',{type:'button',className:cls,textContent:label,onclick:fn});if(id)x.id=id;x.disabled=dinnerSpinning;return x};
+  hint.hidden=dinnerMode!=='cands';
+  if(dinnerMode==='pick'){
+    box.replaceChildren(b('🎲 ランダムで決める',()=>{dinnerMode='cands';dinnerIntent='random';drawDinnerSheet()},'btn sub','dinnerRandom'),
+      b('🗳 みんなで投票',()=>{dinnerMode='cands';dinnerIntent='vote';drawDinnerSheet()},'btn sub','dinnerVoteStart'));
+    box.hidden=!allDishNames().length;return;
+  }
+  box.hidden=false;
+  if(dinnerMode==='cands'){
+    const n=dinnerCands.size;
+    hint.textContent=dinnerIntent==='random'?`候補を押して えらんでください（${n?n+'こ えらんでいます':'えらばないと 全部の中から'}）`:`投票する候補を 2〜6こ 押してください（${n}こ）`;
+    box.replaceChildren(dinnerIntent==='random'?b(n?'この中からランダム':'全部の中からランダム',dinnerRandomGo,'btn primary','dinnerGo'):b('投票をはじめる',dinnerVoteGo,'btn primary','dinnerGo'),
+      b('やめる',()=>{resetDinnerMode();drawDinnerSheet()},'btn sub','dinnerWayCancel'));
+    return;
+  }
+  // 投票中
+  box.replaceChildren(b('けっかで決める',dinnerVoteDecide,'btn primary','dvDecide'),b('やめる',()=>{resetDinnerMode();drawDinnerSheet()},'btn sub','dvCancel'));
+}
+// ルーレット：候補を順番に光らせて止める（端末の「動きを減らす」設定ならすぐ決める）
+function dinnerRoulette(list,done){
+  const final=pickRandom(list);
+  if(list.length<2){done(final);return}
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches,steps=reduce?0:12+list.length;let k=0;
+  dinnerSpinning=true;
+  const go=()=>{if(k>=steps){dinnerSpin=null;dinnerSpinning=false;done(final);return}
+    dinnerSpin=list[(list.indexOf(final)+1+k)%list.length];k++;drawDinnerSheet();setTimeout(go,60+k*10)};
+  go();
+}
+function dinnerRandomGo(){
+  const list=dinnerCands.size?[...dinnerCands]:allDishNames();
+  if(!list.length){toast('先にメニューを追加してください');return}
+  const day=dinnerDay;
+  dinnerRoulette(list,async name=>{resetDinnerMode();await setDinner(day,name,'🎲 ランダムで');});
+}
+function dinnerVoteGo(){
+  const list=[...dinnerCands];
+  if(list.length<2||list.length>6){toast('投票する候補は 2〜6こ えらんでください');return}
+  dinnerPoll=createPoll('夕飯',list);if(!dinnerPoll){toast('投票を はじめられませんでした');return}
+  dinnerMode='vote';dinnerVoter='husband';drawDinnerSheet();
+}
+function drawDinnerVote(){
+  const p=dinnerPoll;if(!p)return;
+  $('dvVoters').replaceChildren(...DV_VOTERS.map(v=>{const voted=p.votes[DV_KEY[v]]!=null;
+    const x=el('button',{type:'button',textContent:(voted?'✓ ':'')+WHO[v]});x.dataset.v=v;x.setAttribute('aria-pressed',dinnerVoter===v);x.disabled=dinnerSpinning;
+    x.addEventListener('click',()=>{dinnerVoter=v;drawDinnerVote()});return x}));
+  const rows=tally(p),top=Math.max(0,...rows.map(r=>r.count));
+  const back=Object.fromEntries(Object.entries(DV_KEY).map(([a,b])=>[b,a]));
+  $('dvList').replaceChildren(...rows.map(r=>{
+    const x=el('button',{type:'button',className:'dvc'+(r.count&&r.count===top?' lead':'')+(dinnerSpin===r.label?' spin':''),ariaLabel:`${r.label}（${r.count}票）`},
+      el('span',{className:'dvtop'},el('span',{className:'nm',textContent:r.label}),el('span',{className:'ct'},String(r.count),el('small',{textContent:'票'}))),
+      el('span',{className:'vs',textContent:r.voters.map(v=>WHO[back[v]]).join('・')}));
+    x.disabled=dinnerSpinning;
+    x.addEventListener('click',()=>{
+      if(!dinnerVoter){$('dvMsg').textContent='先に だれが 投票するか えらんでください';return}
+      dinnerPoll=castVote(dinnerPoll,DV_KEY[dinnerVoter],r.index);
+      // まだ投票していない人へ自動で進む
+      if(dinnerPoll.votes[DV_KEY[dinnerVoter]]!=null)dinnerVoter=DV_VOTERS.find(v=>dinnerPoll.votes[DV_KEY[v]]==null)||null;
+      drawDinnerVote()});
+    return x}));
+  const voted=DV_VOTERS.filter(v=>p.votes[DV_KEY[v]]!=null).length;
+  if(!dinnerSpinning)$('dvMsg').textContent=voted===DV_VOTERS.length?'みんな 投票しました！「けっかで決める」を押してください':`投票した人 ${voted} / ${DV_VOTERS.length}`;
+}
+function dinnerVoteDecide(){
+  const w=winners(dinnerPoll),day=dinnerDay;
+  if(!w.length){$('dvMsg').textContent='まだ だれも 投票していません';return}
+  const names=w.map(i=>dinnerPoll.choices[i]);
+  if(names.length>1)$('dvMsg').textContent='同じ票数！ ルーレットで決めます';
+  dinnerRoulette(names,async name=>{resetDinnerMode();await setDinner(day,name,'🗳 投票で');});
+}
+async function setDinner(day,name,how=''){
   const dish=cleanDish(name);if(!dish)return;
   if(await write(()=>setDoc(doc(db,'dinnerMenus',day),menuRecord(day,dish)))){
-    const {md,dow}=mdDow(day);toast(`${md}（${dow}）の夕飯を「${dish}」にしました`);
+    const {md,dow}=mdDow(day);toast(`${how}${md}（${dow}）の夕飯を「${dish}」にしました`);
     // 次の未定の日へ（同じ週のなか）
     const days=daysFrom(addDaysYmd(today(),dinnerWeek*7),7),next=days.find(d=>d>day&&!dinnerMenus[d]&&d!==day);
     if(next)dinnerDay=next;
@@ -1470,7 +1573,7 @@ async function setDinner(day,name){
   }
 }
 function openDinner(day){
-  dinnerDay=day||today();dishEditing=false;$('dishNew').value='';
+  resetDinnerMode();dinnerDay=day||today();dishEditing=false;$('dishNew').value='';
   const diff=Math.round((new Date(dinnerDay+'T00:00')-new Date(today()+'T00:00'))/86400000);
   dinnerWeek=Math.max(0,Math.min(4,Math.floor(diff/7)));
   $('dinnerBg').hidden=false;$('dinnerSheet').hidden=false;drawDinnerSheet();

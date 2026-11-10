@@ -77,6 +77,37 @@ await pg.click('#dinnerClose');
 ok((await pg.textContent('#dinnerToday')).includes('テストカレー'), 'ホームの「今日の夕飯」が テストカレー に');
 ok(await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'スマホで はみ出さない');
 if (SHOTS) await pg.screenshot({ path: `${SHOTS}/dinner-home.png` });
+// ランダムで決める（候補を選ぶ／選ばないと全部から）
+await pg.click('#openDinner');
+await pg.click(`#dinnerWeek .drow[data-date="${day(4)}"]`);
+await pg.click('#dinnerRandom');
+ok((await pg.textContent('#dinnerHint')).includes('えらばないと 全部'), 'ランダム：候補を選ぶ画面（選ばないと全部から）');
+await pg.click('#dishChips button:has-text("テストカレー")');
+ok(await pg.getAttribute('#dishChips .dc.cand > button', 'aria-pressed') === 'true' && (await pg.textContent('#dinnerGo')) === 'この中からランダム', '候補を選ぶと ✓ がつく');
+await pg.click('#dinnerGo'); await pg.waitForTimeout(2500);
+ok((await db()).dinnerMenus[day(4)]?.dish === 'テストカレー' && (await pg.textContent('#toastText')).includes('ランダムで'), 'ランダムで決まり、その日の献立に保存（候補1つならそれ）');
+await pg.click(`#dinnerWeek .drow[data-date="${day(5)}"]`);
+await pg.click('#dinnerRandom'); await pg.click('#dinnerGo'); await pg.waitForTimeout(2500);
+const r5 = (await db()).dinnerMenus[day(5)]?.dish;
+ok(['テストカレー', 'テスト 焼きそば'].includes(r5), `候補を選ばないと 一覧の全部から（${r5}）`);
+// 投票
+await pg.click(`#dinnerWeek .drow[data-date="${day(6)}"]`);
+await pg.click('#dinnerVoteStart');
+await pg.click('#dinnerGo');
+ok(await pg.isHidden('#dinnerVote'), '候補が1つ以下では 投票を はじめない');
+await pg.click('#dishChips button:has-text("テストカレー")'); await pg.click('#dishChips button:has-text("テスト 焼きそば")');
+await pg.click('#dinnerGo');
+ok(await pg.isVisible('#dinnerVote') && (await pg.$$eval('#dvList .dvc', (x) => x.length)) === 2, '投票：候補2つの投票画面');
+ok((await pg.$$eval('#dvVoters button', (x) => x.map((e) => e.textContent))).length === 5 && await pg.getAttribute('#dvVoters button[data-v=husband]', 'aria-pressed') === 'true', '5人（夫・妻・子ども3人）。はじめは夫の番');
+const vote = (i) => pg.click(`#dvList .dvc >> nth=${i}`);
+await vote(1); await vote(1); await vote(0); await vote(1); await vote(0);
+ok((await pg.$$eval('#dvList .dvc .ct', (x) => x.map((e) => e.textContent))).join() === '2票,3票' && (await pg.textContent('#dvMsg')).includes('みんな 投票しました'), `票が数えられ、全員おわると案内（${(await pg.$$eval('#dvList .dvc .ct', (x) => x.map((e) => e.textContent))).join('・')}）`);
+await pg.click('#dvVoters button[data-v=child2]'); await vote(0);
+ok((await pg.$$eval('#dvList .dvc .ct', (x) => x.map((e) => e.textContent))).join() === '3票,2票', '人を選びなおすと 投票を変えられる');
+await pg.click('#dvDecide'); await pg.waitForTimeout(800);
+ok((await db()).dinnerMenus[day(6)]?.dish === 'テストカレー' && (await pg.textContent('#toastText')).includes('投票で') && await pg.isHidden('#dinnerVote'), '「けっかで決める」で いちばん多いメニューに');
+await pg.click('#dinnerClose');
+
 // 予定（カレンダー）の画面でも夕飯が分かる
 await pg.click('.tabs button[data-tab=schedule]');
 await pg.click('.seg4 button[data-view=week]'); await pg.waitForTimeout(200);
@@ -129,7 +160,7 @@ for (const [label, vp] of [['iPad よこ', { width: 1180, height: 820 }], ['iPad
   ok(await k.isVisible('#tonight') && (await k.textContent('#tonight')).includes('テストカレー'), `${label}：ゆうがたの でんごんに「きょうの ゆうごはん：テストカレー」`);
   await k.click('.tabs button[data-tool=menu]');
   const cards = await k.$$eval('#menuWeek .mday', (x) => x.map((e) => e.textContent));
-  ok(cards.length === 7 && cards[0] === 'きょうテストカレー' && cards[1] === 'あしたテスト 焼きそば' && cards[2].includes('みてい') && cards.length === 7 && cards.slice(2).every((t) => t.includes('みてい')), `${label}：1しゅうかん（7日）。きまっていない日は「みてい」（${cards.slice(0, 4).join('／')}）`);
+  ok(cards.length === 7 && cards[0] === 'きょうテストカレー' && cards[1] === 'あしたテスト 焼きそば' && cards[2].includes('みてい') && cards[3].includes('みてい') && cards[4].includes('テストカレー') && cards[6].includes('テストカレー'), `${label}：1しゅうかん（7日）。きまっていない日は「みてい」（${cards.slice(0, 4).join('／')}）`);
   ok(!cards.some((t) => t.includes('テストハンバーグ')) && !cards.some((t) => t.includes('昔')), `${label}：7日より先・過去の献立は出ない`);
   ok(await k.$eval('#menuWeek .mday', (e) => e.classList.contains('today')), `${label}：きょうが めだつ`);
   const lay = await k.evaluate(() => ({ noH: document.documentElement.scrollWidth <= innerWidth, tabH: Math.min(...[...document.querySelectorAll('.tabs button')].map((x) => x.getBoundingClientRect().height)),
