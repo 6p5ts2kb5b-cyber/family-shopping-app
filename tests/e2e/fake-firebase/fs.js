@@ -23,11 +23,15 @@ function allowed(appName,kind,col,id){
   const R=kind==='read';
   // fakeNoKidRules＝本番のルールがまだ古い（伝言板のルールが無い）状態
   if(localStorage.getItem('fakeNoKidRules')&&(col.startsWith('kid')||col==='familySettings'))return false;
+  // fakeNoDinnerRules＝献立のルールがまだ無い状態
+  if(localStorage.getItem('fakeNoDinnerRules')&&col.startsWith('dinner'))return false;
   switch(col){
     case 'shoppingItems':case 'shoppingFavorites':case 'familySchedules':return fam;
     case 'familyMembers':return R?fam:own;
     case 'kidNotices':return R?fam||dev:fam;
     case 'kidTemplates':return fam;
+    case 'dinnerMenus':return R?fam||dev:fam;
+    case 'dinnerDishes':return fam;
     case 'kidSettings':return id==='board'&&(R?fam||dev:fam);
     case 'familySettings':return R?(id==='children'&&(fam||dev))||(id==='parents'&&fam):fam&&(id==='children'||id==='parents');
     case 'kidDevices':return R?fam||self:own;

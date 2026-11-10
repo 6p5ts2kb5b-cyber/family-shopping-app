@@ -36,7 +36,7 @@ const dbBefore = await k.evaluate(() => localStorage.getItem('fakeDB'));
 
 // ---- 切り替え ----
 const tabs = await k.$$eval('.tabs button', (x) => x.map((e) => e.textContent.trim()));
-ok(tabs.join() === 'でんごん,タイマー,とうひょう', `でんごん・タイマー・とうひょうの切り替え（${tabs.join('・')}）`);
+ok(tabs.join() === 'でんごん,タイマー,ごはん,とうひょう', `でんごん・タイマー・ごはん・とうひょうの切り替え（${tabs.join('・')}）`);
 await k.click('.tabs button[data-tool=timer]');
 ok(await k.isVisible('#toolTimer') && await k.isHidden('#toolNotes') && await k.isHidden('#toolVote'), 'タイマーに切り替わる');
 

@@ -306,6 +306,30 @@ details.fold>summary::-webkit-details-marker{display:none}
 .tplchips:empty{display:none}
 .tplchips button{min-height:40px;border-radius:12px;border:1px solid var(--line2);background:var(--card);color:var(--green);font-weight:700;font-size:14px;padding:4px 10px;text-align:left}
 .noteSheet{max-height:92vh;overflow-y:auto;gap:12px}
+/* 夕飯の献立 */
+.dtoday{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:52px;margin-top:6px;padding:8px 14px;border:1px solid var(--line2);border-radius:14px;background:var(--card);font-size:19px;font-weight:800;color:var(--ink);text-align:left}
+.dtoday .un{color:var(--muted);font-weight:600;font-size:16px}
+.dtoday .go{flex:none;color:var(--green);font-size:14px;font-weight:700}
+.dweekhead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.dweekhead button{min-height:44px;padding:0 10px;border:0;background:none;color:var(--green);font-weight:700;font-size:15px}
+.dweekhead button:disabled{color:#B9C3BC}
+.dweek{display:grid;gap:6px}
+.drow{display:flex;align-items:center;gap:12px;width:100%;min-height:50px;padding:6px 12px;border:1px solid var(--line2);border-radius:14px;background:var(--card);text-align:left;font-size:17px;color:var(--ink)}
+.drow .d{flex:none;width:7.2em;font-size:15px;color:var(--muted);font-weight:700}
+.drow .d b{color:var(--ink);font-size:16px}
+.drow .d .td{display:inline-block;margin-left:4px;padding:0 6px;border-radius:6px;background:var(--green);color:#fff;font-size:12px}
+.drow .n{flex:1;min-width:0;font-weight:800;overflow-wrap:anywhere}
+.drow .n.un{color:var(--muted);font-weight:500}
+.drow[aria-pressed=true]{border-color:var(--green);box-shadow:inset 0 0 0 1px var(--green);background:var(--green-soft)}
+.dpick{display:grid;gap:10px;padding:12px;border-radius:16px;background:#F6F4EF;margin:-2px 0 4px}
+.dpick h3{margin:0;font-size:17px}
+.dishchips{display:flex;flex-wrap:wrap;gap:8px}
+.dishchips:empty::before{content:"まだ メニューがありません。下で追加してください。";color:var(--muted);font-size:14px}
+.dishchips .dc{display:inline-flex;align-items:stretch;border-radius:12px;border:1px solid var(--line2);background:var(--card);overflow:hidden}
+.dishchips .dc>button{min-height:44px;padding:4px 14px;border:0;background:none;color:var(--green);font-weight:700;font-size:16px}
+.dishchips .dc.on{border-color:var(--green);background:var(--green)}.dishchips .dc.on>button{color:#fff}
+.dishchips .dc .x{min-width:40px;padding:0 8px;border-left:1px solid var(--line2);color:#B3261E;font-size:18px}
+
 .noteSheet textarea{width:100%;min-height:84px;border:1px solid var(--line2);border-radius:14px;padding:10px 12px;font:inherit;font-size:17px;resize:vertical}
 .counter{font-size:12px;color:var(--muted);text-align:right;margin:-6px 2px 0}
 .opts.three{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -353,6 +377,15 @@ details.fold>summary::-webkit-details-marker{display:none}
         <button type="button" class="link" id="goAddSchedule">＋ 予定を追加</button>
       </div>
       <div id="todaySchedule" aria-live="polite"></div>
+    </section>
+
+    <section aria-labelledby="hDinner" class="card sched" id="dinnerCard">
+      <div class="head" style="padding:0">
+        <h2 id="hDinner" style="font-size:16px">今日の夕飯</h2>
+        <button type="button" class="link" id="openDinner">1週間の献立 ›</button>
+      </div>
+      <button type="button" class="dtoday" id="dinnerToday"></button>
+      <p class="alert" id="dinnerRules" hidden>献立を使うには、Firebaseのルールの更新が必要です（設定ページの手順で1回だけ）。</p>
     </section>
 
     <section class="card sched section wkprev" id="homeWeekend" hidden aria-labelledby="hWk">
@@ -537,6 +570,24 @@ details.fold>summary::-webkit-details-marker{display:none}
 </div>
 
 <div class="backdrop" id="sheetBg" hidden></div>
+<div class="backdrop" id="dinnerBg" hidden></div>
+<section class="sheet noteSheet" id="dinnerSheet" role="dialog" aria-modal="true" aria-labelledby="dinnerTitle" hidden>
+  <div class="grab" aria-hidden="true"></div>
+  <div class="row" style="justify-content:space-between"><h2 id="dinnerTitle">夕飯の献立</h2><button type="button" class="link" id="dinnerClose">閉じる</button></div>
+  <p class="hint" style="margin:0">日を選んで、メニュー一覧から決めます。子ども用タブレットにも1週間ぶんが出ます。</p>
+  <div class="dweekhead"><button type="button" id="dinnerPrev">‹ 前の週</button><b class="num" id="dinnerRange"></b><button type="button" id="dinnerNext">次の週 ›</button></div>
+  <div class="dweek" id="dinnerWeek" role="group" aria-label="日ごとの夕飯"></div>
+  <div class="dpick" id="dinnerPick">
+    <h3 id="dinnerPickTitle"></h3>
+    <div class="dishchips" id="dishChips" role="group" aria-label="作れるメニュー"></div>
+    <div class="row" style="flex-wrap:wrap">
+      <button type="button" class="btn sub" id="dinnerUnset" style="min-height:44px">未定にする</button>
+      <button type="button" class="link" id="dishEdit" aria-pressed="false">メニュー一覧を編集</button>
+    </div>
+    <form id="dishForm" class="row"><label class="sr" for="dishNew">新しいメニュー</label><input class="field" id="dishNew" maxlength="40" autocomplete="off" placeholder="新しいメニューを追加（例：ハンバーグ）" required><button class="btn sub" style="min-height:48px">追加</button></form>
+  </div>
+  <p class="alert" id="dinnerSheetRules" hidden>献立を使うには、Firebaseのルールの更新が必要です（設定ページの手順で1回だけ）。</p>
+</section>
 <div class="backdrop" id="noteBg" hidden></div>
 <section class="sheet noteSheet" id="noteSheet" role="dialog" aria-modal="true" aria-labelledby="noteTitle" hidden>
   <div class="grab" aria-hidden="true"></div>
@@ -619,6 +670,7 @@ import {parseQuickSchedule,setWhoNames} from "./lib/quick-schedule.js";
 import {installMotion,enableRipple,enter,bump,shake,play,ghostDone} from "./lib/motion.js";
 import {CHILD_IDS,boardFor,isPaused,periodAt,onceDate,repeatChoice,draftFromChoice,staleOnceIds,isValidNoticeDraft,DEFAULT_EVENING_FROM} from "./lib/kid-notices.js";
 import {parsePair,checkEmojis,emojiChoices,PAIR_TTL_MS} from "./lib/kid-pairing.js";
+import {daysFrom,addDaysYmd,cleanDish,dishKey,menuMap,sortDishes,hasDish,nextOrder as nextDishOrder,menuRecord} from "./lib/dinner.js";
 import {MEMBERS,WHO,setMemberLabels,normWho,whosOf,groupSameEvents,sortDay,toYmd,addDays,weekendOf,weekOf,findOverlaps,clampDay,homeWeekendPreview,initialView,rangeFor,monthRange,shareDays,shareDaysRange,shareWeekTitle,shareTitle,shareText,timeText} from "./lib/schedule-views.js";
 
 const app=initializeApp(firebaseConfig),auth=getAuth(app),provider=new GoogleAuthProvider();
@@ -1043,7 +1095,7 @@ function subscribeSchedules(){
 function mergeSchedules(){const m=new Map();for(const list of Object.values(schedSets))for(const e of list)m.set(e.id,e);schedules=groupSameEvents([...m.values()]);drawSchedules()}
 // 日付が変わったら読み直す（画面を開きっぱなしでも翌日に正しく出す）
 let lastDay=today();
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&today()!==lastDay){lastDay=today();subscribeSchedules()}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&today()!==lastDay){lastDay=today();subscribeSchedules();if(user)subscribeDinner();drawDinner()}});
 
 // ---------- かんたん予定入力 ----------
 // 手で直した欄は、文章を打ち直しても上書きしない
@@ -1339,6 +1391,87 @@ const txOr=(txFn,offlineFn)=>()=>navigator.onLine
   ?runTransaction(db,txFn).catch(e=>{if(e?.code==='unavailable')return offlineFn();throw e})
   :offlineFn();
 
+// ==================== 夕飯の献立 ====================
+// dinnerMenus/{日付}={date,dish}（未定は文書なし）、dinnerDishes/{id}={name,order}（作れるメニュー一覧）
+const dinnerPickEl=document.getElementById('dinnerPick'); // 日の下に動かすので、つかんでおく（一覧を描き直すと いったん外れる）
+let dinnerMenus={},dinnerDishes=[],dinnerRulesOk=true,dinnerWeek=0,dinnerDay='',dishEditing=false,dinnerUnsub=null,dinnerFrom='';
+const DINNER_KEEP_BACK=7,DINNER_AHEAD=35;
+const mdDow=ymd=>{const [y,m,d]=ymd.split('-').map(Number);return {md:`${m}/${d}`,dow:DOW[new Date(y,m-1,d).getDay()]}};
+function dinnerDenied(e){console.warn('dinner',e?.code);if(e?.code==='permission-denied'){dinnerRulesOk=false;drawDinner()}}
+function subscribeDinner(){
+  // 今日の7日前〜5週間先だけ読む（読み込みの量を少なく）。日付が変わったら読み直す
+  const from=addDaysYmd(today(),-DINNER_KEEP_BACK),to=addDaysYmd(today(),DINNER_AHEAD);
+  if(dinnerFrom===from&&dinnerUnsub)return;
+  dinnerUnsub?.();dinnerFrom=from;
+  dinnerUnsub=onSnapshot(query(collection(db,'dinnerMenus'),where('date','>=',from),where('date','<=',to)),snap=>{dinnerRulesOk=true;dinnerMenus=menuMap(snap.docs.map(d=>d.data()));drawDinner()},dinnerDenied);
+}
+function drawDinner(){
+  const t=today(),dish=dinnerMenus[t]||'';
+  $('dinnerToday').replaceChildren(dish?el('span',{textContent:dish}):el('span',{className:'un',textContent:'未定（タップで決める）'}),el('span',{className:'go',textContent:dish?'変える ›':'›'}));
+  $('dinnerToday').setAttribute('aria-label',`今日の夕飯：${dish||'未定'}。タップで決める`);
+  $('dinnerRules').hidden=dinnerRulesOk;$('dinnerSheetRules').hidden=dinnerRulesOk;
+  if(!$('dinnerSheet').hidden)drawDinnerSheet();
+}
+function drawDinnerSheet(){
+  const start=addDaysYmd(today(),dinnerWeek*7),days=daysFrom(start,7);
+  if(!days.includes(dinnerDay))dinnerDay=days[0];
+  const a=mdDow(days[0]),b=mdDow(days[6]);
+  $('dinnerRange').textContent=`${a.md}〜${b.md}`;
+  $('dinnerPrev').disabled=dinnerWeek<=0;$('dinnerNext').disabled=dinnerWeek>=4;
+  $('dinnerWeek').replaceChildren(...days.map(d=>{
+    const {md,dow}=mdDow(d),dish=dinnerMenus[d]||'';
+    const btn=el('button',{type:'button',className:'drow',ariaLabel:`${md}（${dow}）${d===today()?' 今日':''}：${dish||'未定'}`},
+      el('span',{className:'d'},el('b',{className:'num',textContent:md}),`（${dow}）`,...(d===today()?[el('span',{className:'td',textContent:'今日'})]:[])),
+      el('span',{className:'n'+(dish?'':' un'),textContent:dish||'未定'}));
+    btn.setAttribute('aria-pressed',d===dinnerDay);btn.dataset.date=d;
+    btn.addEventListener('click',()=>{dinnerDay=d;drawDinnerSheet();dinnerPickEl.scrollIntoView({block:'nearest',behavior:'smooth'})});
+    return btn}));
+  // 選んだ日の すぐ下に メニューを出す（スマホでも 下まで スクロールしなくてよい）
+  $('dinnerWeek').querySelector(`.drow[data-date="${dinnerDay}"]`)?.after(dinnerPickEl);
+  const {md,dow}=mdDow(dinnerDay),cur=dinnerMenus[dinnerDay]||'';
+  $('dinnerPickTitle').textContent=`${md}（${dow}）の夕飯：${cur||'未定'}`;
+  $('dinnerUnset').disabled=!cur;
+  $('dishEdit').setAttribute('aria-pressed',dishEditing);$('dishEdit').textContent=dishEditing?'編集をおわる':'メニュー一覧を編集';
+  $('dishChips').replaceChildren(...sortDishes(dinnerDishes).map(x=>{
+    const on=dishKey(x.name)===dishKey(cur);
+    const wrap=el('span',{className:'dc'+(on?' on':'')});
+    const pick=el('button',{type:'button',textContent:x.name,ariaLabel:`${md}の夕飯を「${x.name}」にする`});
+    pick.setAttribute('aria-pressed',on);
+    pick.addEventListener('click',()=>setDinner(dinnerDay,x.name));
+    wrap.append(pick);
+    if(dishEditing)wrap.append(el('button',{type:'button',className:'x',textContent:'×',ariaLabel:`「${x.name}」を一覧から消す`,onclick:()=>{if(confirm(`「${x.name}」をメニュー一覧から消しますか？（決めてある献立は消えません）`))write(()=>deleteDoc(doc(db,'dinnerDishes',x.id)))}}));
+    return wrap}));
+}
+async function setDinner(day,name){
+  const dish=cleanDish(name);if(!dish)return;
+  if(await write(()=>setDoc(doc(db,'dinnerMenus',day),menuRecord(day,dish)))){
+    const {md,dow}=mdDow(day);toast(`${md}（${dow}）の夕飯を「${dish}」にしました`);
+    // 次の未定の日へ（同じ週のなか）
+    const days=daysFrom(addDaysYmd(today(),dinnerWeek*7),7),next=days.find(d=>d>day&&!dinnerMenus[d]&&d!==day);
+    if(next)dinnerDay=next;
+    drawDinnerSheet();
+  }
+}
+function openDinner(day){
+  dinnerWeek=0;dinnerDay=day||today();dishEditing=false;$('dishNew').value='';
+  $('dinnerBg').hidden=false;$('dinnerSheet').hidden=false;drawDinnerSheet();
+}
+function closeDinner(){$('dinnerBg').hidden=true;$('dinnerSheet').hidden=true}
+$('dinnerToday').addEventListener('click',()=>openDinner(today()));
+$('openDinner').addEventListener('click',()=>openDinner(today()));
+$('dinnerClose').addEventListener('click',closeDinner);$('dinnerBg').addEventListener('click',closeDinner);
+$('dinnerPrev').addEventListener('click',()=>{dinnerWeek=Math.max(0,dinnerWeek-1);dinnerDay='';drawDinnerSheet()});
+$('dinnerNext').addEventListener('click',()=>{dinnerWeek=Math.min(4,dinnerWeek+1);dinnerDay='';drawDinnerSheet()});
+$('dinnerUnset').addEventListener('click',async()=>{const d=dinnerDay;if(!dinnerMenus[d])return;if(await write(()=>deleteDoc(doc(db,'dinnerMenus',d)))){toast(`${mdDow(d).md}の夕飯を未定にしました`);drawDinnerSheet()}});
+addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('dinnerSheet').hidden)closeDinner()});
+$('dishEdit').addEventListener('click',()=>{dishEditing=!dishEditing;drawDinnerSheet()});
+// 新しいメニュー：一覧に足して、選んでいる日の献立にする
+$('dishForm').addEventListener('submit',async e=>{e.preventDefault();
+  const name=cleanDish($('dishNew').value);if(!name)return;
+  if(!hasDish(dinnerDishes,name)){const id=encode(name);if(!(await write(()=>setDoc(doc(db,'dinnerDishes',id),{name,order:nextDishOrder(dinnerDishes)}))))return}
+  $('dishNew').value='';await setDinner(dinnerDay,name);
+});
+
 // ==================== 家族の呼び名（Firebaseの家族設定から） ====================
 let names={children:null,parents:null};
 function applyNames(){
@@ -1586,6 +1719,8 @@ function subscribeKids(){
   unsubs.push(onSnapshot(collection(db,'kidTemplates'),snap=>{templates=snap.docs.map(d=>({id:d.id,...d.data()}));if(tab==='notes')drawNotes();else drawTemplates()},deny('templates')));
   unsubs.push(onSnapshot(doc(db,'kidSettings','board'),snap=>{const v=snap.exists()?snap.data():{};kidBoard={pause:v.pause||'',eveningFrom:v.eveningFrom||DEFAULT_EVENING_FROM};if(tab==='notes')drawNotes()},deny('board')));
   for(const k of ['children','parents'])unsubs.push(onSnapshot(doc(db,'familySettings',k),snap=>{names[k]=snap.exists()?snap.data():null;namesLoaded[k]=true;applyNames()},e=>{console.warn('names',e?.code);namesLoaded[k]=false;applyNames()}));
+  unsubs.push(onSnapshot(collection(db,'dinnerDishes'),snap=>{dinnerDishes=snap.docs.map(d=>({id:d.id,...d.data()}));drawDinner()},dinnerDenied));
+  subscribeDinner();unsubs.push(()=>{dinnerUnsub?.();dinnerUnsub=null;dinnerFrom='';dinnerMenus={};dinnerDishes=[]});
   unsubs.push(onSnapshot(collection(db,'kidDevices'),snap=>{devices=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.addedAt?.seconds||0)-(b.addedAt?.seconds||0));drawDevices()},e=>{console.warn('devices',e?.code);devices=[];drawDevices()}));
 }
 function stop(){notices=[];templates=[];devices=[];cleaned=false;pairShown=false;membersLoaded=false;names={children:null,parents:null};namesLoaded.children=namesLoaded.parents=false;for(const k in pendingByCol)delete pendingByCol[k];unsubs.forEach(f=>f());unsubs=[];readyItems=readyFavs=canWrite=false;items=[];favs=[];members=[];schedules=[];$('content').hidden=true;$('dock').hidden=true;$('signin').hidden=false;updateSync();applyNames()}
@@ -1596,7 +1731,7 @@ $('logout').addEventListener('click',async()=>{
   try{await signOut(auth);await terminate(db);await clearIndexedDbPersistence(db)}catch(e){console.warn(e)}
   location.reload();
 });
-function renderReady(){if(!readyItems||!readyFavs)return;const first=!canWrite;canWrite=true;$('signin').hidden=true;$('content').hidden=false;$('dock').hidden=false;if(first){switchTab(tab);subscribeSchedules()}updateSync();draw();drawSchedules();maybeStartPair()}
+function renderReady(){if(!readyItems||!readyFavs)return;const first=!canWrite;canWrite=true;$('signin').hidden=true;$('content').hidden=false;$('dock').hidden=false;if(first){switchTab(tab);subscribeSchedules()}updateSync();draw();drawSchedules();drawDinner();maybeStartPair()}
 onAuthStateChanged(auth,u=>{
   stop();user=u;$('account').textContent=u?'ログイン中：'+(u.email||'アカウント'):'';
   $('login').hidden=!!u;updateSync();
