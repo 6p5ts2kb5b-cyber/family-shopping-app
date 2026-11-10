@@ -157,6 +157,12 @@ button.ev:first-child{border-top:0}
 .wrow .lines b.husband{color:var(--h)}.wrow .lines b.wife{color:var(--w)}.wrow .lines b.family{color:var(--f)}
 .wrow .lines .none{color:#7A867E}
 .wrow .lines .tm{color:var(--muted)}
+/* 予定の画面の夕飯 */
+.wrow .lines .dn{color:#7A5300;font-weight:700}.wrow .lines .dn.un{color:#A89F8B;font-weight:500}
+.ddin{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;margin:0 0 6px;padding:6px 12px;border:1px dashed #E7D9B5;border-radius:12px;background:#FFFBF0;color:#7A5300;font-size:15px;font-weight:700;text-align:left}
+.ddin b{color:var(--ink);font-size:16px}.ddin .un{color:#A89F8B;font-weight:500}
+.ddin .go{margin-left:auto;color:var(--green);font-size:13px}
+button.ddin:disabled{cursor:default}
 .opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 .opts button{min-height:44px;min-width:0;border-radius:12px;border:1px solid var(--line2);background:var(--card);font-weight:700;font-size:14px;color:#3F4D45;padding:4px 2px;line-height:1.3;white-space:normal}
 .opts button[aria-pressed=true]{border:2px solid var(--green);color:var(--green)}
@@ -712,6 +718,9 @@ let pendingPair=parsePair(location.hash);
 try{if(pendingPair)sessionStorage.setItem('wm.pair',JSON.stringify(pendingPair));else pendingPair=JSON.parse(sessionStorage.getItem('wm.pair')||'null')}catch{}
 if(location.hash.startsWith('#pair='))history.replaceState(null,'',location.pathname+location.search);
 let weekendOffset=0,weekOffset=0,dayFocus=null,prefillDate='';
+// 夕飯の献立（下の「夕飯の献立」で使う。予定の画面からも見るので先に用意）
+const dinnerPickEl=document.getElementById('dinnerPick'); // 日の下に動かすので、つかんでおく（一覧を描き直すと いったん外れる）
+let dinnerMenus={},dinnerDishes=[],dinnerRulesOk=true,dinnerWeek=0,dinnerDay='',dishEditing=false,dinnerUnsub=null,dinnerFrom='';
 const expanded=new Set();
 // ホームには土曜・日曜の予定を常に表示する
 
@@ -812,6 +821,7 @@ function dayCard(ymd,{title,limit=4,chart=true}={}){
   const card=el('section',{className:'card daycard'+(ymd<today()?' past':'')});
   card.append(el('div',{className:'dayhead'},el('h3',{},title||`${m}/${d}`,el('small',{textContent:title?`${m}/${d}（${dow}）`:dow})),
     el('button',{type:'button',className:'link',textContent:'＋ 追加',ariaLabel:`${m}月${d}日に予定を追加`,onclick:()=>startAddForDate(ymd)})));
+  card.append(dinnerLine(ymd));
   if(chart){const tl=timeline(all);if(tl)card.append(tl)}
   const {shown,more}=clampDay(all,limit,expanded.has(ymd));
   if(!shown.length)card.append(el('p',{className:'empty',textContent:'予定なし'}));
@@ -828,6 +838,7 @@ function weekCard(days){
     if(!shown.length)lines.append(el('span',{className:'none',textContent:'予定なし'}));
     for(const e of shown){lines.append(el('span',{},...whosOf(e).flatMap((w,i)=>[...(i?['・']:[]),el('b',{className:w,textContent:WHO[w]})]),'　'+(e.name||'予定')+'　',el('span',{className:'tm num',textContent:e.departure?fmtTime(e.departure)+' → '+(fmtTime(e.returnTime)||'未定'):''})))}
     if(more)lines.append(el('span',{className:'tm',textContent:`ほか${more}件`}));
+    const dn=dinnerMenus[ymd]||'';lines.append(el('span',{className:'dn'+(dn?'':' un'),textContent:'🍚 夕飯：'+(dn||'未定')}));
     card.append(el('button',{type:'button',className:'wrow'+(ymd===today()?' today':''),ariaLabel:`${m}月${d}日（${dow}）の予定を開く`,onclick:()=>{dayFocus=ymd;drawScheduleList()}},
       el('div',{className:'d'},el('small',{textContent:dow}),el('b',{className:'num',textContent:String(d)})),lines));
   }
@@ -1393,8 +1404,6 @@ const txOr=(txFn,offlineFn)=>()=>navigator.onLine
 
 // ==================== 夕飯の献立 ====================
 // dinnerMenus/{日付}={date,dish}（未定は文書なし）、dinnerDishes/{id}={name,order}（作れるメニュー一覧）
-const dinnerPickEl=document.getElementById('dinnerPick'); // 日の下に動かすので、つかんでおく（一覧を描き直すと いったん外れる）
-let dinnerMenus={},dinnerDishes=[],dinnerRulesOk=true,dinnerWeek=0,dinnerDay='',dishEditing=false,dinnerUnsub=null,dinnerFrom='';
 const DINNER_KEEP_BACK=7,DINNER_AHEAD=35;
 const mdDow=ymd=>{const [y,m,d]=ymd.split('-').map(Number);return {md:`${m}/${d}`,dow:DOW[new Date(y,m-1,d).getDay()]}};
 function dinnerDenied(e){console.warn('dinner',e?.code);if(e?.code==='permission-denied'){dinnerRulesOk=false;drawDinner()}}
@@ -1405,12 +1414,20 @@ function subscribeDinner(){
   dinnerUnsub?.();dinnerFrom=from;
   dinnerUnsub=onSnapshot(query(collection(db,'dinnerMenus'),where('date','>=',from),where('date','<=',to)),snap=>{dinnerRulesOk=true;dinnerMenus=menuMap(snap.docs.map(d=>d.data()));drawDinner()},dinnerDenied);
 }
+// 予定の画面（1日のカード）に出す夕飯の行。今日から5週間先までは押すと献立を決められる
+function dinnerLine(ymd){
+  const dish=dinnerMenus[ymd]||'',diff=Math.round((new Date(ymd+'T00:00')-new Date(today()+'T00:00'))/86400000),can=diff>=0&&diff<35;
+  const b=el('button',{type:'button',className:'ddin',ariaLabel:`${fmtDay(ymd)}の夕飯：${dish||'未定'}${can?'。押すと献立を決める':''}`},'🍚 夕飯',dish?el('b',{textContent:dish}):el('span',{className:'un',textContent:'未定'}),...(can?[el('span',{className:'go',textContent:dish?'変える ›':'決める ›'})]:[]));
+  b.disabled=!can;if(can)b.addEventListener('click',()=>openDinner(ymd));
+  return b;
+}
 function drawDinner(){
   const t=today(),dish=dinnerMenus[t]||'';
   $('dinnerToday').replaceChildren(dish?el('span',{textContent:dish}):el('span',{className:'un',textContent:'未定（タップで決める）'}),el('span',{className:'go',textContent:dish?'変える ›':'›'}));
   $('dinnerToday').setAttribute('aria-label',`今日の夕飯：${dish||'未定'}。タップで決める`);
   $('dinnerRules').hidden=dinnerRulesOk;$('dinnerSheetRules').hidden=dinnerRulesOk;
   if(!$('dinnerSheet').hidden)drawDinnerSheet();
+  if(tab==='schedule')drawScheduleList();
 }
 function drawDinnerSheet(){
   const start=addDaysYmd(today(),dinnerWeek*7),days=daysFrom(start,7);
@@ -1453,7 +1470,9 @@ async function setDinner(day,name){
   }
 }
 function openDinner(day){
-  dinnerWeek=0;dinnerDay=day||today();dishEditing=false;$('dishNew').value='';
+  dinnerDay=day||today();dishEditing=false;$('dishNew').value='';
+  const diff=Math.round((new Date(dinnerDay+'T00:00')-new Date(today()+'T00:00'))/86400000);
+  dinnerWeek=Math.max(0,Math.min(4,Math.floor(diff/7)));
   $('dinnerBg').hidden=false;$('dinnerSheet').hidden=false;drawDinnerSheet();
 }
 function closeDinner(){$('dinnerBg').hidden=true;$('dinnerSheet').hidden=true}
