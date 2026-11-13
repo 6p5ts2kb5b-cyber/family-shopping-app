@@ -1,9 +1,7 @@
-// 伝言板の判定（朝夕・お休み・今日だけ／明日だけ・並び・できた！の記録）と QR 登録の小さな関数
+// 伝言板の判定（朝夕・お休み・今日だけ／明日だけ・並び・できた！の記録）
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import { periodAt, isPaused, onceDate, repeatChoice, draftFromChoice, boardFor, staleOnceIds, isDone, setDone, pruneDone, completionKey, isValidNoticeDraft } from '../lib/kid-notices.js';
-import { newToken, sha256Hex, pairUrl, parsePair, checkEmojis, emojiChoices, TOKEN_RE } from '../lib/kid-pairing.js';
 
 const N = (id, o = {}) => ({ id, text: id, targets: ['child1', 'child2', 'child3'], period: 'morning', repeat: 'daily', onDate: '', active: true, updatedAt: { seconds: 100, nanoseconds: 0 }, ...o });
 const THU = new Date(2026, 9, 15, 7, 30); // 2026-10-15（木）
@@ -97,36 +95,6 @@ test('できた！：押す・取り消す。日付・文面の変更で外れ�
   assert.equal(setDone(broken, '2026-10-15', 'child1', 'morning', n, true), false);
   assert.equal(pruneDone(broken, '2026-10-15'), 0);
   assert.equal(isDone(null, '2026-10-15', 'child1', 'morning', n), false);
-});
-
-test('QR：トークンは128bitの乱数（22文字）で毎回違う', () => {
-  const a = newToken(), b = newToken();
-  assert.match(a, TOKEN_RE); assert.equal(a.length, 22); assert.notEqual(a, b);
-});
-
-test('QR：SHA-256 はルール側と同じ16進小文字', async () => {
-  const t = 'AbCdEfGhIjKlMnOpQrStUv12';
-  assert.equal(await sha256Hex(t), createHash('sha256').update(t).digest('hex'));
-});
-
-test('QR：URL は # の後ろに uid とトークン。形が違うものは受け付けない', () => {
-  const url = pairUrl('https://example.github.io/app/app.html', 'abcDEF123456', 'AbCdEfGhIjKlMnOpQrStUv');
-  assert.equal(url, 'https://example.github.io/app/app.html#pair=abcDEF123456.AbCdEfGhIjKlMnOpQrStUv');
-  assert.deepEqual(parsePair('#pair=abcDEF123456.AbCdEfGhIjKlMnOpQrStUv'), { uid: 'abcDEF123456', token: 'AbCdEfGhIjKlMnOpQrStUv' });
-  for (const bad of ['', '#pair=abc', '#pair=abcDEF123456.short', '#pair=abc/DEF.AbCdEfGhIjKlMnOpQrStUv', '#x=abcDEF123456.AbCdEfGhIjKlMnOpQrStUv', '#pair=abcDEF123456.AbCdEfGhIjKlMnOpQrStUv&x=1'])
-    assert.equal(parsePair(bad), null, bad);
-  assert.throws(() => pairUrl('https://x', 'a/b', 'AbCdEfGhIjKlMnOpQrStUv'));
-});
-
-test('QR：確認の絵はトークンごとに決まり、両方の端末で同じ', async () => {
-  const t = 'AbCdEfGhIjKlMnOpQrStUv12';
-  const a = await checkEmojis('uid123', t), b = await checkEmojis('uid123', t);
-  assert.equal(a.length, 3); assert.deepEqual(a, b);
-  assert.notDeepEqual(a, await checkEmojis('uid123', 'ZZZZZZZZZZZZZZZZZZZZZZ'));
-  assert.notDeepEqual(a, await checkEmojis('uid999', t)); // 別の端末なら違う絵
-  const ch = emojiChoices(a);
-  assert.equal(ch.length, 4); assert.equal(ch.filter((s) => s.join('') === a.join('')).length, 1);
-  assert.equal(new Set(ch.map((s) => s.join(''))).size, 4);
 });
 
 test('休日のみ（weekends）＝土・日だけ。平日だけ（weekdays）は月〜金のまま', () => {

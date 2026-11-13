@@ -23,6 +23,7 @@ html,body{margin:0;background:var(--bg);color:var(--ink);-webkit-text-size-adjus
 body{min-height:100vh;padding:max(8px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))}
 button{font:inherit;color:inherit;cursor:pointer}
 .top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.top .conn{margin-left:auto}
 .date{font-size:clamp(18px,2.5vw,23px);font-weight:800;margin:0}
 .conn{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);background:#fff;border-radius:999px;padding:4px 8px}
 .conn i{width:10px;height:10px;border-radius:50%;background:var(--green)}
@@ -81,12 +82,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 .dset input[type=checkbox]{width:26px;height:26px}
 .dset .stepper b{min-width:64px;text-align:center;font-variant-numeric:tabular-nums}
 .dshow{display:block;margin:8px auto 0}
-/* お休み・登録・読み込み */
+/* お休み・ログイン・読み込み */
 .big{background:#fff;border-radius:28px;padding:28px 20px;text-align:center;max-width:720px;margin:24px auto}
 .big h2{margin:0 0 8px;font-size:clamp(30px,5vw,44px)}
 .big p{margin:8px 0;font-size:20px;color:var(--muted);line-height:1.6}
-#qr{display:block;margin:16px auto;width:min(300px,70vw);height:auto;image-rendering:pixelated;background:#fff}
-.emojis{font-size:44px;letter-spacing:10px;margin:8px 0}
+.parent{display:inline-flex;align-items:center;min-height:34px;padding:0 12px;border-radius:12px;border:2px solid var(--line);background:#fff;color:var(--muted);font-size:15px;font-weight:800;text-decoration:none}
 .retry{min-height:56px;padding:0 24px;border:0;border-radius:16px;background:var(--green);color:#fff;font-size:20px;font-weight:800;margin-top:10px}
 .small{font-size:15px!important}
 /* でんごん・タイマー・とうひょうの切り替え */
@@ -184,6 +184,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 <div class="top">
   <p class="date" id="date"></p>
   <span class="conn" id="conn" data-tone="off"><i></i><span id="connText">じゅんびちゅう</span></span>
+  <a class="parent" href="./app.html">おとなの画面へ</a>
 </div>
 
 <!-- 読み込み中・エラー -->
@@ -194,15 +195,12 @@ button{font:inherit;color:inherit;cursor:pointer}
   <button type="button" class="retry" id="retry">もういちど</button>
 </section>
 
-<!-- 初回登録（QR） -->
-<section class="big" id="pair" hidden>
-  <h2>このタブレットを とうろく</h2>
-  <p>おうちの ひとが スマホの カメラで よみとってね。</p>
-  <canvas id="qr" width="300" height="300" aria-label="とうろく用のQRコード" hidden></canvas>
-  <p>かくにんの え</p>
-  <p class="emojis" id="emojis" aria-label="確認の絵"></p>
-  <p class="small" id="pairInfo"></p>
-  <p class="small">保護者の方へ：管理者のスマホでQRを読み取り、「わが家のメモ」で同じ絵が出ていることを確かめてから登録してください。</p>
+<!-- ログイン（タブレットには親のGoogleアカウントでログインしておく） -->
+<section class="big" id="login" hidden>
+  <h2>おうちの ひとが ログインしてね</h2>
+  <p id="loginText">「わが家のメモ」の 家族の名簿に ある Googleアカウント（おとうさんか おかあさん）で ログインします。こどもは ログインしなくて だいじょうぶ。</p>
+  <button type="button" class="retry" id="loginBtn">Googleで ログイン</button>
+  <p class="small">保護者の方へ：一度ログインすると、このタブレットではログインしたまま使えます。「わが家のメモ」と同じアカウントです。</p>
 </section>
 
 <!-- 伝言 -->
@@ -312,20 +310,19 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import {getAuth,signInAnonymously,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import {initializeFirestore,getFirestore,persistentLocalCache,collection,doc,onSnapshot,query,where,setDoc,serverTimestamp,terminate,clearIndexedDbPersistence} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import {getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import {initializeFirestore,getFirestore,persistentLocalCache,persistentMultipleTabManager,collection,doc,onSnapshot,query,where} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import {firebaseConfig} from "./firebase-config.js?v=20261011-fix2";
 import {CHILD_IDS,boardFor,periodAt,isDone,setDone,pruneDone,toYmd,DEFAULT_EVENING_FROM} from "./lib/kid-notices.js";
-import {newToken,sha256Hex,pairUrl,checkEmojis,PAIR_REFRESH_MS} from "./lib/kid-pairing.js";
-import qrcode from "./lib/vendor/qrcode.mjs";
 import {daysFrom,menuMap} from "./lib/dinner.js";
 import {installMotion,enableRipple,enter,bump,shake,play,burst,burstAt} from "./lib/motion.js";
 import {normDepart,shiftDepart,departLabel,departState,departPlan,departText,clockAngles,sectorPath,wedgePathCCW,wedgePath as dialWedge,VOTERS,rotationOrder,nextInOrder,clampMinutes,startTimer,pauseTimer,resumeTimer,remainingMs,isRunning,formatClock,shownMs,dialFraction,wedgePath,startPrep,PREP_MIN,createPoll,castVote,tally,winners,pickRandom,MAX_CHOICES,TIMER_DEFAULT} from "./lib/kid-tools.js";
 
-// 親の app.html とログイン状態・端末保存を分けるため、名前付きのアプリで初期化する
-const app=initializeApp(firebaseConfig,'kids'),auth=getAuth(app);
+// 親の app.html と同じログインを使う（タブレットには親のGoogleアカウントでログインしておく。QRでの登録はしない）
+const app=initializeApp(firebaseConfig),auth=getAuth(app),provider=new GoogleAuthProvider();
+provider.setCustomParameters({prompt:'select_account'});
 let db;
-try{db=initializeFirestore(app,{localCache:persistentLocalCache()})}catch(e){db=getFirestore(app)}
+try{db=initializeFirestore(app,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})})}catch(e){db=getFirestore(app)}
 
 const $=id=>document.getElementById(id);
 const el=(tag,props={},...kids)=>{const n=Object.assign(document.createElement(tag),props);n.append(...kids);return n};
@@ -333,10 +330,10 @@ const store=(()=>{try{const k='__kids_t';localStorage.setItem(k,'1');localStorag
 const DOWS=['にち','げつ','か','すい','もく','きん','ど'];
 const FALLBACK={child1:'1ばんめ',child2:'2ばんめ',child3:'3ばんめ'};
 
-const state={uid:'',registered:null,serverAuthorized:false,notices:[],board:{pause:'',eveningFrom:DEFAULT_EVENING_FROM},names:{...FALLBACK},
-  manual:null,manualAuto:null,today:'',lastSync:null,subs:[],pairTimer:null,token:''};
+const state={uid:'',notices:[],board:{pause:'',eveningFrom:DEFAULT_EVENING_FROM},names:{...FALLBACK},
+  manual:null,manualAuto:null,today:'',lastSync:null,subs:[]};
 
-function show(which){for(const id of ['loading','error','pair','board'])$(id).hidden=id!==which}
+function show(which){for(const id of ['loading','error','login','board'])$(id).hidden=id!==which}
 function setConn(tone,text){$('conn').dataset.tone=tone;$('connText').textContent=text}
 function fail(text){show('error');$('errorText').textContent=text;setConn('err','つながりません')}
 $('retry').addEventListener('click',()=>location.reload());
@@ -448,110 +445,41 @@ function syncState(snap){
   else{const d=now();state.lastSync=`${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;setConn('ok','つながっています')}
 }
 function startBoard(){
-  stopBoard();stopPair();
-  if(!state.serverAuthorized){show('loading');setConn('off','とうろくを かくにんちゅう');return}
+  stopBoard();
   show('board');render();
-  const onErr=e=>{console.warn('kids board',e?.code);if(e?.code==='permission-denied')return; // 解除されたときは kidDevices の監視が登録画面に切り替える
+  const onErr=e=>{console.warn('kids board',e?.code);if(e?.code==='permission-denied'){denied();return}
     if(!state.notices.length)fail('でんごんを よみこめませんでした。おうちの ひとに しらせてね。');else setConn('err','つながりません')};
-  state.subs.push(onSnapshot(collection(db,'kidNotices'),{includeMetadataChanges:true},snap=>{state.notices=snap.docs.map(d=>({id:d.id,...d.data()}));noticesLoaded=true;syncState(snap);if(state.registered)show('board');render()},onErr));
+  state.subs.push(onSnapshot(collection(db,'kidNotices'),{includeMetadataChanges:true},snap=>{state.notices=snap.docs.map(d=>({id:d.id,...d.data()}));noticesLoaded=true;syncState(snap);render()},onErr));
   state.subs.push(onSnapshot(doc(db,'kidSettings','board'),snap=>{const v=snap.exists()?snap.data():{};state.board={pause:v.pause||'',eveningFrom:v.eveningFrom||DEFAULT_EVENING_FROM};render()},onErr));
   state.subs.push(onSnapshot(doc(db,'familySettings','children'),snap=>{state.names={...FALLBACK,...(snap.exists()?snap.data():{})};render()},onErr));
   subDinner();
 }
 
-// 登録を解除された：この端末に残っている伝言・名前・「できた！」の記録を消してから登録画面へ
-async function revoked(){
-  stopBoard();show('loading');
-  try{if(store)for(const k of Object.keys(store))if(k.startsWith('kidsDone:'))store.removeItem(k)}catch{}
-  state.notices=[];state.names={...FALLBACK};state.registered=false;state.serverAuthorized=false;
-  try{await terminate(db);await clearIndexedDbPersistence(db)}catch(e){console.warn('clear',e?.code)}
-  // 永続キャッシュの消去に失敗しても、再起動後にサーバーで承認を確認するまでは伝言を開かない。
-  location.reload();
+// 名簿に無いアカウント：伝言を消して、ログインの画面へ
+function denied(){
+  stopBoard();state.notices=[];state.names={...FALLBACK};
+  showLogin(`このアカウント（${state.email||'ふめい'}）は 家族の名簿に ありません。名簿に ある アカウントで ログインしてね。`,'べつの アカウントで ログイン');
 }
-
-// ---------- 初回登録（QR） ----------
-function stopPair(){clearTimeout(state.pairTimer);state.pairTimer=null}
-async function startPair(){
-  stopBoard();stopPair();
-  if(!navigator.onLine){fail('インターネットに つながっていません。');return}
-  show('pair');setConn('ok','とうろく まち');
-  try{
-    // 申請の作り直しはルールで4分に1回まで。再読み込みしたときは、まだ新しいQRをそのまま使う
-    const KEY='kidsPair:'+state.uid;
-    let saved=null;try{saved=JSON.parse(store?.getItem(KEY)||'null')}catch{}
-    let token,born;
-    if(saved&&Date.now()-saved.at<4*60*1000){token=saved.token;born=saved.at}
-    else{
-      token=newToken();born=Date.now();
-      await setDoc(doc(db,'kidPairRequests',state.uid),{tokenHash:await sha256Hex(token),createdAt:serverTimestamp()});
-      try{store?.setItem(KEY,JSON.stringify({token,at:born}))}catch{}
-    }
-    state.token=token;
-    const url=pairUrl(new URL('./app.html',location.href).href,state.uid,token);
-    drawQr(url);
-    $('emojis').textContent=(await checkEmojis(state.uid,token)).join(' ');
-    const until=new Date(born+PAIR_REFRESH_MS);
-    $('pairInfo').textContent=`このQRは ${until.getHours()}:${String(until.getMinutes()).padStart(2,'0')} に あたらしく なります`;
-    state.pairTimer=setTimeout(()=>{if(state.registered===false)startPair()},Math.max(1000,born+PAIR_REFRESH_MS-Date.now()));
-  }catch(e){
-    console.warn('pair',e?.code);
-    if(e?.code==='permission-denied'){ // 作り直しが早すぎた（端末の保存が消えた等）→ 少し待って自動でやり直す
-      $('pairInfo').textContent='すこし まってね（1ぷんごとに やりなおします）';
-      state.pairTimer=setTimeout(()=>{if(state.registered===false)startPair()},60*1000);return;
-    }
-    fail(navigator.onLine?'とうろくの じゅんびが できませんでした。おうちの ひとに しらせてね。':'インターネットに つながっていません。');
-  }
+function showLogin(text,btn){
+  show('login');setConn('off','ログイン まち');
+  if(text)$('loginText').textContent=text;
+  $('loginBtn').textContent=btn||'Googleで ログイン';
 }
-function drawQr(text){
-  const q=qrcode(0,'M');q.addData(text);q.make();
-  const n=q.getModuleCount(),quiet=4,cell=Math.max(4,Math.floor(600/(n+quiet*2)));
-  const c=$('qr');c.width=c.height=(n+quiet*2)*cell;
-  const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle='#000';
-  for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(q.isDark(r,k))ctx.fillRect((k+quiet)*cell,(r+quiet)*cell,cell,cell);
-  c.dataset.url=text;c.hidden=false;
-}
-
-// 自分の登録（kidDevices/{uid}）を見て、登録・解除に合わせて画面を切り替える
-function watchDevice(){
-  onSnapshot(doc(db,'kidDevices',state.uid),{includeMetadataChanges:true},snap=>{
-    // キャッシュ内の登録状態だけでは伝言を表示しない。起動時・復帰時はサーバー確認を必須にする。
-    if(snap.metadata.fromCache){
-      state.serverAuthorized=false;
-      stopBoard();
-      show('loading');
-      setConn('off','とうろくを かくにんちゅう（インターネットが ひつようです）');
-      return;
-    }
-    const reg=snap.exists(),wasRegistered=state.registered===true;
-    state.serverAuthorized=reg;
-    state.registered=reg;
-    if(reg){
-      if(!wasRegistered || $('board').hidden){
-        try{store?.removeItem('kidsPair:'+state.uid)}catch{}
-        startBoard();
-      }
-      return;
-    }
-    if(wasRegistered){revoked();return}
-    startPair();
-  },e=>{
-    console.warn('device',e?.code);
-    state.serverAuthorized=false;stopBoard();
-    fail('とうろくを かくにんできません。おうちの ひとに しらせてね。');
-  });
-}
+$('loginBtn').addEventListener('click',async()=>{
+  try{if(auth.currentUser)await signOut(auth);await signInWithPopup(auth,provider)}
+  catch(e){console.warn('login',e?.code);if(e?.code!=='auth/popup-closed-by-user'&&e?.code!=='auth/cancelled-popup-request')$('loginText').textContent=navigator.onLine?'ログイン できませんでした。もういちど おしてね。':'インターネットに つながっていません。'}
+});
 
 onAuthStateChanged(auth,async u=>{
-  if(!u){
-    try{await signInAnonymously(auth)}
-    catch(e){console.warn('anon',e?.code);fail(e?.code==='auth/admin-restricted-operation'||e?.code==='auth/operation-not-allowed'
-      ?'じゅんびちゅうです（保護者の方へ：Firebaseで「匿名」ログインを有効にしてください）。'
-      :'インターネットに つながっていません。');}
+  if(!u||u.isAnonymous){
+    stopBoard();state.uid='';
+    if(u)try{await signOut(auth)}catch{}
+    showLogin('「わが家のメモ」の 家族の名簿に ある Googleアカウント（おとうさんか おかあさん）で ログインします。こどもは ログインしなくて だいじょうぶ。');
     return;
   }
-  if(!u.isAnonymous){fail('このページは子ども用です。保護者のアカウントでは使えません。');return}
   if(state.uid===u.uid)return;
-  state.uid=u.uid;watchDevice();
+  state.uid=u.uid;state.email=String(u.email||'');
+  startBoard();
 });
 
 // ==================== タイマー・とうひょう（このタブレットの中だけ。Firebaseには送らない） ====================

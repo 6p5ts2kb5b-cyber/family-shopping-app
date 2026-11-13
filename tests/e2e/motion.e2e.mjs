@@ -133,7 +133,7 @@ for (const reduce of [false, true]) {
   const k = await ctx.newPage(); const errs = []; k.on('pageerror', (e) => errs.push(e.message)); k.on('dialog', (d) => d.accept());
   await k.clock.setFixedTime(new Date(T0));
   await k.goto(BASE + 'kids.html');
-  await k.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('nextAnonUid', 'tabT'); }, seed());
+  await k.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('ownerUid', 'tabT'); sessionStorage.setItem('fakeUser', JSON.stringify({ uid: 'tabT', email: 'tabT@example.com', isAnonymous: false })); }, seed());
   await k.reload(); await k.waitForSelector('#board .kid li.note', { timeout: 10000 }); await k.waitForTimeout(300);
   let L = await log(k);
   ok(reduce ? !has(L, 'm-in') : uniq(L, 'm-in') === 2, `${tag}：でんごんが${reduce ? '動かずに' : '順番にふわっと'}出る`);

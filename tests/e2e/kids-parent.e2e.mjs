@@ -8,7 +8,6 @@ const BASE = 'http://localhost:8790/';
 const SHOTS = process.env.SHOTS || '';
 const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process.exitCode = 1; };
 const b = await chromium.launch();
-const qrUrl = async (page, not = null) => { await page.waitForFunction((n) => { const c = document.getElementById('qr'); return c && !c.hidden && c.dataset.url && c.dataset.url !== n; }, not, { timeout: 10000 }).catch(() => {}); return page.getAttribute('#qr', 'data-url'); };
 const until = (page, sel) => page.waitForSelector(sel, { state: 'visible', timeout: 10000 }).catch(() => {});
 const pad = (n) => String(n).padStart(2, '0');
 const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -59,7 +58,7 @@ async function login(p, uid) {
   // ---- 呼び名（Firebaseの家族設定） ----
   await p.click('.tabs button[data-tab=family]');
   ok(await p.isVisible('#namesMissing'), '呼び名が未設定なら、家族タブで入力を促す');
-  ok(await p.isVisible('#devicesPanel'), '管理者には「子ども用タブレット」の欄が出る');
+  ok(await p.isVisible('#kidsPanel'), '家族タブに「子ども用タブレット」の欄が出る');
   for (const [k, v] of [['husband', 'テスト夫'], ['wife', 'テスト妻'], ['child1', 'テ一'], ['child2', 'テ二'], ['child3', 'テ三']]) await p.fill('#nm_' + k, v);
   await p.click('#namesForm button'); await p.waitForTimeout(300);
   const fs1 = (await DB(p)).familySettings;
@@ -155,50 +154,21 @@ async function login(p, uid) {
   ok((await DB(p)).kidSettings.board.eveningFrom === '15:00', '夕方に切り替える時刻を保存');
   ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), '伝言タブで横にはみ出さない');
 
-  // ---- QR でタブレットを登録 ----
+  // ---- タブレット：家族タブのリンクから、同じログインのまま子ども用の画面へ（QRなし） ----
+  await p.click('.tabs button[data-tab=family]');
+  ok(await p.isVisible('#kidsPanel') && (await p.inputValue('#kidsUrl')).endsWith('/kids.html') && await p.locator('#pairSheet, #devList').count() === 0, '家族タブ：子ども用のページのURLと開くボタン（QR・登録・解除はない）');
   const kid = await ctx.newPage(); const kerrs = []; kid.on('pageerror', (e) => kerrs.push(e.message));
   await kid.clock.setFixedTime(NOW);
   await kid.goto(BASE + 'kids.html');
-  await kid.evaluate(() => { localStorage.removeItem('fakeUser:kids'); for (const k of Object.keys(localStorage)) if (k.startsWith('kidsPair:')) localStorage.removeItem(k); localStorage.setItem('nextAnonUid', 'tabletParent1'); });
-  await kid.reload(); await kid.waitForTimeout(600);
-  const qr = await qrUrl(kid);
-  const kidEmojis = (await kid.textContent('#emojis')).trim();
-  ok(/#pair=tabletParent1\./.test(qr || ''), 'タブレットにQR');
-  await p.goto(qr); await until(p, '#pairChoices button');
-  ok(!p.url().includes('#pair'), 'QRで開いたら、トークンはアドレス欄から消す');
-  ok(await p.isVisible('#pairSheet') && await p.isVisible('#pairBody'), '管理者のスマホに登録の確認画面');
-  const choices = await p.$$eval('#pairChoices button', (x) => x.map((e) => e.textContent));
-  ok(choices.length === 4 && choices.filter((c) => c === kidEmojis).length === 1, `確認の絵：タブレットと同じ絵を4つから選ぶ（${kidEmojis}）`);
-  ok(await p.isHidden('#pairConfirm') && !(await DB(p)).kidDevices?.tabletParent1, 'QRを読んだだけでは登録されない（絵を選び、登録を押す必要がある）');
-  await p.click(`#pairChoices button:text-is("${kidEmojis}")`);
-  ok(await p.isVisible('#pairConfirm'), '正しい絵を選ぶと登録ボタンが出る');
-  if (SHOTS) await p.screenshot({ path: `${SHOTS}/parent-pair.png` });
-  await p.fill('#pairLabel', 'テストのタブレット');
-  await p.click('#pairOk'); await p.waitForSelector('#pairSheet', { state: 'hidden', timeout: 10000 }).catch(() => {}); await until(kid, '#board'); await p.waitForTimeout(300);
-  const d3 = await DB(p);
-  ok(d3.kidDevices?.tabletParent1?.label === 'テストのタブレット' && !d3.kidPairRequests?.tabletParent1, '「登録する」で登録され、申請は消える（1回きり）');
-  ok(await kid.isVisible('#board') && (await kid.textContent('.kid[data-child=child1] h2')).includes('テ一'), 'タブレットが自動で伝言画面になり、呼び名が出る');
-  await p.click('.tabs button[data-tab=family]');
-  ok((await p.textContent('#devList')).includes('テストのタブレット'), '家族タブに登録済みタブレットが出る');
-  // 同じQRをもう一度開く（使用済み）
-  await p.goto(qr); await p.waitForTimeout(800);
-  ok((await p.textContent('#pairMsg')).includes('使用済み') && await p.isHidden('#pairBody'), '使用済みのQRは登録画面に進まない');
-  await p.click('#pairClose');
-  // 解除
-  await p.click('.tabs button[data-tab=family]');
-  await p.click('#devList button:has-text("解除")'); await p.waitForTimeout(600);
-  await until(kid, '#pair'); ok(!(await DB(p)).kidDevices?.tabletParent1 && await kid.isVisible('#pair'), '解除するとタブレットは登録画面に戻る');
-  // 違う絵を選ぶと登録しない
-  const qr2 = await qrUrl(kid, qr);
-  const kidEmojis2 = (await kid.textContent('#emojis')).trim();
-  await p.goto(qr2); await until(p, '#pairChoices button');
-  const wrong = (await p.$$eval('#pairChoices button', (x) => x.map((e) => e.textContent))).find((c) => c !== kidEmojis2);
-  await p.click(`#pairChoices button:text-is("${wrong}")`); await p.waitForTimeout(300);
-  ok(await p.isHidden('#pairSheet') && !(await DB(p)).kidDevices?.tabletParent1, '違う絵を選ぶと登録しない');
-  // 期限切れ（11分後）
-  await p.clock.setFixedTime(new Date(NOW.getTime() + 11 * 60 * 1000));
-  await p.goto(qr2); await p.waitForTimeout(800);
-  ok((await p.textContent('#pairMsg')).includes('期限') && await p.isHidden('#pairBody'), '10分を過ぎたQRは期限切れ');
+  await kid.evaluate((u) => sessionStorage.setItem('fakeUser', u), await p.evaluate(() => sessionStorage.getItem('fakeUser')));   // 同じ端末＝同じログイン
+  await kid.reload(); await until(kid, '#board .kid');
+  ok(await kid.isVisible('#board') && (await kid.textContent('.kid[data-child=child1] h2')).includes('テ一'), '親がログインしたままなら、そのまま伝言画面になり、呼び名が出る');
+  ok(!JSON.stringify(await DB(p)).includes('kidDevices') && !JSON.stringify(await DB(p)).includes('kidPairRequests'), '端末の登録データは作らない');
+  await kid.click('a.parent'); await kid.waitForURL(/app\.html/);
+  ok(/app\.html$/.test(kid.url()), '「おとなの画面へ」で親の画面に戻れる');
+  // 古いQRのリンク（#pair=…）で開いても、登録画面は出ず、アドレス欄から消える
+  await p.goto(BASE + 'app.html#pair=tabletOld1.' + 'x'.repeat(22)); await p.waitForTimeout(600);
+  ok(!p.url().includes('#pair') && await p.locator('#pairSheet').count() === 0, '古いQRのリンクで開いても登録画面は出ない');
   ok(errs.length === 0 && kerrs.length === 0, `JSエラーなし ${[...errs, ...kerrs].join(' | ')}`);
   await ctx.close();
 }
@@ -207,18 +177,19 @@ async function login(p, uid) {
 {
   const ctx = await b.newContext(devices['iPhone SE']);
   await route(ctx);
+  const p = await ctx.newPage();
+  await p.goto(BASE + 'app.html');
+  await p.evaluate((d) => { localStorage.clear(); localStorage.setItem('ownerUid', 'ownerUid1'); localStorage.setItem('fakeDB', JSON.stringify(d)); }, seed());
+  await p.reload();
+  await login(p, 'wifeUid0002'); await p.waitForTimeout(400);
+  await p.click('.tabs button[data-tab=family]');
+  ok(await p.isVisible('#kidsPanel'), '配偶者にも「子ども用タブレット」の欄（ページのリンク）を出す');
   const kid = await ctx.newPage();
   await kid.goto(BASE + 'kids.html');
-  await kid.evaluate((d) => { localStorage.clear(); localStorage.setItem('ownerUid', 'ownerUid1'); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('nextAnonUid', 'tabletWife1'); }, seed());
-  await kid.reload(); await kid.waitForTimeout(600);
-  const qr = await qrUrl(kid);
-  const p = await ctx.newPage();
-  await p.goto(qr); await p.waitForTimeout(500);
-  ok(await p.isVisible('#login') && (await p.textContent('#status')).includes('タブレットの登録'), '未ログインでQRを開くと、ログイン後に登録へ進むと案内');
-  await login(p, 'wifeUid0002'); await p.waitForTimeout(400);
-  ok((await p.textContent('#pairMsg')).includes('管理者だけ') && await p.isHidden('#pairBody'), '配偶者のアカウントでは登録できない（管理者だけ）');
-  await p.click('#pairClose');
-  ok(await p.isHidden('#devicesPanel'), '配偶者には「子ども用タブレット」の欄を出さない');
+  await kid.evaluate((u) => sessionStorage.setItem('fakeUser', u), await p.evaluate(() => sessionStorage.getItem('fakeUser')));
+  await kid.reload(); await until(kid, '#board .kid');
+  ok(await kid.isVisible('#board'), '配偶者のアカウントでもタブレットの伝言画面を使える');
+  await kid.close();
   // 配偶者も伝言は書ける（ルールでも許可）
   await p.click('.tabs button[data-tab=notes]');
   const tabW = await p.$$eval('.tabs button', (x) => Math.min(...x.map((e) => e.getBoundingClientRect().width)));

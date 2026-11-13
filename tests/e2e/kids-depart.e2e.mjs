@@ -27,7 +27,7 @@ const k = await ctx.newPage(); const errs = []; k.on('pageerror', (e) => errs.pu
 const at = async (d) => { await k.clock.setFixedTime(d); await k.waitForTimeout(1300); };
 await k.clock.setFixedTime(THU(7, 5));
 await k.goto(BASE + 'kids.html');
-await k.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('nextAnonUid', 'tabT'); }, seed());
+await k.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('ownerUid', 'tabT'); sessionStorage.setItem('fakeUser', JSON.stringify({ uid: 'tabT', email: 'tabT@example.com', isAnonymous: false })); }, seed());
 await k.reload(); await k.waitForSelector('#board .kid', { timeout: 10000 }); await k.waitForTimeout(1300);
 const dbBefore = await k.evaluate(() => localStorage.getItem('fakeDB'));
 const txt = (id) => k.textContent('#' + id);
@@ -127,7 +127,7 @@ for (const [label, vp] of [['iPad たて', { width: 820, height: 1180 }], ['iPad
   await route(c);
   const p = await c.newPage(); await p.clock.setFixedTime(THU(7, 5));
   await p.goto(BASE + 'kids.html');
-  await p.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('nextAnonUid', 'tabT'); }, seed());
+  await p.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('ownerUid', 'tabT'); sessionStorage.setItem('fakeUser', JSON.stringify({ uid: 'tabT', email: 'tabT@example.com', isAnonymous: false })); }, seed());
   await p.reload(); await p.waitForSelector('#board .kid'); await p.waitForTimeout(1300);
   await p.click('#dSetOpen');
   const r = await p.evaluate(() => {
@@ -154,7 +154,7 @@ for (const [label, vp] of [['iPad たて', { width: 820, height: 1180 }], ['iPad
     await route(c);
     const p = await c.newPage(); await p.clock.setFixedTime(THU(7, 15));
     await p.goto(BASE + 'kids.html');
-    await p.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('nextAnonUid', 'tabT'); }, full());
+    await p.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('ownerUid', 'tabT'); sessionStorage.setItem('fakeUser', JSON.stringify({ uid: 'tabT', email: 'tabT@example.com', isAnonymous: false })); }, full());
     await p.reload(); await p.waitForSelector('#board .kid'); await p.waitForTimeout(1300);
     const r = await p.evaluate(() => ({ fits: document.documentElement.scrollHeight <= innerHeight + 1, dial: document.getElementById('dLeftSvg').getBoundingClientRect().width, vis: !document.getElementById('depart').hidden }));
     ok(r.vis && r.fits && r.dial >= 72, `${label}：伝言と時計が 1画面に おさまる（時計 ${Math.round(r.dial)}px）`);
@@ -165,7 +165,7 @@ for (const [label, vp] of [['iPad たて', { width: 820, height: 1180 }], ['iPad
   await route(c);
   const p = await c.newPage(); await p.clock.setFixedTime(THU(7, 15));
   await p.goto(BASE + 'kids.html');
-  await p.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('nextAnonUid', 'tabT'); }, full());
+  await p.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('ownerUid', 'tabT'); sessionStorage.setItem('fakeUser', JSON.stringify({ uid: 'tabT', email: 'tabT@example.com', isAnonymous: false })); }, full());
   await p.reload(); await p.waitForSelector('#board .kid'); await p.waitForTimeout(1300);
   await p.setViewportSize({ width: 1024, height: 650 }); await p.waitForTimeout(1300);
   ok(await p.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1), 'たて→よこに 向きを変えても 1画面に おさまる');

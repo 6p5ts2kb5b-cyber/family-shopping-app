@@ -93,7 +93,7 @@ for (const [label, opts] of [['iPhone SE', devices['iPhone SE']], ['iPhone 13', 
   const k = await ctx.newPage(); const errs = []; k.on('pageerror', (e) => errs.push(e.message));
   await k.clock.setFixedTime(THU);
   await k.goto(BASE + 'kids.html');
-  await k.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('nextAnonUid', 'tabletW'); }, seed());
+  await k.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('ownerUid', 'tabletW'); sessionStorage.setItem('fakeUser', JSON.stringify({ uid: 'tabletW', email: 'tabletW@example.com', isAnonymous: false })); }, seed());
   for (const [label, when, show] of [['木曜', THU, false], ['金曜', FRI, false], ['土曜', SAT, true], ['日曜', SUN, true], ['月曜', MON, false]]) {
     await k.clock.setFixedTime(when); await k.reload(); await until(k, '#board .kid');
     const c2 = await k.textContent('.kid[data-child=child2]'), c1 = await k.textContent('.kid[data-child=child1]');
