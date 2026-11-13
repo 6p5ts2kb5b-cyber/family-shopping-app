@@ -30,7 +30,7 @@ const k = await ctx.newPage(); const errs = []; k.on('pageerror', (e) => errs.pu
 k.on('dialog', (d) => d.accept());
 await k.clock.setFixedTime(at(0));
 await k.goto(BASE + 'kids.html');
-await k.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('nextAnonUid', 'tabletT'); }, seed());
+await k.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('ownerUid', 'tabletT'); sessionStorage.setItem('fakeUser', JSON.stringify({ uid: 'tabletT', email: 'tabletT@example.com', isAnonymous: false })); }, seed());
 await k.reload(); await until(k, '#board .kid');
 const dbBefore = await k.evaluate(() => localStorage.getItem('fakeDB'));
 
@@ -158,7 +158,7 @@ for (const [label, opts] of [['iPad 縦', { viewport: { width: 820, height: 1180
   const p = await c2.newPage();
   await p.clock.setFixedTime(at(0));
   await p.goto(BASE + 'kids.html');
-  await p.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('nextAnonUid', 'tabletT'); localStorage.setItem('kidsTools', JSON.stringify({ poll: { question: 'テスト', choices: ['いちばん ながい せんたくしの なまえ', 'B', 'C', 'D'], votes: {} } })); }, seed());
+  await p.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('ownerUid', 'tabletT'); sessionStorage.setItem('fakeUser', JSON.stringify({ uid: 'tabletT', email: 'tabletT@example.com', isAnonymous: false })); localStorage.setItem('kidsTools', JSON.stringify({ poll: { question: 'テスト', choices: ['いちばん ながい せんたくしの なまえ', 'B', 'C', 'D'], votes: {} } })); }, seed());
   await p.reload(); await until(p, '#board .kid');
   const noH = () => p.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
   const th = await p.$$eval('.tabs button', (x) => Math.min(...x.map((e) => e.getBoundingClientRect().height)));

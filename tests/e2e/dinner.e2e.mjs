@@ -153,7 +153,7 @@ for (const [label, vp] of [['iPad よこ', { width: 1180, height: 820 }], ['iPad
   const k = await c.newPage(); const kerr = []; k.on('pageerror', (e) => kerr.push(e.message));
   await k.clock.setFixedTime(new Date(2026, 10, 10, 17, 30));   // ゆうがた
   await k.goto(BASE + 'kids.html');
-  await k.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('nextAnonUid', 'tabT'); }, finalDB);
+  await k.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('ownerUid', 'tabT'); sessionStorage.setItem('fakeUser', JSON.stringify({ uid: 'tabT', email: 'tabT@example.com', isAnonymous: false })); }, finalDB);
   await k.reload(); await k.waitForSelector('#board .kid', { timeout: 10000 }); await k.waitForTimeout(600);
   const tabs = await k.$$eval('.tabs button', (x) => x.map((e) => e.textContent.trim()));
   ok(tabs.join() === 'でんごん,タイマー,ごはん,とうひょう', `${label}：「ごはん」のタブ（${tabs.join('・')}）`);
@@ -178,7 +178,7 @@ for (const [label, vp] of [['iPad よこ', { width: 1180, height: 820 }], ['iPad
   const c = await b.newContext({ viewport: { width: 1180, height: 820 }, hasTouch: true, isMobile: true, reducedMotion: 'reduce' }); await route(c);
   const k = await c.newPage(); await k.clock.setFixedTime(new Date(2026, 10, 10, 17, 30));
   await k.goto(BASE + 'kids.html');
-  await k.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeNoDinnerRules', '1'); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('nextAnonUid', 'tabT'); }, finalDB);
+  await k.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeNoDinnerRules', '1'); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('ownerUid', 'tabT'); sessionStorage.setItem('fakeUser', JSON.stringify({ uid: 'tabT', email: 'tabT@example.com', isAnonymous: false })); }, finalDB);
   await k.reload(); await k.waitForSelector('#board .kid', { timeout: 10000 }); await k.waitForTimeout(600);
   ok(await k.isVisible('#cols') && (await k.textContent('#cols')).includes('テストしゅくだい') && await k.isHidden('#tonight'), 'ルールが古くても でんごんは ふつうに出る');
   await k.click('.tabs button[data-tool=menu]');
