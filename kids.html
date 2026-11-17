@@ -107,6 +107,16 @@ button{font:inherit;color:inherit;cursor:pointer}
 .mday.today{border-color:#F4B942;background:#FFF4D6}.mday.today .when{color:#7A5300}
 .tonight{margin:0 0 8px;padding:8px 14px;border-radius:14px;background:#FFF4D6;border:2px solid #F4B942;font-size:clamp(19px,2.5vw,23px);font-weight:800;color:#7A5300}
 .tonight b{color:var(--ink)}
+/* ゆうがたの「きょうの おやすみ」（まんなか・となり・はじっこ。毎日じゅんばんに交代） */
+.bed{margin:0 0 8px;padding:8px 10px 10px;border-radius:16px;background:#ECEEFA;border:3px solid #5560A8}
+.bed .bhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 2px 6px}
+.bed h2{margin:0;font-size:clamp(19px,2.6vw,24px);color:#2F3672}
+.bed .bshift{min-height:44px;padding:0 14px;border-radius:12px;border:2px solid #C9CDEB;background:#fff;color:#2F3672;font-size:16px;font-weight:800}
+.bed ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.bed li{background:#fff;border-radius:12px;border-top:5px solid var(--kc);padding:6px 8px;display:grid;justify-items:center;gap:0;text-align:center;min-width:0}
+.bed li[data-child=child1]{--kc:var(--c1)}.bed li[data-child=child2]{--kc:var(--c2)}.bed li[data-child=child3]{--kc:var(--c3)}
+.bed .spot{font-size:clamp(15px,2vw,19px);font-weight:800;color:#4A4F86}
+.bed .who{font-size:clamp(22px,3.2vw,32px);font-weight:900;color:var(--kc);line-height:1.2;overflow-wrap:anywhere}
 .row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .chip{min-height:52px;padding:0 16px;border-radius:14px;border:3px solid var(--line);background:#fff;font-size:20px;font-weight:800;color:var(--ink)}
 .chip[aria-pressed=true]{border-color:var(--kc,var(--green));background:var(--ks,var(--green-soft));color:var(--kc,var(--green))}
@@ -217,6 +227,10 @@ button{font:inherit;color:inherit;cursor:pointer}
     <button type="button" data-p="evening" aria-pressed="false">🌙 ゆうがた</button>
   </div>
   <p class="tonight" id="tonight" hidden></p>
+  <section class="bed" id="bed" hidden aria-labelledby="bedTitle">
+    <div class="bhead"><h2 id="bedTitle">🛏 きょうの おやすみ</h2><button type="button" class="bshift" id="bedShift" aria-label="おやすみの じゅんばんを 1つ ずらす">⇄ ずらす</button></div>
+    <ol id="bedList"></ol>
+  </section>
   <section class="big" id="paused" hidden><h2>🌈 きょうは おやすみ</h2><p>でんごんは おやすみです。</p></section>
   <div class="cols" id="cols"></div>
   <!-- 朝の「しゅっぱつ まで」（タブレットの中だけ。Firebaseには送らない） -->
@@ -316,7 +330,7 @@ import {firebaseConfig} from "./firebase-config.js?v=20261011-fix2";
 import {CHILD_IDS,boardFor,periodAt,isDone,setDone,pruneDone,toYmd,DEFAULT_EVENING_FROM} from "./lib/kid-notices.js";
 import {daysFrom,menuMap} from "./lib/dinner.js";
 import {installMotion,enableRipple,enter,bump,shake,play,burst,burstAt} from "./lib/motion.js";
-import {normDepart,shiftDepart,departLabel,departState,departPlan,departText,clockAngles,sectorPath,wedgePathCCW,wedgePath as dialWedge,VOTERS,rotationOrder,nextInOrder,clampMinutes,startTimer,pauseTimer,resumeTimer,remainingMs,isRunning,formatClock,shownMs,dialFraction,wedgePath,startPrep,PREP_MIN,createPoll,castVote,tally,winners,pickRandom,MAX_CHOICES,TIMER_DEFAULT} from "./lib/kid-tools.js";
+import {bedOrder,normBedShift,BED_SPOTS,normDepart,shiftDepart,departLabel,departState,departPlan,departText,clockAngles,sectorPath,wedgePathCCW,wedgePath as dialWedge,VOTERS,rotationOrder,nextInOrder,clampMinutes,startTimer,pauseTimer,resumeTimer,remainingMs,isRunning,formatClock,shownMs,dialFraction,wedgePath,startPrep,PREP_MIN,createPoll,castVote,tally,winners,pickRandom,MAX_CHOICES,TIMER_DEFAULT} from "./lib/kid-tools.js";
 
 // 親の app.html と同じログインを使う（タブレットには親のGoogleアカウントでログインしておく。QRでの登録はしない）
 const app=initializeApp(firebaseConfig),auth=getAuth(app),provider=new GoogleAuthProvider();
@@ -408,7 +422,7 @@ function render(){
   // でんごん：はじめは順番にふわっと、あとから届いたものだけポップイン
   departShownKey='';drawDepart();
   if(dinnerUnsub)subDinner(); // 日付が変わったら7日ぶんを読み直す
-  drawTonight();
+  drawTonight();drawBed();
   if(noticesLoaded)enter([...$('cols').querySelectorAll('li.note')].map(li=>[li.dataset.key,li]),seenNotes,notesMotion);
   renderTools();
 }
@@ -440,6 +454,19 @@ function drawTonight(){
   $('tonight').hidden=!show;
   if(show)$('tonight').replaceChildren('🍚 きょうの ゆうごはん：',el('b',{textContent:dish}));
 }
+// ゆうがたは「きょうの おやすみ」：まんなか・となり・はじっこ（毎日じゅんばんに交代。タブレットの中だけ）
+const BED_KEY='kidsBed';
+let bedShift=(()=>{try{return normBedShift(JSON.parse(store?.getItem(BED_KEY)||'null')?.shift)}catch{return 0}})();
+const BED_MARKS=['①','②','③'];
+function drawBed(){
+  const show=currentPeriod()==='evening';
+  $('bed').hidden=!show;if(!show)return;
+  $('bedList').replaceChildren(...bedOrder(toYmd(now()),bedShift).map((c,i)=>{
+    const name=state.names[c]||FALLBACK[c];
+    const li=el('li',{},el('span',{className:'spot',textContent:`${BED_MARKS[i]} ${BED_SPOTS[i]}`}),el('span',{className:'who',textContent:name}));
+    li.dataset.child=c;li.setAttribute('aria-label',`${BED_SPOTS[i]}：${name}`);return li}));
+}
+$('bedShift').addEventListener('click',()=>{bedShift=normBedShift(bedShift+1);try{store?.setItem(BED_KEY,JSON.stringify({shift:bedShift}))}catch{}drawBed()});
 function syncState(snap){
   if(!navigator.onLine||snap.metadata?.fromCache)setConn('off',state.lastSync?`オフライン（${state.lastSync} の でんごん）`:'オフライン');
   else{const d=now();state.lastSync=`${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;setConn('ok','つながっています')}

@@ -3,6 +3,7 @@
 // SHOTS=フォルダ を指定するとスクリーンショットを保存
 import { chromium, devices } from 'playwright';
 import fs from 'fs';
+import { bedOrder } from '../../lib/kid-tools.js';
 
 const F = new URL('./fake-firebase', import.meta.url).pathname;
 const BASE = 'http://localhost:8790/';
@@ -108,6 +109,27 @@ const colText = (p, c) => p.textContent(`.kid[data-child=${c}]`);
   // ---- 朝／夕方 ----
   await kid.click('.period button[data-p=evening]');
   ok((await colText(kid, 'child2')).includes('テスト宿題') && !(await colText(kid, 'child2')).includes('テスト水筒'), '「ゆうがた」に手で切り替えられる');
+  // ---- きょうの おやすみ（まんなか・となり・はじっこ。毎日交代・タブレットの中だけ） ----
+  {
+    const NM = { child1: 'テスト一', child2: 'テスト二', child3: 'テスト三' };
+    const exp = (shift) => bedOrder(ymd(THU), shift).map((c, i) => `${['まんなか', 'となり', 'はじっこ'][i]}：${NM[c]}`).join();
+    const got = () => kid.$$eval('#bedList li', (x) => x.map((e) => e.getAttribute('aria-label')).join());
+    ok(await kid.isVisible('#bed') && await got() === exp(0), `ゆうがた：「きょうの おやすみ」に まんなか・となり・はじっこ と呼び名（${await got()}）`);
+    ok((await kid.textContent('#bedList')).includes('① まんなか') && (await kid.textContent('#bedList')).includes('③ はじっこ'), '①まんなか ②となり ③はじっこ の順');
+    const before2 = JSON.stringify(await db(kid));
+    await kid.click('#bedShift');
+    ok(await got() === exp(1) && JSON.stringify(await db(kid)) === before2, '「ずらす」で1つずれ、Firestoreには書き込まない');
+    await kid.reload(); await kid.waitForTimeout(600); await kid.click('.period button[data-p=evening]');
+    ok(await got() === exp(1), 'ずらした じゅんばんは再読み込みしても残る（端末内）');
+    await kid.click('#bedShift'); await kid.click('#bedShift');
+    ok(await got() === exp(0), '3回で元に戻る');
+    const bb = await kid.$eval('#bedShift', (e) => e.getBoundingClientRect().height);
+    ok(bb >= 44, `「ずらす」が押しやすい（${Math.round(bb)}px）`);
+    if (SHOTS) await kid.screenshot({ path: `${SHOTS}/kids-bed.png` });
+    await kid.click('.period button[data-p=morning]');
+    ok(await kid.isHidden('#bed'), 'あさは「おやすみ」を出さない');
+    await kid.click('.period button[data-p=evening]');
+  }
   await kid.clock.setFixedTime(new Date(2026, 9, 15, 12, 30)); await kid.reload(); await kid.waitForTimeout(600);
   ok(await kid.getAttribute('.period button[data-p=evening]', 'aria-pressed') === 'true', '12:30 は自動で「ゆうがた」（初期値12:00）');
   await parent.evaluate(() => { const d = JSON.parse(localStorage.getItem('fakeDB')); d.kidSettings.board.eveningFrom = '15:00'; localStorage.setItem('fakeDB', JSON.stringify(d)); });
