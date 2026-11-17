@@ -137,16 +137,19 @@ test('しゅっぱつ：子どもごとの時刻', async () => {
   assert.equal(normDepart({ times: { child2: '11:00' } }).times.child2, '10:00');   // はんいの外は 収める
 });
 
-test('おやすみの場所：毎日じゅんばんに交代（まんなか→となり→はじっこ→まんなか）', async () => {
+test('おやすみの場所：①はじっこ ②まんなか ③となり。毎日じゅんばんに交代（まんなか→となり→はじっこ→まんなか）', async () => {
   const { bedOrder, normBedShift, BED_SPOTS } = await import('../lib/kid-tools.js');
-  assert.deepEqual([...BED_SPOTS], ['まんなか', 'となり', 'はじっこ']);
+  assert.deepEqual([...BED_SPOTS], ['はじっこ', 'まんなか', 'となり']);
   const days = ['2026-11-17', '2026-11-18', '2026-11-19', '2026-11-20'];
   const o = days.map((d) => bedOrder(d));
-  for (const x of o) assert.deepEqual([...x].sort(), ['child1', 'child2', 'child3']);   // 毎日3人が1つずつ
-  const mid = o[0][0];
-  assert.equal(o[1][1], mid); assert.equal(o[2][2], mid); assert.equal(o[3][0], mid);  // 今日まんなか→明日となり→あさってはじっこ→まんなか
-  assert.deepEqual(bedOrder('2026-12-31'), bedOrder('2027-01-03'));                    // 月・年をまたいでも3日ごと
-  assert.deepEqual(bedOrder(days[0], 1), o[1]);                                        // ずらす＝1日ぶん進む
+  const spotOf = (x, c) => BED_SPOTS[x.indexOf(c)];
+  for (const x of o) assert.deepEqual([...x].sort(), ['child1', 'child2', 'child3']);
+  // 2026-11-17 は 子ども2がまんなか・子ども3がとなり・子ども1がはじっこ（並び替える前と同じ）
+  assert.deepEqual(o[0], ['child1', 'child2', 'child3']);
+  const mid = o[0][1];
+  assert.deepEqual([0, 1, 2, 3].map((i) => spotOf(o[i], mid)), ['まんなか', 'となり', 'はじっこ', 'まんなか']);
+  assert.deepEqual(bedOrder('2026-12-31'), bedOrder('2027-01-03'));
+  assert.deepEqual(bedOrder(days[0], 1), o[1]);
   assert.deepEqual(bedOrder(days[0], 3), o[0]);
   assert.equal(normBedShift(4), 1); assert.equal(normBedShift(-1), 2); assert.equal(normBedShift('x'), 0); assert.equal(normBedShift(null), 0);
 });
