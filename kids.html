@@ -107,7 +107,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .mday.today{border-color:#F4B942;background:#FFF4D6}.mday.today .when{color:#7A5300}
 .tonight{margin:0 0 8px;padding:8px 14px;border-radius:14px;background:#FFF4D6;border:2px solid #F4B942;font-size:clamp(19px,2.5vw,23px);font-weight:800;color:#7A5300}
 .tonight b{color:var(--ink)}
-/* ゆうがたの「きょうの おやすみ」（まんなか・となり・はじっこ。毎日じゅんばんに交代） */
+/* ゆうがたの「きょうの おやすみ」（①はじっこ ②まんなか ③となり。毎日じゅんばんに交代） */
 .bed{margin:0 0 8px;padding:8px 10px 10px;border-radius:16px;background:#ECEEFA;border:3px solid #5560A8}
 .bed .bhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 2px 6px}
 .bed h2{margin:0;font-size:clamp(19px,2.6vw,24px);color:#2F3672}
@@ -454,7 +454,7 @@ function drawTonight(){
   $('tonight').hidden=!show;
   if(show)$('tonight').replaceChildren('🍚 きょうの ゆうごはん：',el('b',{textContent:dish}));
 }
-// ゆうがたは「きょうの おやすみ」：まんなか・となり・はじっこ（毎日じゅんばんに交代。タブレットの中だけ）
+// ゆうがたは「きょうの おやすみ」：①はじっこ ②まんなか ③となり（毎日じゅんばんに交代。タブレットの中だけ）
 const BED_KEY='kidsBed';
 let bedShift=(()=>{try{return normBedShift(JSON.parse(store?.getItem(BED_KEY)||'null')?.shift)}catch{return 0}})();
 const BED_MARKS=['①','②','③'];

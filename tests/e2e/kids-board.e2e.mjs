@@ -112,10 +112,10 @@ const colText = (p, c) => p.textContent(`.kid[data-child=${c}]`);
   // ---- きょうの おやすみ（まんなか・となり・はじっこ。毎日交代・タブレットの中だけ） ----
   {
     const NM = { child1: 'テスト一', child2: 'テスト二', child3: 'テスト三' };
-    const exp = (shift) => bedOrder(ymd(THU), shift).map((c, i) => `${['まんなか', 'となり', 'はじっこ'][i]}：${NM[c]}`).join();
+    const exp = (shift) => bedOrder(ymd(THU), shift).map((c, i) => `${['はじっこ', 'まんなか', 'となり'][i]}：${NM[c]}`).join();
     const got = () => kid.$$eval('#bedList li', (x) => x.map((e) => e.getAttribute('aria-label')).join());
-    ok(await kid.isVisible('#bed') && await got() === exp(0), `ゆうがた：「きょうの おやすみ」に まんなか・となり・はじっこ と呼び名（${await got()}）`);
-    ok((await kid.textContent('#bedList')).includes('① まんなか') && (await kid.textContent('#bedList')).includes('③ はじっこ'), '①まんなか ②となり ③はじっこ の順');
+    ok(await kid.isVisible('#bed') && await got() === exp(0), `ゆうがた：「きょうの おやすみ」に はじっこ・まんなか・となり と呼び名（${await got()}）`);
+    ok((await kid.textContent('#bedList')).replace(/[^①②③はじっこまんなかとり]/g, '').startsWith('①はじっこ') && (await kid.textContent('#bedList')).includes('② まんなか') && (await kid.textContent('#bedList')).includes('③ となり'), '①はじっこ ②まんなか ③となり の順');
     const before2 = JSON.stringify(await db(kid));
     await kid.click('#bedShift');
     ok(await got() === exp(1) && JSON.stringify(await db(kid)) === before2, '「ずらす」で1つずれ、Firestoreには書き込まない');
