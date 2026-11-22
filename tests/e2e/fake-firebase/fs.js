@@ -25,6 +25,8 @@ function allowed(appName,kind,col,id){
   if(localStorage.getItem('fakeNoKidRules')&&(col.startsWith('kid')||col==='familySettings'))return false;
   // fakeNoDinnerRules＝献立のルールがまだ無い状態
   if(localStorage.getItem('fakeNoDinnerRules')&&col.startsWith('dinner'))return false;
+  // fakeNoOutingRules＝しおりのルールがまだ無い状態
+  if(localStorage.getItem('fakeNoOutingRules')&&col.startsWith('outing'))return false;
   switch(col){
     case 'shoppingItems':case 'shoppingFavorites':case 'familySchedules':return fam;
     case 'familyMembers':return R?fam:own;
@@ -32,6 +34,7 @@ function allowed(appName,kind,col,id){
     case 'kidTemplates':return fam;
     case 'dinnerMenus':return R?fam||dev:fam;
     case 'dinnerDishes':return fam;
+    case 'outings':case 'outingChecks':case 'outingPhotos':return fam;
     case 'kidSettings':return id==='board'&&(R?fam||dev:fam);
     case 'familySettings':return R?(id==='children'&&(fam||dev))||(id==='parents'&&fam):fam&&(id==='children'||id==='parents');
     case 'kidDevices':return R?fam||self:own;
