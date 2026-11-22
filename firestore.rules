@@ -200,6 +200,52 @@ service cloud.firestore {
         && request.resource.data.order is int
         && request.resource.data.order >= 0 && request.resource.data.order <= 9999;
     }
+    // ---------- おでかけのしおり ----------
+    // しおり本体・持ち物のチェック・表紙の写真：家族だけが読み書き（タブレットも家族のアカウントで使う）
+    function outingStr(s, max) {
+      return s is string && s.size() <= max;
+    }
+    match /outings/{outingId} {
+      allow read, delete: if family();
+      allow create, update: if family()
+        && outingId.matches('^[A-Za-z0-9_-]{1,40}$')
+        && request.resource.data.keys().hasAll(['title', 'date', 'endDate', 'place', 'address', 'theme', 'hasPhoto', 'steps', 'items', 'ticket', 'emergency', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['title', 'date', 'endDate', 'place', 'address', 'theme', 'hasPhoto', 'steps', 'items', 'ticket', 'emergency', 'updatedAt'])
+        && validKidText(request.resource.data.title, 40)
+        && validYmd(request.resource.data.date)
+        && (request.resource.data.endDate == '' || (validYmd(request.resource.data.endDate) && request.resource.data.endDate > request.resource.data.date))
+        && outingStr(request.resource.data.place, 80)
+        && outingStr(request.resource.data.address, 120)
+        && request.resource.data.theme in ['auto', 'zoo', 'sea', 'nature', 'park', 'plain']
+        && request.resource.data.hasPhoto is bool
+        && request.resource.data.steps is list && request.resource.data.steps.size() <= 40
+        && request.resource.data.items is list && request.resource.data.items.size() <= 120
+        && request.resource.data.ticket is map && request.resource.data.ticket.keys().hasOnly(['ref', 'fee', 'budget'])
+        && request.resource.data.emergency is map && request.resource.data.emergency.keys().hasOnly(['meet', 'rain', 'hospital'])
+        && request.resource.data.updatedAt == request.time;
+    }
+    match /outingChecks/{checkId} {
+      allow read, delete: if family();
+      allow create, update: if family()
+        && checkId.matches('^[A-Za-z0-9_-]{1,40}__[A-Za-z0-9_-]{1,40}$')
+        && request.resource.data.keys().hasAll(['outing', 'item', 'done', 'by', 'at'])
+        && request.resource.data.keys().hasOnly(['outing', 'item', 'done', 'by', 'at'])
+        && checkId == request.resource.data.outing + '__' + request.resource.data.item
+        && request.resource.data.done is bool
+        && outingStr(request.resource.data.by, 40)
+        && request.resource.data.at == request.time;
+    }
+    match /outingPhotos/{outingId} {
+      allow read, delete: if family();
+      allow create, update: if family()
+        && outingId.matches('^[A-Za-z0-9_-]{1,40}$')
+        && request.resource.data.keys().hasAll(['data', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['data', 'updatedAt'])
+        && request.resource.data.data is string
+        && request.resource.data.data.size() <= 600000
+        && request.resource.data.data.matches('data:image/jpeg;base64,[A-Za-z0-9+/=]+')
+        && request.resource.data.updatedAt == request.time;
+    }
     match /{document=**} {
       allow read, write: if false;
     }

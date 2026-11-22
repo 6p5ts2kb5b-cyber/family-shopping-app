@@ -374,3 +374,60 @@ test('献立：登録済みタブレットは献立を読めるだけ（一覧�
   await assertFails(getDoc(doc(anon(), 'dinnerMenus/2026-11-10')));
   await assertFails(getDocs(collection(wife(false), 'dinnerDishes')));
 });
+
+// ==================== おでかけのしおり ====================
+const outing = (o = {}) => ({ title: 'テスト動物園の日', date: '2026-11-29', endDate: '', place: 'テスト動物園', address: '', theme: 'auto', hasPhoto: false,
+  steps: [{ id: 's1', kind: 'train', time: '08:21', text: '', from: 'テストA駅', to: 'テストB駅', arr: '08:44', line: 'テスト線', track: '3' }],
+  items: [{ id: 'i1', who: 'child1', text: 'すいとう' }], ticket: { ref: '', fee: '', budget: '' }, emergency: { meet: '', rain: '', hospital: '' }, updatedAt: serverTimestamp(), ...o });
+const check = (o = {}) => ({ outing: 'o1', item: 'i1', done: true, by: 'child1', at: serverTimestamp(), ...o });
+const JPEG = 'data:image/jpeg;base64,' + 'A'.repeat(1000);
+
+test('しおり：管理者と名簿の妻は、しおり・チェック・写真を読み書きできる', async () => {
+  for (const db of [owner(), wife()]) {
+    await assertSucceeds(setDoc(doc(db, 'outings/o1'), outing()));
+    await assertSucceeds(getDoc(doc(db, 'outings/o1')));
+    await assertSucceeds(getDocs(collection(db, 'outings')));
+    await assertSucceeds(setDoc(doc(db, 'outingChecks/o1__i1'), check()));
+    await assertSucceeds(setDoc(doc(db, 'outingChecks/o1__i1'), check({ done: false, by: 'p:owner' })));
+    await assertSucceeds(getDocs(collection(db, 'outingChecks')));
+    await assertSucceeds(setDoc(doc(db, 'outingPhotos/o1'), { data: JPEG, updatedAt: serverTimestamp() }));
+    await assertSucceeds(getDoc(doc(db, 'outingPhotos/o1')));
+    await assertSucceeds(setDoc(doc(db, 'outings/o2'), outing({ endDate: '2026-11-30', theme: 'zoo', hasPhoto: true })));
+    await assertSucceeds(deleteDoc(doc(db, 'outingPhotos/o1')));
+    await assertSucceeds(deleteDoc(doc(db, 'outingChecks/o1__i1')));
+    await assertSucceeds(deleteDoc(doc(db, 'outings/o1')));
+    await assertSucceeds(deleteDoc(doc(db, 'outings/o2')));
+  }
+});
+test('しおり：名簿外・メール未確認・未ログイン・匿名端末は読めない・書けない', async () => {
+  await seed('outings/o1', { ...outing(), updatedAt: Timestamp.now() });
+  await seed('outingChecks/o1__i1', { ...check(), at: Timestamp.now() });
+  await seed('outingPhotos/o1', { data: JPEG, updatedAt: Timestamp.now() });
+  await registerDevice();
+  for (const db of [stranger(), wife(false), anon(), tablet()]) {
+    await assertFails(getDoc(doc(db, 'outings/o1')));
+    await assertFails(getDocs(collection(db, 'outingChecks')));
+    await assertFails(getDoc(doc(db, 'outingPhotos/o1')));
+    await assertFails(setDoc(doc(db, 'outings/o3'), outing()));
+    await assertFails(setDoc(doc(db, 'outingChecks/o1__i1'), check()));
+  }
+});
+test('しおり：形のおかしいデータは拒否', async () => {
+  const db = owner();
+  await assertFails(setDoc(doc(db, 'outings/o1'), outing({ title: '' })));
+  await assertFails(setDoc(doc(db, 'outings/o1'), outing({ title: 'あ'.repeat(41) })));
+  await assertFails(setDoc(doc(db, 'outings/o1'), outing({ date: '11/29' })));
+  await assertFails(setDoc(doc(db, 'outings/o1'), outing({ endDate: '2026-11-28' })));       // はじめの日より前
+  await assertFails(setDoc(doc(db, 'outings/o1'), outing({ theme: 'space' })));
+  await assertFails(setDoc(doc(db, 'outings/o1'), outing({ steps: Array.from({ length: 41 }, () => ({})) })));
+  await assertFails(setDoc(doc(db, 'outings/o1'), outing({ ticket: { ref: '', x: 1 } })));
+  await assertFails(setDoc(doc(db, 'outings/o1'), outing({ extra: 1 })));
+  await assertFails(setDoc(doc(db, 'outings/o1'), outing({ updatedAt: Timestamp.fromMillis(1) })));
+  await assertFails(setDoc(doc(db, 'outings/bad id'), outing()));
+  await assertFails(setDoc(doc(db, 'outingChecks/o1__i2'), check()));                        // 文書IDと中身がちがう
+  await assertFails(setDoc(doc(db, 'outingChecks/o1__i1'), check({ done: 'yes' })));
+  await assertFails(setDoc(doc(db, 'outingChecks/o1__i1'), check({ extra: 1 })));
+  await assertFails(setDoc(doc(db, 'outingPhotos/o1'), { data: 'data:image/png;base64,AAAA', updatedAt: serverTimestamp() }));
+  await assertFails(setDoc(doc(db, 'outingPhotos/o1'), { data: 'data:image/jpeg;base64,' + 'A'.repeat(600000), updatedAt: serverTimestamp() }));
+  await assertFails(setDoc(doc(db, 'outingPhotos/o1'), { data: JPEG, updatedAt: serverTimestamp(), extra: 1 }));
+});
