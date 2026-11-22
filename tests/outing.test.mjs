@@ -40,7 +40,7 @@ test('予定の流れ：時刻の順・電車の書き方・地図', () => {
   assert.deepEqual(st.map((s) => s.text), ['a', 'b', 'c']);
   const tr = cleanStep({ kind: 'train', time: '08:21', arr: '08:44', from: 'テストA駅', to: 'テストB駅', line: 'テスト線', track: '3', text: '' });
   assert.equal(stepTitle(tr), '電車　テストA駅 → テストB駅');
-  assert.equal(stepDetail(tr), 'テスト線・3番線　08:21 発 → 08:44 着');
+  assert.equal(stepDetail(tr), 'テスト線・3番線　8:21 発 → 8:44 着');
   assert.equal(stepKids(tr), 'でんしゃ（テストB駅 まで）');
   assert.equal(cleanStep({ kind: 'plan', text: '  ' }), null);
   assert.equal(cleanStep({ kind: 'plan', time: '25:00', text: 'x', from: 'y' }).time, '');
@@ -86,7 +86,7 @@ test('送る文章：行き先・流れ・持ち物（チェック）・もし�
   const t = shareText(o, { child1: 'テ一' }, { i1: { done: true } });
   assert.match(t, /【おでかけのしおり】テスト動物園の日/);
   assert.match(t, /2026年11月29日（日）（日帰り）/);
-  assert.match(t, /08:21　電車　テストA駅 → テストB駅/);
+  assert.match(t, /8:21　電車　テストA駅 → テストB駅/);
   assert.match(t, /テ一：✓すいとう/);
   assert.match(t, /はぐれたら：テスト入口/);
 });

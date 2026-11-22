@@ -156,7 +156,7 @@ for (const [label, vp] of [['iPad よこ', { width: 1180, height: 820 }], ['iPad
   await k.evaluate((d) => { localStorage.clear(); localStorage.setItem('fakeDB', JSON.stringify(d)); localStorage.setItem('ownerUid', 'tabT'); sessionStorage.setItem('fakeUser', JSON.stringify({ uid: 'tabT', email: 'tabT@example.com', isAnonymous: false })); }, finalDB);
   await k.reload(); await k.waitForSelector('#board .kid', { timeout: 10000 }); await k.waitForTimeout(600);
   const tabs = await k.$$eval('.tabs button', (x) => x.map((e) => e.textContent.trim()));
-  ok(tabs.join() === 'でんごん,タイマー,ごはん,とうひょう', `${label}：「ごはん」のタブ（${tabs.join('・')}）`);
+  ok(tabs.join() === 'でんごん,タイマー,ごはん,おでかけ,とうひょう', `${label}：「ごはん」のタブ（${tabs.join('・')}）`);
   ok(await k.isVisible('#tonight') && (await k.textContent('#tonight')).includes('テストカレー'), `${label}：ゆうがたの でんごんに「きょうの ゆうごはん：テストカレー」`);
   await k.click('.tabs button[data-tool=menu]');
   const cards = await k.$$eval('#menuWeek .mday', (x) => x.map((e) => e.textContent));
